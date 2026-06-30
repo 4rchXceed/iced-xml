@@ -1,28 +1,41 @@
+use iced::{Background, Border, Shadow, widget::text};
 
-use iced::{Background, Border, Shadow, Vector, border::Radius};
-
-use crate::{Message, logger::fatal, xml_struct::{elements::{ElementRenderer, element_base::ElementBase}, parser::{XmlElement, XmlTheme}}};
+use crate::{
+    logger::fatal,
+    xml_engine::Message,
+    xml_struct::{
+        elements::{ElementRenderer, EventListener, element_base::ElementBase},
+        parser::{XmlChangeEvent, XmlElement, XmlTheme, gen_styles},
+    },
+};
 
 pub struct Button {
     children: Vec<i32>,
-    theme: XmlTheme
+    theme: XmlTheme,
+    text: Option<String>,
 }
 
 impl ElementBase for Button {
     fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer) -> Self {
         if !xml_element.text.is_empty() {
             if xml_element.children.is_empty() {
-                let mut children: Vec<i32> = Vec::new();
-                children.push(renderer.init_element(&XmlElement { tag: "Label".to_string(), attributes: Vec::new(), text: xml_element.text.clone(), children: Vec::new(), theme: xml_element.theme.clone() })); // Auto-create Label element
-               Self {
-                   children: children,
-                   theme: xml_element.theme.clone()
-                }
-            } else {
-                fatal(format!("Button with text cannot have children: {}", xml_element.text).as_str());
                 Self {
                     children: Vec::new(),
-                    theme: xml_element.theme.clone()
+                    theme: xml_element.theme.clone(),
+                    text: Some(xml_element.text.clone()),
+                }
+            } else {
+                fatal(
+                    format!(
+                        "Button with text cannot have children: {}",
+                        xml_element.text
+                    )
+                    .as_str(),
+                );
+                Self {
+                    children: Vec::new(),
+                    theme: xml_element.theme.clone(),
+                    text: None,
                 }
             }
         } else {
@@ -31,22 +44,31 @@ impl ElementBase for Button {
                 children.push(renderer.init_element(child));
             }
             Self {
-                children,
-                theme: xml_element.theme.clone()
+                children: children,
+                theme: xml_element.theme.clone(),
+                text: None,
             }
         }
     }
-    fn render<'a>(&self, renderer: &'a ElementRenderer) -> iced::Element<'a, Message> {
-        let mut container: iced::widget::Column<'a, Message> = iced::widget::Column::new();
+    fn render<'a>(
+        &self,
+        renderer: &'a ElementRenderer,
+        events: Vec<&'a EventListener>,
+    ) -> iced::Element<'a, Message> {
+        let mut button_child: iced::widget::Column<'a, Message> = iced::widget::Column::new();
         for child in &self.children {
-            container = container.push(renderer.render_element(*child));
+            button_child = button_child.push(renderer.render_element(*child));
         }
 
-        let button: iced::widget::Button<'a, Message> = iced::widget::Button::new(container);
+        let mut button: iced::widget::Button<'a, Message> = iced::widget::Button::new(button_child);
+
+        if self.text.is_some() {
+            button = iced::widget::Button::new(text(self.text.clone().unwrap()));
+        }
 
         let theme = self.theme.clone();
 
-        let button = button.style(move |_, _| iced::widget::button::Style {
+        let mut button = button.style(move |_, _| iced::widget::button::Style {
             background: Some(Background::Color(theme.background_color)),
             text_color: theme.text_color,
             border: Border {
@@ -55,7 +77,7 @@ impl ElementBase for Button {
                 width: theme.border_width,
                 ..Border::default()
             },
-            shadow:  Shadow {
+            shadow: Shadow {
                 color: theme.shadow_color,
                 blur_radius: theme.shadow_blur_radius,
                 offset: theme.shadow_offset,
@@ -65,6 +87,27 @@ impl ElementBase for Button {
             ..Default::default()
         });
 
+        for event in events {
+            match event.event_type.as_str() {
+                "click" => {
+                    button = button.on_press(Message::DomEvent(event.event_uid));
+                }
+                _ => (),
+            }
+        }
+
         return button.into();
+    }
+
+    fn process_event(&mut self, event: &XmlChangeEvent) {
+        match event {
+            XmlChangeEvent::StyleChange(key, value) => gen_styles(key, value, &mut self.theme),
+            XmlChangeEvent::PropertyChange(property, new_val) => {
+                match property.as_str() {
+                    "text" => self.text = Some(new_val.clone()),
+                    _ => (),
+                };
+            }
+        }
     }
 }

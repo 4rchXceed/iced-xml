@@ -1,8 +1,14 @@
-
-use crate::{Message, xml_struct::{elements::{ElementRenderer, element_base::ElementBase}, parser::{XmlElement, XmlTheme}}};
+use crate::{
+    xml_engine::Message,
+    xml_struct::{
+        elements::{ElementRenderer, EventListener, element_base::ElementBase},
+        parser::{XmlChangeEvent, XmlElement, XmlTheme, gen_styles},
+    },
+};
 
 pub struct Container {
     children: Vec<i32>,
+    theme: XmlTheme,
 }
 
 impl ElementBase for Container {
@@ -12,11 +18,16 @@ impl ElementBase for Container {
             children.push(renderer.init_element(child));
         }
         Self {
-            children,
+            children: children,
+            theme: xml_element.theme.clone(),
         }
     }
 
-    fn render<'a>(&self, renderer: &'a ElementRenderer) -> iced::Element<'a, Message> {
+    fn render<'a>(
+        &self,
+        renderer: &'a ElementRenderer,
+        _: Vec<&'a EventListener>,
+    ) -> iced::Element<'a, Message> {
         let mut container: iced::widget::Column<'a, Message> = iced::widget::Column::new();
 
         for child in &self.children {
@@ -26,5 +37,12 @@ impl ElementBase for Container {
         // Column doesn't have theming. TODO: Add a parent container that actually supports theming.
 
         return container.into();
+    }
+
+    fn process_event(&mut self, event: &XmlChangeEvent) {
+        match event {
+            XmlChangeEvent::StyleChange(key, value) => gen_styles(key, value, &mut self.theme),
+            _ => (),
+        }
     }
 }

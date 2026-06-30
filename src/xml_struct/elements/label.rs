@@ -1,10 +1,17 @@
 use iced::widget::text;
 
-use crate::{Message, logger::fatal, xml_struct::{elements::{ElementRenderer, element_base::ElementBase}, parser::{XmlElement, XmlTheme}}};
+use crate::{
+    logger::fatal,
+    xml_engine::Message,
+    xml_struct::{
+        elements::{ElementRenderer, EventListener, element_base::ElementBase},
+        parser::{XmlChangeEvent, XmlElement, XmlTheme, gen_styles},
+    },
+};
 
 pub struct Label {
     text: String,
-    theme: XmlTheme
+    theme: XmlTheme,
 }
 
 impl ElementBase for Label {
@@ -18,7 +25,11 @@ impl ElementBase for Label {
         }
     }
 
-    fn render<'a>(&self, _: &'a ElementRenderer) -> iced::Element<'a, Message> {
+    fn render<'a>(
+        &self,
+        _: &'a ElementRenderer,
+        _: Vec<&'a EventListener>,
+    ) -> iced::Element<'a, Message> {
         let text_element = text(self.text.clone());
 
         // Theming
@@ -29,5 +40,17 @@ impl ElementBase for Label {
         });
 
         return text_element.into();
+    }
+
+    fn process_event(&mut self, event: &XmlChangeEvent) {
+        match event {
+            XmlChangeEvent::StyleChange(key, value) => gen_styles(key, value, &mut self.theme),
+            XmlChangeEvent::PropertyChange(property, new_val) => {
+                match property.as_str() {
+                    "text" => self.text = new_val.clone(),
+                    _ => (),
+                };
+            }
+        }
     }
 }

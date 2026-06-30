@@ -1,6 +1,17 @@
-use crate::{Message, xml_struct::{elements::ElementRenderer, parser::XmlElement}};
+use crate::{
+    xml_engine::Message,
+    xml_struct::{
+        elements::{ElementRenderer, EventListener},
+        parser::{XmlChangeEvent, XmlElement},
+    },
+};
 
 pub trait ElementBase {
     fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer) -> Self;
-    fn render<'a>(&self, renderer: &'a ElementRenderer) -> iced::Element<'a, Message>;
+    fn render<'a>(
+        &self,
+        renderer: &'a ElementRenderer,
+        events: Vec<&'a EventListener>,
+    ) -> iced::Element<'a, Message>;
+    fn process_event(&mut self, event: &XmlChangeEvent);
 }

@@ -1,7 +1,8 @@
 <Window>
     <Div bg="black" fg="white">
-        <Label fg="red">Hello, World!</Label>
+        <Label id="main-lbl" fg="red">Hello, World!</Label>
         <Button
+            id="btn-click-me"
             shadow_color="red"
             shadow_blur="5"
             shadow_offset="5,5"

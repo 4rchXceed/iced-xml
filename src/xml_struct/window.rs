@@ -1,12 +1,14 @@
-
-
-use crate::{Message, logger::fatal, xml_struct::{elements::{ElementRenderer}, parser::XmlElement}};
+use crate::{
+    logger::fatal,
+    xml_engine::Message,
+    xml_struct::{elements::ElementRenderer, parser::XmlElement},
+};
 
 pub struct XmlWindow {
     title: String,
-    element_renderer: ElementRenderer,
     root: XmlElement,
-    root_uid: i32
+    root_uid: i32,
+    pub element_renderer: ElementRenderer,
 }
 
 impl XmlWindow {
@@ -17,10 +19,21 @@ impl XmlWindow {
         let mut element_renderer = ElementRenderer::new();
         let uid = element_renderer.init_element(&root);
 
-        Self { title: String::new(), element_renderer: element_renderer, root: root, root_uid: uid }
+        Self {
+            title: String::new(),
+            root: root,
+            root_uid: uid,
+            element_renderer: element_renderer,
+        }
     }
 
     pub fn render(&self) -> iced::Element<'_, Message> {
         return self.element_renderer.render_element(self.root_uid).into();
+    }
+
+    pub fn emit_event(&mut self, event_uid: i32) {
+        for event_listener in self.element_renderer.event_listeners.iter_mut() {
+            if event_listener.event_uid == event_uid {}
+        }
     }
 }

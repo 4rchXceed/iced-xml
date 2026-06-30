@@ -1,9 +1,17 @@
-use std::{io::Cursor};
+use std::io::Cursor;
 
 use iced::{Color, Vector, border::Radius};
 use quick_xml::{Reader, events::Event};
 
-use crate::{logger::fatal, utilsfn::{parse_color, parse_radius, parse_vector}};
+use crate::{
+    logger::fatal,
+    utilsfn::{parse_color, parse_radius, parse_vector},
+};
+
+pub enum XmlChangeEvent {
+    StyleChange(String, String),    // k => v
+    PropertyChange(String, String), // k => v
+}
 
 #[derive(Debug, Clone)]
 pub struct XmlElement {
@@ -12,6 +20,8 @@ pub struct XmlElement {
     pub text: String,
     pub children: Vec<XmlElement>,
     pub theme: XmlTheme,
+    pub id: Option<String>,
+    pub classes: Vec<String>,
 }
 
 // impl XmlElement {
@@ -79,7 +89,7 @@ pub struct XmlParser {
     pub root: XmlElement,
 }
 
-fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
+pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
     match key.as_str() {
         "bg" => theme.background_color = parse_color(value),
         "fg" => theme.text_color = parse_color(value),
@@ -106,27 +116,51 @@ impl XmlParser {
             match reader.read_event_into(&mut buf) {
                 Err(_) => {
                     fatal("Failed to read XML File");
-                },
-                Ok(Event::Eof) => break,
-                Ok(Event::Start(e)) => {
-                    match e.name().as_ref() {
-                        _ => {
-                            let mut theme = last_theme.clone();
-                            stack.push(XmlElement {
-                                tag: String::from_utf8(e.name().as_ref().to_vec()).unwrap(),
-                                attributes: e.attributes().map(|a| {let b = a.unwrap(); let k = String::from_utf8(b.key.as_ref().to_vec()).unwrap(); let v = String::from_utf8(b.value.to_vec()).unwrap(); gen_styles(&k, &v, &mut theme); (k, v)}).collect::<Vec<_>>(),
-                                children: Vec::new(),
-                                text: String::new(),
-                                theme: theme,
-                            });
-                        }
-                    }
                 }
+                Ok(Event::Eof) => break,
+                Ok(Event::Start(e)) => match e.name().as_ref() {
+                    _ => {
+                        let mut theme = last_theme.clone();
+                        let mut id: Option<String> = None;
+                        let mut classes_string: String = String::new();
+                        let attributes = e
+                            .attributes()
+                            .map(|a| {
+                                let b = a.unwrap();
+                                let k = String::from_utf8(b.key.as_ref().to_vec()).unwrap();
+                                let v = String::from_utf8(b.value.to_vec()).unwrap();
+                                gen_styles(&k, &v, &mut theme);
+                                if k == "id" {
+                                    id = Some(v.clone());
+                                }
+                                if k == "classes" {
+                                    classes_string = v.clone();
+                                }
+                                (k, v)
+                            })
+                            .collect::<Vec<_>>();
+                        let classes: Vec<String> = classes_string
+                            .split(" ")
+                            .collect::<Vec<&str>>()
+                            .iter()
+                            .map(|v| v.to_string())
+                            .collect::<Vec<String>>();
+                        stack.push(XmlElement {
+                            tag: String::from_utf8(e.name().as_ref().to_vec()).unwrap(),
+                            attributes: attributes,
+                            children: Vec::new(),
+                            text: String::new(),
+                            theme: theme,
+                            id: id,
+                            classes: classes,
+                        });
+                    }
+                },
                 Ok(Event::Text(e)) => {
                     if let Some(top) = stack.last_mut() {
                         top.text.push_str(e.decode().unwrap().into_owned().as_str());
                     }
-                },
+                }
                 Ok(Event::End(_)) => {
                     let node = stack.pop().unwrap();
 
@@ -137,10 +171,12 @@ impl XmlParser {
                         root = Some(node);
                         last_theme = theme;
                     }
-                },
+                }
                 _ => {}
             }
         }
-        return Self { root: root.unwrap().clone() };
+        return Self {
+            root: root.unwrap().clone(),
+        };
     }
 }
