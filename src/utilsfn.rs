@@ -19,7 +19,11 @@ pub fn parse_color(color: &String) -> Color {
         }
         let color_clean = color_clean.unwrap();
         let rgb_color = HexColor::new(color_clean).to_rgb();
-        return Color::from_rgb((rgb_color.r/255) as f32, (rgb_color.g/255) as f32, (rgb_color.b/255) as f32);
+        return Color::from_rgb(
+            (rgb_color.r / 255) as f32,
+            (rgb_color.g / 255) as f32,
+            (rgb_color.b / 255) as f32,
+        );
     } else if color.starts_with("rgba") {
         let color_clean = color.strip_prefix("rgba(");
         if color_clean.is_none() {
@@ -34,8 +38,18 @@ pub fn parse_color(color: &String) -> Color {
         if color_clean.len() != 4 {
             fatal(format!("Invalid RGBA color: {}", color).as_str());
         }
-        let color_clean_f32: [f32; 4] = color_clean.iter().map(|c| c.parse().unwrap()).collect::<Vec<f32>>().try_into().unwrap();
-        return Color::from_rgba(color_clean_f32[0]/255.0, color_clean_f32[1]/255.0, color_clean_f32[2]/255.0, color_clean_f32[3]/255.0);
+        let color_clean_f32: [f32; 4] = color_clean
+            .iter()
+            .map(|c| c.parse().unwrap())
+            .collect::<Vec<f32>>()
+            .try_into()
+            .unwrap();
+        return Color::from_rgba(
+            color_clean_f32[0] / 255.0,
+            color_clean_f32[1] / 255.0,
+            color_clean_f32[2] / 255.0,
+            color_clean_f32[3] / 255.0,
+        );
     } else if color.starts_with("rgb") {
         let color_clean = color.strip_prefix("rgb(");
         if color_clean.is_none() {
@@ -50,11 +64,24 @@ pub fn parse_color(color: &String) -> Color {
         if color_clean.len() != 3 {
             fatal(format!("Invalid RGB color: {}", color).as_str());
         }
-        let color_clean_f32: [f32; 3] = color_clean.iter().map(|c| c.parse().unwrap()).collect::<Vec<f32>>().try_into().unwrap();
-        return Color::from_rgb(color_clean_f32[0]/255.0, color_clean_f32[1]/255.0, color_clean_f32[2]/255.0);
+        let color_clean_f32: [f32; 3] = color_clean
+            .iter()
+            .map(|c| c.parse().unwrap())
+            .collect::<Vec<f32>>()
+            .try_into()
+            .unwrap();
+        return Color::from_rgb(
+            color_clean_f32[0] / 255.0,
+            color_clean_f32[1] / 255.0,
+            color_clean_f32[2] / 255.0,
+        );
     } else {
         let color_by_name = hex_rgb_converter::Color::by_name(color).to_rgb();
-        return Color::from_rgb((color_by_name.r/255) as f32, (color_by_name.g/255) as f32, (color_by_name.b/255) as f32);
+        return Color::from_rgb(
+            (color_by_name.r / 255) as f32,
+            (color_by_name.g / 255) as f32,
+            (color_by_name.b / 255) as f32,
+        );
     }
 }
 
@@ -63,7 +90,12 @@ pub fn parse_vector(value: &String) -> Vector {
     if value_sep.len() != 2 {
         fatal(format!("Invalid vector: {}", value).as_str());
     }
-    let value_f32: [f32; 2] = value_sep.iter().map(|c| c.parse().unwrap()).collect::<Vec<f32>>().try_into().unwrap();
+    let value_f32: [f32; 2] = value_sep
+        .iter()
+        .map(|c| c.parse().unwrap())
+        .collect::<Vec<f32>>()
+        .try_into()
+        .unwrap();
     return Vector::new(value_f32[0], value_f32[1]);
 }
 

@@ -2,13 +2,12 @@ use std::io::Cursor;
 
 use crate::dom::events::{DomInternalMessageType, DomMessage};
 use crate::dom::query::{EventResponse, Query, QueryResponse};
+use crate::logger::fatal;
 use crate::utilsfn;
 use crate::xml_struct::parser::{XmlChangeEvent, XmlParser};
 use crate::xml_struct::window::XmlWindow;
 use quick_xml::Reader;
 use utilsfn::safe_read_file;
-
-const MAIN_WINDOW: &str = "src/main.xml";
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -20,8 +19,8 @@ pub struct XmlEngine {
 }
 
 impl XmlEngine {
-    pub fn new() -> Self {
-        let content: String = safe_read_file(MAIN_WINDOW);
+    pub fn new(xml: Vec<u8>) -> Self {
+        let content: String = String::from_utf8(xml).expect("Failed to parse XML content as UTF-8");
         let reader = Reader::from_reader(Cursor::new(content.into_bytes()));
         let window_parser = XmlParser::new(&mut reader.clone());
         let window = XmlWindow::new(window_parser.root);
