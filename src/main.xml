@@ -1,0 +1,13 @@
+<Window>
+    <Div bg="black" fg="white">
+        <Label fg="red">Hello, World!</Label>
+        <Button
+            shadow_color="red"
+            shadow_blur="5"
+            shadow_offset="5,5"
+            border_color="blue"
+            border_radius="left:7"
+            border_width="2"
+        >Click me!</Button>
+    </Div>
+</Window>

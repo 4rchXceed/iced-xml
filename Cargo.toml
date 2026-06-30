@@ -1,0 +1,9 @@
+[package]
+name = "rustuixml"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+iced = "0.14.0"
+quick-xml = "0.40.1"
+hex_rgb_converter = "1.0.1"
