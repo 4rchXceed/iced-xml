@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use iced::widget::text;
 
 use crate::{
-    dom::events::DomQueryEvent,
+    dom::events::DomQuery,
     logger::fatal,
     xml_engine::Message,
     xml_struct::{
@@ -49,23 +49,22 @@ impl ElementRenderer {
         }
     }
 
-    pub fn element_query(&self, query: DomQueryEvent) -> Option<Vec<i32>> {
+    pub fn element_query(&self, query: &DomQuery) -> Option<Vec<i32>> {
         return match query {
-            DomQueryEvent::ById(id) => {
-                if let Some(uid) = self.id_map.get(&id) {
+            DomQuery::ById(id) => {
+                if let Some(uid) = self.id_map.get(id) {
                     Some(vec![*uid])
                 } else {
                     None
                 }
             }
-            DomQueryEvent::ByUid(uid) => {
+            DomQuery::ByUid(uid) => {
                 if self.elements.contains_key(&uid) {
-                    Some(vec![uid])
+                    Some(vec![uid.clone()])
                 } else {
                     None
                 }
-            }
-            _ => None,
+            } // _ => None,
         };
     }
 

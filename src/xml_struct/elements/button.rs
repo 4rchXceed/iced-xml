@@ -1,6 +1,7 @@
 use iced::{Background, Border, Shadow, widget::text};
 
 use crate::{
+    dom::query::EventResponse,
     logger::fatal,
     xml_engine::Message,
     xml_struct::{
@@ -90,7 +91,8 @@ impl ElementBase for Button {
         for event in events {
             match event.event_type.as_str() {
                 "click" => {
-                    button = button.on_press(Message::DomEvent(event.event_uid));
+                    button = button
+                        .on_press(Message::DomEvent(event.event_uid, EventResponse::default()));
                 }
                 _ => (),
             }

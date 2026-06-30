@@ -1,7 +1,7 @@
 use std::io::Cursor;
 
-use crate::dom::events::DomInternalEvent;
-use crate::dom::query::{Query, QueryResponse};
+use crate::dom::events::{DomInternalMessageType, DomMessage};
+use crate::dom::query::{EventResponse, Query, QueryResponse};
 use crate::utilsfn;
 use crate::xml_struct::parser::{XmlChangeEvent, XmlParser};
 use crate::xml_struct::window::XmlWindow;
@@ -12,7 +12,7 @@ const MAIN_WINDOW: &str = "src/main.xml";
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    DomEvent(i32),
+    DomEvent(i32, EventResponse),
 }
 
 pub struct XmlEngine {
@@ -29,49 +29,51 @@ impl XmlEngine {
         Self { window }
     }
 
-    pub fn update(&mut self, message: Message) {
+    pub fn update(&mut self, message: Message) -> Vec<(i32, EventResponse)> {
+        self.window.fired_events.clear();
         match message {
-            Message::DomEvent(event_uid) => {
-                // self.window.emit_event(event_uid, &mut self.app_state);
+            Message::DomEvent(event_uid, event_data) => {
+                self.window.emit_event(event_uid, event_data);
             }
-        }
+        };
+        return self.window.fired_events.clone();
     }
 
     pub fn view(&self) -> iced::Element<'_, Message> {
         return self.window.render();
     }
 
-    pub fn client_events(&mut self, query: DomInternalEvent) -> QueryResponse {
-        let response = match query {
-            DomInternalEvent::PropertyChange(element_selector, key, value) => {
-                let elements = self.window.element_renderer.element_query(element_selector);
-                if elements.is_some() {
-                    for element in elements.unwrap() {
+    pub fn client_events(&mut self, query: &DomMessage) -> QueryResponse {
+        let mut response = QueryResponse { success: false };
+        let elements = self.window.element_renderer.element_query(&query.selector);
+        if elements.is_some() {
+            for element in elements.unwrap() {
+                response = match query.message {
+                    DomInternalMessageType::PropertyChange(ref key, ref value) => {
                         self.window.element_renderer.emit_internal_event(
                             element,
                             XmlChangeEvent::PropertyChange(key.clone(), value.clone()),
                         );
+                        QueryResponse { success: true }
                     }
-                    QueryResponse { success: true }
-                } else {
-                    QueryResponse { success: false }
-                }
-            }
-            DomInternalEvent::StyleChange(element_selector, key, value) => {
-                let elements = self.window.element_renderer.element_query(element_selector);
-                if elements.is_some() {
-                    for element in elements.unwrap() {
+                    DomInternalMessageType::StyleChange(ref key, ref value) => {
                         self.window.element_renderer.emit_internal_event(
                             element,
                             XmlChangeEvent::StyleChange(key.clone(), value.clone()),
                         );
+                        QueryResponse { success: true }
                     }
-                    QueryResponse { success: true }
-                } else {
-                    QueryResponse { success: false }
-                }
+                    DomInternalMessageType::RegisterEventListener(ref event_name) => {
+                        self.window.element_renderer.register_event(
+                            event_name.clone(),
+                            element,
+                            query.uid,
+                        );
+                        QueryResponse { success: true }
+                    }
+                };
             }
-        };
+        }
         return response;
     }
 }

@@ -1,7 +1,7 @@
 use crate::{
     dom::{
         api::Dom,
-        query::{QueryBuilder, QueryResponse},
+        query::{EventResponse, QueryBuilder, QueryResponse},
     },
     xml_engine::XmlEngine,
 };
@@ -30,6 +30,15 @@ impl UserApp {
         self.qb
             .b(Dom::get_element_by_id("main-lbl").set_style("fg", "blue"))
             .then(UserApp::fatal_query);
+        self.qb
+            .b(Dom::get_element_by_id("btn-click-me").add_event_listener("click"))
+            .with_callback(UserApp::on_btn_me_click);
+        self.process();
+    }
+
+    pub fn on_btn_me_click(&mut self, _: EventResponse) {
+        self.qb
+            .b(Dom::get_element_by_id("main-lbl").set_style("fg", "red"));
         self.process();
     }
 
@@ -40,11 +49,10 @@ impl UserApp {
     }
 
     pub fn update(&mut self, message: crate::xml_engine::Message) {
-        self.engine.update(message);
-    }
-
-    pub fn render(&self) -> iced::Element<'_, crate::xml_engine::Message> {
-        return self.engine.view();
+        for callback in self.qb.fetch(self.engine.update(message)) {
+            let (callback_fn, response) = callback;
+            callback_fn(self, response);
+        }
     }
 
     pub fn process(&mut self) {
@@ -52,5 +60,9 @@ impl UserApp {
             let (callback_fn, response) = callback;
             callback_fn(self, response);
         }
+    }
+
+    pub fn render(&self) -> iced::Element<'_, crate::xml_engine::Message> {
+        return self.engine.view();
     }
 }
