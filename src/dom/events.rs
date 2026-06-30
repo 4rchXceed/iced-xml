@@ -2,6 +2,8 @@
 pub enum DomQuery {
     ById(String),
     ByUid(i32),
+    Class(String),
+    All,
 }
 
 pub struct DomMessage {
@@ -16,6 +18,7 @@ pub enum DomInternalMessageType {
     RegisterEventListener(String),  // event_name
 }
 
+#[derive(Debug, Clone)]
 pub struct DomQueryResult {
     query_event: DomQuery,
 }
@@ -26,6 +29,8 @@ impl DomQueryResult {
             query_event: match query_type.as_str() {
                 "id" => DomQuery::ById(element),
                 "uid" => DomQuery::ByUid(element.parse::<i32>().unwrap()),
+                "class" => DomQuery::Class(element),
+                "all" => DomQuery::All,
                 _ => panic!("Invalid query type"),
             },
         }

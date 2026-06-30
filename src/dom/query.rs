@@ -1,7 +1,4 @@
-use crate::{
-    dom::events::{DomInternalMessageType, DomMessage},
-    xml_engine::XmlEngine,
-};
+use crate::{dom::events::DomMessage, xml_engine::XmlEngine};
 
 #[derive(Debug, Clone)]
 pub struct EventResponse {
@@ -22,6 +19,7 @@ pub struct Query<T> {
     pub query: DomMessage,
     pub callback: Option<fn(&mut T, QueryResponse)>,
     pub listener_callback: Option<fn(&mut T, EventResponse)>,
+    pub listener_registered: bool,
     pub uid: i32,
 }
 
@@ -51,6 +49,7 @@ impl<T> QueryBuilder<T> {
             },
             callback: None,
             listener_callback: None,
+            listener_registered: false,
             uid: self.current_uid,
         };
         self.current_uid += 1;
@@ -94,13 +93,17 @@ impl<T> QueryBuilder<T> {
         let mut callbacks = Vec::new();
         let mut queries_to_remove: Vec<usize> = Vec::new();
         let mut i: usize = 0;
-        for query in &self.queries {
-            let response = engine.client_events(&query.query);
-            if let Some(callback) = query.callback {
-                callbacks.push((callback, response));
-            }
-            if query.listener_callback.is_none() {
-                queries_to_remove.push(i);
+        for query in self.queries.iter_mut() {
+            if query.listener_callback.is_none() || !query.listener_registered {
+                let response = engine.client_events(&query.query);
+                if let Some(callback) = query.callback {
+                    callbacks.push((callback, response));
+                }
+                if query.listener_callback.is_none() {
+                    queries_to_remove.push(i);
+                } else {
+                    query.listener_registered = true;
+                }
             }
             i += 1;
         }

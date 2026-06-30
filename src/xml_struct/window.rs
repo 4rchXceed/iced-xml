@@ -6,8 +6,8 @@ use crate::{
 };
 
 pub struct XmlWindow {
-    title: String,
-    root: XmlElement,
+    // title: String,
+    // root: XmlElement,
     root_uid: i32,
     pub element_renderer: ElementRenderer,
     pub fired_events: Vec<(i32, EventResponse)>,
@@ -22,8 +22,8 @@ impl XmlWindow {
         let uid = element_renderer.init_element(&root);
 
         Self {
-            title: String::new(),
-            root: root,
+            // title: String::new(),
+            // root: root,
             root_uid: uid,
             element_renderer: element_renderer,
             fired_events: Vec::new(),

@@ -65,6 +65,14 @@ impl ElementRenderer {
                     None
                 }
             } // _ => None,
+            DomQuery::Class(class) => {
+                if let Some(uids) = self.classes_map.get(class) {
+                    Some(uids.clone())
+                } else {
+                    None
+                }
+            }
+            DomQuery::All => Some(self.elements.keys().cloned().collect()),
         };
     }
 

@@ -1,13 +1,10 @@
 use std::io::Cursor;
 
 use crate::dom::events::{DomInternalMessageType, DomMessage};
-use crate::dom::query::{EventResponse, Query, QueryResponse};
-use crate::logger::fatal;
-use crate::utilsfn;
+use crate::dom::query::{EventResponse, QueryResponse};
 use crate::xml_struct::parser::{XmlChangeEvent, XmlParser};
 use crate::xml_struct::window::XmlWindow;
 use quick_xml::Reader;
-use utilsfn::safe_read_file;
 
 #[derive(Debug, Clone)]
 pub enum Message {

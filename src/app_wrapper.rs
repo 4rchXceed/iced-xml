@@ -1,33 +1,66 @@
-use iced::Element;
+use crate::{
+    dom::query::QueryBuilder,
+    xml_engine::{Message, XmlEngine},
+};
 
-use crate::xml_engine::{Message, XmlEngine};
-
-pub fn run_app<App>(
-    new: fn() -> App,
-    update: fn(&mut App, Message),
-    view: fn(&App) -> Element<'_, Message>,
-) -> iced::Result
-where
-    App: 'static,
-    Message: Send + 'static,
-{
-    iced::application(new, update, view).run()
+pub fn run_app<App: AppTemplate<App> + 'static>() -> iced::Result {
+    iced::application(
+        move || {
+            let mut app = App::new();
+            app.post_construct();
+            return app;
+        },
+        App::update,
+        App::render,
+    )
+    .run()
 }
 
 pub fn render(engine: &XmlEngine) -> iced::Element<'_, Message> {
     return engine.view();
 }
 
-pub trait AppTemplate {
+pub struct Objects<'a, App> {
+    pub engine: &'a mut XmlEngine,
+    pub qb: &'a mut QueryBuilder<App>,
+}
+
+pub struct ObjectsReadOnly<'a, App> {
+    pub engine: &'a XmlEngine,
+    pub qb: &'a QueryBuilder<App>,
+}
+
+pub trait AppTemplate<T: 'static> {
+    fn get_objects(&mut self) -> Objects<'_, T>;
+    fn get_objects_read_only(&self) -> ObjectsReadOnly<'_, T>;
+    fn get_self(&mut self) -> &mut T;
+
     fn new() -> Self;
     // for query in self.qb.fetch(self.engine.update(message)) {
     //     (query.0)(self, query.1);
     // }
-    fn update(&mut self, message: crate::xml_engine::Message);
+    fn update(&mut self, message: crate::xml_engine::Message) {
+        let me = self.get_objects();
+        for query in me.qb.fetch(me.engine.update(message)) {
+            let me = self.get_self();
+            (query.0)(me, query.1);
+        }
+    }
     // for query in self.qb.execute(&mut self.engine) {
     //     (query.0)(self, query.1);
     // }
-    fn process(&mut self);
+    fn process(&mut self) {
+        let me = self.get_objects();
+        for query in me.qb.execute(me.engine) {
+            let me = self.get_self();
+            (query.0)(me, query.1);
+        }
+    }
     // use the "render" helper
-    fn render(&self) -> iced::Element<'_, crate::xml_engine::Message>;
+    fn render(&self) -> iced::Element<'_, crate::xml_engine::Message> {
+        let me = self.get_objects_read_only();
+        return render(me.engine);
+    }
+    // Post-construct called ONLY by the run_app function
+    fn post_construct(&mut self);
 }

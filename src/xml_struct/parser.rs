@@ -120,7 +120,7 @@ impl XmlParser {
                 Ok(Event::Eof) => break,
                 Ok(Event::Start(e)) => match e.name().as_ref() {
                     _ => {
-                        let mut theme = last_theme.clone();
+                        // last_theme = last_theme.clone();
                         let mut id: Option<String> = None;
                         let mut classes_string: String = String::new();
                         let attributes = e
@@ -129,7 +129,7 @@ impl XmlParser {
                                 let b = a.unwrap();
                                 let k = String::from_utf8(b.key.as_ref().to_vec()).unwrap();
                                 let v = String::from_utf8(b.value.to_vec()).unwrap();
-                                gen_styles(&k, &v, &mut theme);
+                                gen_styles(&k, &v, &mut last_theme);
                                 if k == "id" {
                                     id = Some(v.clone());
                                 }
@@ -150,7 +150,7 @@ impl XmlParser {
                             attributes: attributes,
                             children: Vec::new(),
                             text: String::new(),
-                            theme: theme,
+                            theme: last_theme.clone(),
                             id: id,
                             classes: classes,
                         });
