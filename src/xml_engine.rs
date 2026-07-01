@@ -6,13 +6,19 @@ use crate::xml_struct::parser::{XmlChangeEvent, XmlParser};
 use crate::xml_struct::window::XmlWindow;
 use quick_xml::Reader;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum Message {
     DomEvent(i32, EventResponse),
 }
 
+pub enum DynamicEvent {
+    SetTimeout(i32),  // time in milliseconds
+    SetInterval(i32), // time in milliseconds
+}
+
 pub struct XmlEngine {
     pub window: XmlWindow,
+    pub dyn_events: Vec<(i32, DynamicEvent)>, // (Callback UID, DynamicEvent)
 }
 
 impl XmlEngine {
@@ -22,14 +28,25 @@ impl XmlEngine {
         let window_parser = XmlParser::new(&mut reader.clone());
         let window = XmlWindow::new(window_parser.root);
 
-        Self { window }
+        Self {
+            window: window,
+            dyn_events: Vec::new(),
+        }
     }
 
     pub fn update(&mut self, message: Message) -> Vec<(i32, EventResponse)> {
         self.window.fired_events.clear();
         match message {
             Message::DomEvent(event_uid, event_data) => {
-                self.window.emit_event(event_uid, event_data);
+                let mut is_dynamic = false;
+                if event_data.next_timeout.is_some() {
+                    is_dynamic = true;
+                    self.dyn_events.push((
+                        event_uid,
+                        DynamicEvent::SetTimeout(event_data.next_timeout.unwrap() as i32),
+                    ));
+                }
+                self.window.emit_event(event_uid, event_data, is_dynamic);
             }
         };
         return self.window.fired_events.clone();
@@ -40,10 +57,28 @@ impl XmlEngine {
     }
 
     pub fn client_events(&mut self, query: &DomMessage) -> QueryResponse {
-        if let DomInternalMessageType::ImportCss(ref css, ref for_hot_reload) = query.message {
-            self.window.element_renderer.load_css(css, *for_hot_reload);
-            return QueryResponse::new(true);
-        }
+        match &query.message {
+            DomInternalMessageType::SubscribeDynamicEvent(dynamic_event) => {
+                match dynamic_event {
+                    DynamicEvent::SetInterval(time) => {
+                        self.dyn_events
+                            .push((query.uid, DynamicEvent::SetInterval(*time)));
+                    }
+                    DynamicEvent::SetTimeout(time) => self
+                        .dyn_events
+                        .push((query.uid, DynamicEvent::SetTimeout(*time))),
+                };
+
+                return QueryResponse::new(true);
+            }
+            DomInternalMessageType::ImportCss(css, for_hot_reload) => {
+                self.window
+                    .element_renderer
+                    .load_css(&css, for_hot_reload.clone());
+                return QueryResponse::new(true);
+            }
+            _ => (),
+        };
         let mut response = QueryResponse::new(false);
         let elements = self.window.element_renderer.element_query(&query.selector);
         if elements.is_some() {

@@ -57,11 +57,13 @@ impl ElementRenderer {
         }
     }
 
+    // TODO: Move all hot-reload logic into a separate file
     pub fn load_css(&mut self, css: &str, hot_reload: bool) {
         let mut reader = CssReader::new(css);
         reader.parse();
         if hot_reload {
             if self.hot_reload_states.is_some() {
+                self.update_state(&reader.rules);
                 self.cleanup_for_hot_reload(&reader.rules);
             } else {
                 self.hot_reload_states = Some(self.generate_state(&reader.rules));
@@ -141,6 +143,36 @@ impl ElementRenderer {
         HotReloadState {
             rules: rules.clone(),
             state: state,
+        }
+    }
+    fn update_state(&mut self, rules: &Vec<RuleBlock>) {
+        // Update only new rules, and keep the old state for the rest
+        let mut state_hashed: HashMap<String, (Selector, Rule)> = HashMap::new();
+        for rule_block in self.hot_reload_states.as_ref().unwrap().rules.iter() {
+            for selector in &rule_block.selectors {
+                for rule in &rule_block.rules {
+                    state_hashed.insert(
+                        rule.hash_with_selector(selector),
+                        (selector.clone(), rule.clone()),
+                    );
+                }
+            }
+        }
+
+        for rule_block in rules.iter() {
+            for selector in &rule_block.selectors {
+                for rule in &rule_block.rules {
+                    let hash = rule.hash_with_selector(selector);
+                    if !state_hashed.contains_key(&hash) {
+                        // Push the new rule
+                        self.hot_reload_states
+                            .as_mut()
+                            .unwrap()
+                            .rules
+                            .push(rule_block.clone());
+                    }
+                }
+            }
         }
     }
 

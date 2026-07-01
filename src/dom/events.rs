@@ -1,3 +1,5 @@
+use crate::xml_engine::DynamicEvent;
+
 #[derive(Debug, Clone)]
 pub enum DomQuery {
     ById(String),
@@ -26,10 +28,11 @@ pub struct DomMessage {
 }
 
 pub enum DomInternalMessageType {
-    StyleChange(String, String),    // k => v
-    PropertyChange(String, String), // k => v
-    RegisterEventListener(String),  // event_name
-    ImportCss(String, bool),        // css content
+    StyleChange(String, String),         // k => v
+    PropertyChange(String, String),      // k => v
+    RegisterEventListener(String),       // event_name
+    ImportCss(String, bool),             // css content
+    SubscribeDynamicEvent(DynamicEvent), // dynamic events (like set_timeout, set_interval, etc.)
 }
 
 #[derive(Debug, Clone)]

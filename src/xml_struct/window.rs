@@ -34,11 +34,15 @@ impl XmlWindow {
         return self.element_renderer.render_element(self.root_uid).into();
     }
 
-    pub fn emit_event(&mut self, event_uid: i32, event_data: EventResponse) {
-        for event_listener in self.element_renderer.event_listeners.iter_mut() {
-            if event_listener.event_uid == event_uid {
-                self.fired_events
-                    .push((event_listener.handler, event_data.clone()));
+    pub fn emit_event(&mut self, event_uid: i32, event_data: EventResponse, is_dynamic: bool) {
+        if is_dynamic {
+            self.fired_events.push((event_uid, event_data.clone()));
+        } else {
+            for event_listener in self.element_renderer.event_listeners.iter_mut() {
+                if event_listener.event_uid == event_uid {
+                    self.fired_events
+                        .push((event_listener.handler, event_data.clone()));
+                }
             }
         }
     }

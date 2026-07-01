@@ -1,3 +1,5 @@
+use std::{path::Path, sync::mpsc};
+
 use iced_xml::{
     app_wrapper::{AppTemplate, Objects, ObjectsReadOnly, run_app},
     dom::{
@@ -6,6 +8,7 @@ use iced_xml::{
     },
     xml_engine::XmlEngine,
 };
+use notify::{Event, RecommendedWatcher, Result, Watcher};
 
 const XML_FILE: &[u8; include_bytes!("main.xml").len()] = include_bytes!("main.xml");
 
@@ -13,12 +16,15 @@ struct App {
     engine: XmlEngine,
     qb: QueryBuilder<App>,
     is_dark: bool,
+    #[allow(dead_code)]
+    watcher: RecommendedWatcher, // Else the watcher will be dropped and stop watching
+    rx_watcher: mpsc::Receiver<Result<Event>>,
 }
 
 impl App {
     fn fatal_selector(&mut self, result: QueryResponse) {
         if !result.success {
-            panic!("Error selecting element :(");
+            panic!("Error selecting element :'(");
         }
     }
 
@@ -38,10 +44,23 @@ impl App {
 
 impl AppTemplate<Self> for App {
     fn new() -> Self {
+        let (tx, rx) = mpsc::channel::<Result<Event>>();
+        let watcher = notify::recommended_watcher(tx);
+        if watcher.is_err() {
+            panic!("Error creating file watcher: {:?}", watcher.err());
+        }
+        let mut watcher = watcher.unwrap();
+        _ = watcher.watch(
+            Path::new("src/style.css"),
+            notify::RecursiveMode::NonRecursive,
+        );
+
         return Self {
             engine: XmlEngine::new(XML_FILE.to_vec()),
             qb: QueryBuilder::new(),
             is_dark: true,
+            rx_watcher: rx,
+            watcher: watcher,
         };
     }
     fn get_objects(&mut self) -> Objects<'_, Self> {
@@ -68,6 +87,26 @@ impl AppTemplate<Self> for App {
                 me.reload_css("src/style.css");
                 me.process();
             });
+        self.qb.set_interval(100).with_callback(|me, _| {
+            let res = me.rx_watcher.try_recv();
+            match res {
+                Ok(event) => match event.unwrap().kind {
+                    notify::EventKind::Access(kind) => match kind {
+                        notify::event::AccessKind::Close(op) => match op {
+                            notify::event::AccessMode::Write => {
+                                println!("File closed, reloading CSS...");
+                                me.reload_css("src/style.css");
+                                me.process();
+                            }
+                            _ => (),
+                        },
+                        _ => (),
+                    },
+                    _ => {}
+                },
+                Err(_) => (), // There's no event, just continue
+            }
+        });
         self.qb
             .b(Dom::get_element_by_id("btn-1").add_event_listener("click"))
             .with_callback(|me, _| {

@@ -1,16 +1,22 @@
+use std::time::Duration;
+
+use iced::{Subscription, time};
+
 use crate::{
     dom::events::{DomInternalMessageType, DomMessage, DomQuery},
-    xml_engine::XmlEngine,
+    logger::log,
+    xml_engine::{DynamicEvent, Message, XmlEngine},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct EventResponse {
     // HERE: All properties in Option<> for every event response, so that we can return None if the event is not applicable to the element
+    pub next_timeout: Option<u64>,
 }
 
 impl Default for EventResponse {
     fn default() -> Self {
-        Self {}
+        Self { next_timeout: None }
     }
 }
 
@@ -79,6 +85,28 @@ impl<T> QueryBuilder<T> {
         self
     }
 
+    pub fn set_timeout(&mut self, timeout: i32) -> &mut Self {
+        self.build_query(DomMessage {
+            message: DomInternalMessageType::SubscribeDynamicEvent(DynamicEvent::SetTimeout(
+                timeout,
+            )),
+            uid: self.current_uid,
+            selector: DomQuery::Unused,
+        });
+        self
+    }
+
+    pub fn set_interval(&mut self, interval: i32) -> &mut Self {
+        self.build_query(DomMessage {
+            message: DomInternalMessageType::SubscribeDynamicEvent(DynamicEvent::SetInterval(
+                interval,
+            )),
+            uid: self.current_uid,
+            selector: DomQuery::Unused,
+        });
+        self
+    }
+
     pub fn with_callback(&mut self, callback: fn(&mut T, EventResponse)) -> &mut Self {
         if let Some(last_query) = self.queries.last_mut() {
             last_query.listener_callback = Some(callback);
@@ -91,6 +119,35 @@ impl<T> QueryBuilder<T> {
             last_query.callback = Some(callback);
         }
         self
+    }
+
+    pub fn subscribe(&self, engine: &XmlEngine) -> Subscription<Message> {
+        let mut subscriptions = Vec::new();
+        for dynamic_event in engine.dyn_events.iter() {
+            let (uid, event) = dynamic_event;
+            let every: i32;
+            let mut ev_data = EventResponse::default();
+            match event {
+                DynamicEvent::SetInterval(interval) => {
+                    every = *interval;
+                    ev_data.next_timeout = Some(*interval as u64);
+                }
+                DynamicEvent::SetTimeout(timeout) => {
+                    every = *timeout;
+                }
+            };
+            if every > 0 {
+                let ev_uid = uid.clone();
+                subscriptions.push(
+                    time::every(Duration::from_millis(every.clone() as u64))
+                        .with(Message::DomEvent(ev_uid, ev_data.clone()))
+                        .map(|a| a.0),
+                );
+            } else {
+                log("! set_interval or set_timeout event with 0 or less interval/timeout");
+            }
+        }
+        return Subscription::batch(subscriptions);
     }
 
     pub fn fetch(

@@ -13,6 +13,7 @@ pub fn run_app<App: AppTemplate<App> + 'static>() -> iced::Result {
         App::update,
         App::render,
     )
+    .subscription(App::subscription)
     .run()
 }
 
@@ -60,6 +61,11 @@ pub trait AppTemplate<T: 'static> {
     fn render(&self) -> iced::Element<'_, crate::xml_engine::Message> {
         let me = self.get_objects_read_only();
         return render(me.engine);
+    }
+    // Subscription logic (for set_timeout and set_interval)
+    fn subscription(&self) -> iced::Subscription<Message> {
+        let engine = self.get_objects_read_only().engine;
+        return self.get_objects_read_only().qb.subscribe(engine);
     }
     // Post-construct called ONLY by the run_app function
     fn post_construct(&mut self);

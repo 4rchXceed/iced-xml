@@ -6,5 +6,5 @@
             <Button id="dark-mode" classes="btn">Click to invert!</Button>
         </Div>
     </Div>
-    <Button id="hot-css-reload">Hot css reload!</Button>
+    <Button id="hot-css-reload">Force CSS hot reload</Button>
 </Window>
