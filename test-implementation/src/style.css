@@ -1,0 +1,8 @@
+#btn-1 {
+    bg: rgb(0, 255, 255);
+    shadow_color: rgb(0, 255, 255);
+    shadow_blur: 10px;
+    border_color: #00ffff;
+    border_width: 5px;
+    border_radius: top:10 left:20;
+}

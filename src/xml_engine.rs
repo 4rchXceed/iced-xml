@@ -40,6 +40,10 @@ impl XmlEngine {
     }
 
     pub fn client_events(&mut self, query: &DomMessage) -> QueryResponse {
+        if let DomInternalMessageType::ImportCss(ref css) = query.message {
+            self.window.element_renderer.load_css(css);
+            return QueryResponse { success: true };
+        }
         let mut response = QueryResponse { success: false };
         let elements = self.window.element_renderer.element_query(&query.selector);
         if elements.is_some() {
@@ -66,6 +70,10 @@ impl XmlEngine {
                             query.uid,
                         );
                         QueryResponse { success: true }
+                    }
+                    _ => {
+                        // Handle other message types if needed
+                        QueryResponse { success: false }
                     }
                 };
             }

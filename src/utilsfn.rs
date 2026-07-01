@@ -66,7 +66,7 @@ pub fn parse_color(color: &String) -> Color {
         }
         let color_clean_f32: [f32; 3] = color_clean
             .iter()
-            .map(|c| c.parse().unwrap())
+            .map(|c| c.trim().parse().unwrap())
             .collect::<Vec<f32>>()
             .try_into()
             .unwrap();

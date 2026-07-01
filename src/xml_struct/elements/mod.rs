@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use iced::widget::text;
 
 use crate::{
+    css_reader::CssReader,
     dom::events::DomQuery,
     logger::fatal,
     xml_engine::Message,
@@ -49,6 +50,28 @@ impl ElementRenderer {
         }
     }
 
+    pub fn load_css(&mut self, css: &str) {
+        let mut reader = CssReader::new(css);
+        reader.parse();
+        for rule_block in reader.rules {
+            // TODO: Add support for multiple selectors in a single rule block
+            let selector = rule_block.selector;
+            let dom_query = DomQuery::new(selector.selector_type, selector.content);
+
+            let elements = self.element_query(&dom_query);
+            if elements.is_some() {
+                for element in elements.unwrap() {
+                    for rule in rule_block.rules.iter() {
+                        self.emit_internal_event(
+                            element,
+                            XmlChangeEvent::StyleChange(rule.name.clone(), rule.value.clone()),
+                        );
+                    }
+                }
+            }
+        }
+    }
+
     pub fn element_query(&self, query: &DomQuery) -> Option<Vec<i32>> {
         return match query {
             DomQuery::ById(id) => {
@@ -73,6 +96,7 @@ impl ElementRenderer {
                 }
             }
             DomQuery::All => Some(self.elements.keys().cloned().collect()),
+            DomQuery::Unused => None,
         };
     }
 

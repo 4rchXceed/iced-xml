@@ -4,6 +4,19 @@ pub enum DomQuery {
     ByUid(i32),
     Class(String),
     All,
+    Unused,
+}
+
+impl DomQuery {
+    pub fn new(selector_type: String, val: String) -> Self {
+        return match selector_type.as_str() {
+            "id" => DomQuery::ById(val),
+            "uid" => DomQuery::ByUid(val.parse::<i32>().unwrap()),
+            "class" => DomQuery::Class(val),
+            "all" => DomQuery::All,
+            _ => panic!("Invalid query type: {}", selector_type),
+        };
+    }
 }
 
 pub struct DomMessage {
@@ -16,6 +29,7 @@ pub enum DomInternalMessageType {
     StyleChange(String, String),    // k => v
     PropertyChange(String, String), // k => v
     RegisterEventListener(String),  // event_name
+    ImportCss(String),              // css content
 }
 
 #[derive(Debug, Clone)]
@@ -26,13 +40,7 @@ pub struct DomQueryResult {
 impl DomQueryResult {
     pub fn new(query_type: String, element: String) -> Self {
         Self {
-            query_event: match query_type.as_str() {
-                "id" => DomQuery::ById(element),
-                "uid" => DomQuery::ByUid(element.parse::<i32>().unwrap()),
-                "class" => DomQuery::Class(element),
-                "all" => DomQuery::All,
-                _ => panic!("Invalid query type"),
-            },
+            query_event: DomQuery::new(query_type, element),
         }
     }
 

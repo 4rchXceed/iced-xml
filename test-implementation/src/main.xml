@@ -1,8 +1,8 @@
 <Window>
-    <Label id="hello-world" fg="red">Hello, World!</Label>
-    <Div id="app-container" bg="black" fg="white" shadow_color="red" shadow_offset="5,5">
+    <Label id="hello-world">Hello, World!</Label>
+    <Div id="app-container">
         <Button id="btn-1">Click Me!</Button>
-        <Div bg="blue">
+        <Div>
             <Button id="dark-mode">Click to invert!</Button>
         </Div>
     </Div>

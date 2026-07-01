@@ -4,6 +4,7 @@ use iced::{Color, Vector, border::Radius};
 use quick_xml::{Reader, events::Event};
 
 use crate::{
+    css_reader::CssReader,
     logger::fatal,
     utilsfn::{parse_color, parse_radius, parse_vector},
 };
@@ -87,6 +88,7 @@ impl Default for XmlTheme {
 
 pub struct XmlParser {
     pub root: XmlElement,
+    pub css_parser: CssReader,
 }
 
 pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
@@ -177,6 +179,7 @@ impl XmlParser {
         }
         return Self {
             root: root.unwrap().clone(),
+            css_parser: CssReader::new(""),
         };
     }
 }

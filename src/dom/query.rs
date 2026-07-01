@@ -1,4 +1,7 @@
-use crate::{dom::events::DomMessage, xml_engine::XmlEngine};
+use crate::{
+    dom::events::{DomInternalMessageType, DomMessage, DomQuery},
+    xml_engine::XmlEngine,
+};
 
 #[derive(Debug, Clone)]
 pub struct EventResponse {
@@ -34,6 +37,15 @@ impl<T> QueryBuilder<T> {
             queries: Vec::new(),
             current_uid: 0,
         }
+    }
+
+    pub fn import_css(&mut self, css: String) -> &mut Self {
+        self.build_query(DomMessage {
+            message: DomInternalMessageType::ImportCss(css),
+            uid: self.current_uid,
+            selector: DomQuery::Unused,
+        });
+        self
     }
 
     pub fn b(&mut self, e: DomMessage) -> &mut Self {

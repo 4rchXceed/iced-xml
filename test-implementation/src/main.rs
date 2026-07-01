@@ -47,6 +47,7 @@ impl AppTemplate<Self> for App {
         return self;
     }
     fn post_construct(&mut self) {
+        self.qb.import_css(include_str!("style.css").to_string());
         self.qb
             .b(Dom::get_element_by_id("btn-1").add_event_listener("click"))
             .with_callback(|me, _| {
@@ -67,7 +68,8 @@ impl AppTemplate<Self> for App {
                     me.qb.b(app_container.clone().set_style("bg", "white"));
                 }
                 me.process();
-            });
+            })
+            .then(App::fatal_selector);
         self.process();
     }
 }
