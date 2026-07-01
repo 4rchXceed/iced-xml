@@ -52,6 +52,7 @@ impl ElementBase for Button {
         renderer: &'a ElementRenderer,
         theme: &'a XmlTheme,
         events: Vec<&'a EventListener>,
+        self_uid: i32,
     ) -> iced::Element<'a, Message> {
         let mut button_child: iced::widget::Column<'a, Message> = iced::widget::Column::new();
         for child in &self.children {
@@ -88,8 +89,10 @@ impl ElementBase for Button {
         for event in events {
             match event.event_type.as_str() {
                 "click" => {
-                    button = button
-                        .on_press(Message::DomEvent(event.event_uid, EventResponse::default()));
+                    button = button.on_press(Message::DomEvent(
+                        event.event_uid,
+                        EventResponse::new(self_uid),
+                    ));
                 }
                 _ => (),
             }

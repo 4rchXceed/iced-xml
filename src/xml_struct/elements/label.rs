@@ -28,6 +28,7 @@ impl ElementBase for Label {
         _: &'a ElementRenderer,
         theme: &'a XmlTheme,
         _: Vec<&'a EventListener>,
+        _: i32,
     ) -> iced::Element<'a, Message> {
         let text_element = text(self.text.clone());
 

@@ -16,6 +16,7 @@
         expat
         fontconfig
         freetype
+        rustfmt
         freetype.dev
         libGL
         pkg-config

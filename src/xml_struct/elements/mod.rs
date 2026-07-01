@@ -40,6 +40,7 @@ pub struct ElementRenderer {
     pub elements: HashMap<i32, (AnyElement, XmlTheme)>,
     pub id_map: HashMap<String, i32>,
     pub classes_map: HashMap<String, Vec<i32>>,
+    pub tags_map: HashMap<String, Vec<i32>>,
     pub last_uid: i32,
     pub event_listeners: Vec<EventListener>,
     hot_reload_states: Option<HotReloadState>,
@@ -52,15 +53,19 @@ impl ElementRenderer {
             last_uid: 0,
             id_map: HashMap::new(),
             classes_map: HashMap::new(),
+            tags_map: HashMap::new(),
             event_listeners: Vec::new(),
             hot_reload_states: None,
         }
     }
 
     // TODO: Move all hot-reload logic into a separate file
-    pub fn load_css(&mut self, css: &str, hot_reload: bool) {
+    pub fn load_css(&mut self, css: &str, hot_reload: bool) -> (bool, String) {
         let mut reader = CssReader::new(css);
         reader.parse();
+        if reader.kill_switch {
+            return (false, reader.kill_message);
+        }
         if hot_reload {
             if self.hot_reload_states.is_some() {
                 self.update_state(&reader.rules);
@@ -76,6 +81,7 @@ impl ElementRenderer {
                 self.apply_rules(selector, &rule_block.rules, hot_reload);
             }
         }
+        (true, String::new())
     }
 
     fn cleanup_for_hot_reload(&mut self, new_rules: &Vec<RuleBlock>) {
@@ -221,6 +227,13 @@ impl ElementRenderer {
                     None
                 }
             }
+            DomQuery::Tag(tag) => {
+                if let Some(uids) = self.tags_map.get(tag) {
+                    Some(uids.clone())
+                } else {
+                    None
+                }
+            }
             DomQuery::All => Some(self.elements.keys().cloned().collect()),
             DomQuery::Unused => None,
         };
@@ -248,6 +261,16 @@ impl ElementRenderer {
                     self.classes_map.insert(class.clone(), vec![self.last_uid]);
                 }
             }
+            let tag_map = self.tags_map.get(&xml_element.tag);
+            if tag_map.is_some() {
+                self.tags_map
+                    .get_mut(&xml_element.tag)
+                    .unwrap()
+                    .push(self.last_uid);
+            } else {
+                self.tags_map
+                    .insert(xml_element.tag.clone(), vec![self.last_uid]);
+            }
             self.elements
                 .insert(self.last_uid, (element, xml_element.theme.clone()));
             self.last_uid += 1;
@@ -268,9 +291,9 @@ impl ElementRenderer {
                 .collect::<Vec<&EventListener>>();
             let (element, theme) = element.unwrap();
             let output = match element {
-                AnyElement::Label(label) => label.render(self, theme, events),
-                AnyElement::Container(container) => container.render(self, theme, events),
-                AnyElement::Button(button) => button.render(self, theme, events),
+                AnyElement::Label(label) => label.render(self, theme, events, uid),
+                AnyElement::Container(container) => container.render(self, theme, events, uid),
+                AnyElement::Button(button) => button.render(self, theme, events, uid),
             };
             output
         } else {

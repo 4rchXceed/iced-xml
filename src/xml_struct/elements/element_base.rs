@@ -13,6 +13,7 @@ pub trait ElementBase {
         renderer: &'a ElementRenderer,
         theme: &'a XmlTheme,
         events: Vec<&'a EventListener>,
+        self_uid: i32,
     ) -> iced::Element<'a, Message>;
     fn process_event(&mut self, event: &XmlChangeEvent);
 }

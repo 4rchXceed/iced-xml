@@ -3,6 +3,8 @@ use crate::{
     xml_engine::{Message, XmlEngine},
 };
 
+pub type AppResult = iced::Result;
+
 pub fn run_app<App: AppTemplate<App> + 'static>() -> iced::Result {
     iced::application(
         move || {
@@ -20,10 +22,24 @@ pub fn run_app<App: AppTemplate<App> + 'static>() -> iced::Result {
 pub fn render(engine: &XmlEngine) -> iced::Element<'_, Message> {
     return engine.view();
 }
+#[cfg(feature = "css-watcher")]
+pub type CssChannelType = notify::Result<notify::Event>;
+#[cfg(feature = "css-watcher")]
+pub type CssRx = std::sync::mpsc::Receiver<CssChannelType>;
+#[cfg(feature = "css-watcher")]
+pub type CssTx = std::sync::mpsc::Sender<CssChannelType>;
+#[cfg(feature = "css-watcher")]
+pub type CssWatcher = notify::RecommendedWatcher;
 
 pub struct Objects<'a, App> {
     pub engine: &'a mut XmlEngine,
     pub qb: &'a mut QueryBuilder<App>,
+    #[cfg(feature = "css-watcher")]
+    pub css_watcher_rx: &'a mut CssRx,
+    #[cfg(feature = "css-watcher")]
+    pub css_watcher_tx: &'a mut CssTx,
+    #[cfg(feature = "css-watcher")]
+    pub css_path: &'a str,
 }
 
 pub struct ObjectsReadOnly<'a, App> {
@@ -69,4 +85,9 @@ pub trait AppTemplate<T: 'static> {
     }
     // Post-construct called ONLY by the run_app function
     fn post_construct(&mut self);
+    // // Gets the path to the CSS file
+    // #[cfg(feature = "css-watcher")]
+    // fn get_css_path(&self) -> &str;
+    #[cfg(feature = "css-watcher")]
+    fn set_css_watcher_rx(&mut self, rx: CssRx);
 }

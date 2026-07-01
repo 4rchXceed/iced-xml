@@ -24,6 +24,7 @@ impl ElementBase for Container {
         renderer: &'a ElementRenderer,
         _: &'a XmlTheme,
         _: Vec<&'a EventListener>,
+        _: i32,
     ) -> iced::Element<'a, Message> {
         let mut container: iced::widget::Column<'a, Message> = iced::widget::Column::new();
 

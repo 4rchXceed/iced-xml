@@ -38,7 +38,7 @@ impl XmlEngine {
         self.window.fired_events.clear();
         match message {
             Message::DomEvent(event_uid, event_data) => {
-                let mut is_dynamic = false;
+                let mut is_dynamic = event_data.is_timeout;
                 if event_data.next_timeout.is_some() {
                     is_dynamic = true;
                     self.dyn_events.push((
@@ -72,10 +72,13 @@ impl XmlEngine {
                 return QueryResponse::new(true);
             }
             DomInternalMessageType::ImportCss(css, for_hot_reload) => {
-                self.window
+                let (success, message) = self
+                    .window
                     .element_renderer
                     .load_css(&css, for_hot_reload.clone());
-                return QueryResponse::new(true);
+                let mut query_response = QueryResponse::new(success);
+                query_response.error_message = Some(message);
+                return query_response;
             }
             _ => (),
         };

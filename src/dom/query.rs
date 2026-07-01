@@ -12,17 +12,34 @@ use crate::{
 pub struct EventResponse {
     // HERE: All properties in Option<> for every event response, so that we can return None if the event is not applicable to the element
     pub next_timeout: Option<u64>,
+    pub is_timeout: bool,
+    pub target: Option<DomQuery>,
+}
+
+impl EventResponse {
+    pub fn new(uid: i32) -> Self {
+        Self {
+            next_timeout: None,
+            is_timeout: false,
+            target: Some(DomQuery::ByUid(uid)),
+        }
+    }
 }
 
 impl Default for EventResponse {
     fn default() -> Self {
-        Self { next_timeout: None }
+        Self {
+            next_timeout: None,
+            is_timeout: false,
+            target: None,
+        }
     }
 }
 
 pub struct QueryResponse {
     pub success: bool,
     pub element_uid: Option<i32>,
+    pub error_message: Option<String>,
 }
 
 impl QueryResponse {
@@ -30,6 +47,7 @@ impl QueryResponse {
         Self {
             success,
             element_uid: None,
+            error_message: None,
         }
     }
 }
@@ -134,6 +152,7 @@ impl<T> QueryBuilder<T> {
                 }
                 DynamicEvent::SetTimeout(timeout) => {
                     every = *timeout;
+                    ev_data.is_timeout = true;
                 }
             };
             if every > 0 {

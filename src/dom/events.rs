@@ -1,10 +1,11 @@
 use crate::xml_engine::DynamicEvent;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub enum DomQuery {
     ById(String),
     ByUid(i32),
     Class(String),
+    Tag(String),
     All,
     Unused,
 }
@@ -15,6 +16,7 @@ impl DomQuery {
             "id" => DomQuery::ById(val),
             "uid" => DomQuery::ByUid(val.parse::<i32>().unwrap()),
             "class" => DomQuery::Class(val),
+            "tag" => DomQuery::Tag(val),
             "all" => DomQuery::All,
             _ => panic!("Invalid query type: {}", selector_type),
         };
