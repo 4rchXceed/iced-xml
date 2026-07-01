@@ -5,13 +5,12 @@ use crate::{
     xml_engine::Message,
     xml_struct::{
         elements::{ElementRenderer, EventListener, element_base::ElementBase},
-        parser::{XmlChangeEvent, XmlElement, XmlTheme, gen_styles},
+        parser::{XmlChangeEvent, XmlElement, XmlTheme},
     },
 };
 
 pub struct Label {
     text: String,
-    theme: XmlTheme,
 }
 
 impl ElementBase for Label {
@@ -21,19 +20,19 @@ impl ElementBase for Label {
         }
         Self {
             text: xml_element.text.clone(),
-            theme: xml_element.theme.clone(),
         }
     }
 
     fn render<'a>(
         &self,
         _: &'a ElementRenderer,
+        theme: &'a XmlTheme,
         _: Vec<&'a EventListener>,
     ) -> iced::Element<'a, Message> {
         let text_element = text(self.text.clone());
 
         // Theming
-        let theme = self.theme.clone();
+        let theme = theme.clone();
 
         let text_element = text_element.style(move |_| iced::widget::text::Style {
             color: Some(theme.text_color),
@@ -44,13 +43,13 @@ impl ElementBase for Label {
 
     fn process_event(&mut self, event: &XmlChangeEvent) {
         match event {
-            XmlChangeEvent::StyleChange(key, value) => gen_styles(key, value, &mut self.theme),
             XmlChangeEvent::PropertyChange(property, new_val) => {
                 match property.as_str() {
                     "text" => self.text = new_val.clone(),
                     _ => (),
                 };
             }
+            _ => (),
         }
     }
 }

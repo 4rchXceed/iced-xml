@@ -1,21 +1,33 @@
 use std::panic;
 
-// TODO: Add support for multiple selectors in a single rule block
+#[derive(Clone)]
 pub struct Selector {
     pub selector_type: String,
     pub content: String,
 }
 
+#[derive(Clone)]
 pub struct RuleBlock {
-    pub selector: Selector,
+    pub selectors: Vec<Selector>,
     pub rules: Vec<Rule>,
 }
 
+#[derive(Clone)]
 pub struct Rule {
     pub name: String,
     pub value: String,
 }
 
+impl Rule {
+    pub fn hash_with_selector(&self, selector: &Selector) -> String {
+        return format!(
+            "{}:{}:{}",
+            selector.selector_type, selector.content, self.name
+        );
+    }
+}
+
+#[derive(Clone)]
 pub struct CssReader {
     input: String,
     pos: usize,
@@ -61,11 +73,23 @@ impl CssReader {
         self.skip_whitespace();
         while self.pos < self.input.len() {
             self.skip_whitespace();
-            let selector = self.parse_selector();
+            let selectors = self.parse_selectors();
             let rules = self.parse_rules();
-            self.rules.push(RuleBlock { selector, rules });
+            self.rules.push(RuleBlock { selectors, rules });
             self.skip_whitespace();
         }
+    }
+
+    fn parse_selectors(&mut self) -> Vec<Selector> {
+        let mut selectors: Vec<Selector> = Vec::new();
+        while self.cur_unchecked() != '{' {
+            self.skip_whitespace();
+            selectors.push(self.parse_selector());
+            self.skip_whitespace();
+        }
+        self.pos += 1; // Skip the opening '{'
+        self.skip_whitespace();
+        return selectors;
     }
 
     fn parse_rules(&mut self) -> Vec<Rule> {
@@ -113,11 +137,16 @@ impl CssReader {
         let mut reading_selector = true;
         while self.pos < self.input.len() && reading_selector {
             let current = self.cur_unchecked();
-            self.pos += 1;
-            if current == '{' {
+            if current == ',' {
+                self.pos += 1;
+                reading_selector = false;
+            } else if current == '{' {
                 reading_selector = false;
             } else if !current.is_whitespace() {
+                self.pos += 1;
                 selector.push(current);
+            } else {
+                self.pos += 1;
             }
         }
         self.skip_whitespace();

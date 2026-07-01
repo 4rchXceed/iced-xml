@@ -21,6 +21,19 @@ impl App {
             panic!("Error selecting element :(");
         }
     }
+
+    fn load_file(&mut self, path: &str) -> String {
+        let content = std::fs::read_to_string(path);
+        if content.is_err() {
+            panic!("Error loading file: {}", path);
+        }
+        return content.unwrap();
+    }
+
+    fn reload_css(&mut self, path: &str) {
+        let content = self.load_file(path);
+        self.qb.import_css(content, true);
+    }
 }
 
 impl AppTemplate<Self> for App {
@@ -43,11 +56,18 @@ impl AppTemplate<Self> for App {
             qb: &self.qb,
         };
     }
+
     fn get_self(&mut self) -> &mut Self {
         return self;
     }
     fn post_construct(&mut self) {
-        self.qb.import_css(include_str!("style.css").to_string());
+        self.reload_css("src/style.css");
+        self.qb
+            .b(Dom::get_element_by_id("hot-css-reload").add_event_listener("click"))
+            .with_callback(|me, _| {
+                me.reload_css("src/style.css");
+                me.process();
+            });
         self.qb
             .b(Dom::get_element_by_id("btn-1").add_event_listener("click"))
             .with_callback(|me, _| {

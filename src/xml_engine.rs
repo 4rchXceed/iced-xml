@@ -40,11 +40,11 @@ impl XmlEngine {
     }
 
     pub fn client_events(&mut self, query: &DomMessage) -> QueryResponse {
-        if let DomInternalMessageType::ImportCss(ref css) = query.message {
-            self.window.element_renderer.load_css(css);
-            return QueryResponse { success: true };
+        if let DomInternalMessageType::ImportCss(ref css, ref for_hot_reload) = query.message {
+            self.window.element_renderer.load_css(css, *for_hot_reload);
+            return QueryResponse::new(true);
         }
-        let mut response = QueryResponse { success: false };
+        let mut response = QueryResponse::new(false);
         let elements = self.window.element_renderer.element_query(&query.selector);
         if elements.is_some() {
             for element in elements.unwrap() {
@@ -53,15 +53,17 @@ impl XmlEngine {
                         self.window.element_renderer.emit_internal_event(
                             element,
                             XmlChangeEvent::PropertyChange(key.clone(), value.clone()),
+                            false,
                         );
-                        QueryResponse { success: true }
+                        QueryResponse::new(true)
                     }
                     DomInternalMessageType::StyleChange(ref key, ref value) => {
                         self.window.element_renderer.emit_internal_event(
                             element,
                             XmlChangeEvent::StyleChange(key.clone(), value.clone()),
+                            false,
                         );
-                        QueryResponse { success: true }
+                        QueryResponse::new(true)
                     }
                     DomInternalMessageType::RegisterEventListener(ref event_name) => {
                         self.window.element_renderer.register_event(
@@ -69,11 +71,11 @@ impl XmlEngine {
                             element,
                             query.uid,
                         );
-                        QueryResponse { success: true }
+                        QueryResponse::new(true)
                     }
                     _ => {
                         // Handle other message types if needed
-                        QueryResponse { success: false }
+                        QueryResponse::new(false)
                     }
                 };
             }

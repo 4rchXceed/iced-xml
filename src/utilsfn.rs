@@ -108,7 +108,7 @@ pub fn parse_radius(value: &String) -> Radius {
         let mut bottom = 0.0;
         let mut left = 0.0;
         for (_, v) in value_sep.iter().enumerate() {
-            let val_part = v.split(":").collect::<Vec<&str>>();
+            let val_part = v.split("=").collect::<Vec<&str>>();
             if val_part.len() != 2 {
                 fatal(format!("Invalid radius part: {}", v).as_str());
             }

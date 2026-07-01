@@ -6,13 +6,12 @@ use crate::{
     xml_engine::Message,
     xml_struct::{
         elements::{ElementRenderer, EventListener, element_base::ElementBase},
-        parser::{XmlChangeEvent, XmlElement, XmlTheme, gen_styles},
+        parser::{XmlChangeEvent, XmlElement, XmlTheme},
     },
 };
 
 pub struct Button {
     children: Vec<i32>,
-    theme: XmlTheme,
     text: Option<String>,
 }
 
@@ -22,7 +21,6 @@ impl ElementBase for Button {
             if xml_element.children.is_empty() {
                 Self {
                     children: Vec::new(),
-                    theme: xml_element.theme.clone(),
                     text: Some(xml_element.text.clone()),
                 }
             } else {
@@ -35,7 +33,6 @@ impl ElementBase for Button {
                 );
                 Self {
                     children: Vec::new(),
-                    theme: xml_element.theme.clone(),
                     text: None,
                 }
             }
@@ -46,7 +43,6 @@ impl ElementBase for Button {
             }
             Self {
                 children: children,
-                theme: xml_element.theme.clone(),
                 text: None,
             }
         }
@@ -54,6 +50,7 @@ impl ElementBase for Button {
     fn render<'a>(
         &self,
         renderer: &'a ElementRenderer,
+        theme: &'a XmlTheme,
         events: Vec<&'a EventListener>,
     ) -> iced::Element<'a, Message> {
         let mut button_child: iced::widget::Column<'a, Message> = iced::widget::Column::new();
@@ -67,7 +64,7 @@ impl ElementBase for Button {
             button = iced::widget::Button::new(text(self.text.clone().unwrap()));
         }
 
-        let theme = self.theme.clone();
+        let theme = theme.clone();
 
         let mut button = button.style(move |_, _| iced::widget::button::Style {
             background: Some(Background::Color(theme.background_color)),
@@ -103,13 +100,13 @@ impl ElementBase for Button {
 
     fn process_event(&mut self, event: &XmlChangeEvent) {
         match event {
-            XmlChangeEvent::StyleChange(key, value) => gen_styles(key, value, &mut self.theme),
             XmlChangeEvent::PropertyChange(property, new_val) => {
                 match property.as_str() {
                     "text" => self.text = Some(new_val.clone()),
                     _ => (),
                 };
             }
+            _ => (),
         }
     }
 }

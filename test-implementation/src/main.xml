@@ -3,7 +3,8 @@
     <Div id="app-container">
         <Button id="btn-1">Click Me!</Button>
         <Div>
-            <Button id="dark-mode">Click to invert!</Button>
+            <Button id="dark-mode" classes="btn">Click to invert!</Button>
         </Div>
     </Div>
+    <Button id="hot-css-reload">Hot css reload!</Button>
 </Window>

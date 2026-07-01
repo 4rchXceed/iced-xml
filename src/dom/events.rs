@@ -29,7 +29,7 @@ pub enum DomInternalMessageType {
     StyleChange(String, String),    // k => v
     PropertyChange(String, String), // k => v
     RegisterEventListener(String),  // event_name
-    ImportCss(String),              // css content
+    ImportCss(String, bool),        // css content
 }
 
 #[derive(Debug, Clone)]

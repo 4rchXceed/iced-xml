@@ -2,13 +2,12 @@ use crate::{
     xml_engine::Message,
     xml_struct::{
         elements::{ElementRenderer, EventListener, element_base::ElementBase},
-        parser::{XmlChangeEvent, XmlElement, XmlTheme, gen_styles},
+        parser::{XmlChangeEvent, XmlElement, XmlTheme},
     },
 };
 
 pub struct Container {
     children: Vec<i32>,
-    theme: XmlTheme,
 }
 
 impl ElementBase for Container {
@@ -17,15 +16,13 @@ impl ElementBase for Container {
         for child in &xml_element.children {
             children.push(renderer.init_element(child));
         }
-        Self {
-            children: children,
-            theme: xml_element.theme.clone(),
-        }
+        Self { children: children }
     }
 
     fn render<'a>(
         &self,
         renderer: &'a ElementRenderer,
+        _: &'a XmlTheme,
         _: Vec<&'a EventListener>,
     ) -> iced::Element<'a, Message> {
         let mut container: iced::widget::Column<'a, Message> = iced::widget::Column::new();
@@ -41,7 +38,6 @@ impl ElementBase for Container {
 
     fn process_event(&mut self, event: &XmlChangeEvent) {
         match event {
-            XmlChangeEvent::StyleChange(key, value) => gen_styles(key, value, &mut self.theme),
             _ => (),
         }
     }

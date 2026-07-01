@@ -3,13 +3,13 @@ use std::collections::HashMap;
 use iced::widget::text;
 
 use crate::{
-    css_reader::CssReader,
+    css_reader::{CssReader, Rule, RuleBlock, Selector},
     dom::events::DomQuery,
     logger::fatal,
     xml_engine::Message,
     xml_struct::{
         elements::{button::Button, container::Container, element_base::ElementBase, label::Label},
-        parser::{XmlChangeEvent, XmlElement},
+        parser::{XmlChangeEvent, XmlElement, XmlTheme, gen_styles},
     },
 };
 
@@ -31,12 +31,18 @@ pub struct EventListener {
     pub event_uid: i32,
 }
 
+struct HotReloadState {
+    pub rules: Vec<RuleBlock>,
+    pub state: HashMap<i32, XmlTheme>,
+}
+
 pub struct ElementRenderer {
-    pub elements: HashMap<i32, AnyElement>,
+    pub elements: HashMap<i32, (AnyElement, XmlTheme)>,
     pub id_map: HashMap<String, i32>,
     pub classes_map: HashMap<String, Vec<i32>>,
     pub last_uid: i32,
     pub event_listeners: Vec<EventListener>,
+    hot_reload_states: Option<HotReloadState>,
 }
 
 impl ElementRenderer {
@@ -47,26 +53,114 @@ impl ElementRenderer {
             id_map: HashMap::new(),
             classes_map: HashMap::new(),
             event_listeners: Vec::new(),
+            hot_reload_states: None,
         }
     }
 
-    pub fn load_css(&mut self, css: &str) {
+    pub fn load_css(&mut self, css: &str, hot_reload: bool) {
         let mut reader = CssReader::new(css);
         reader.parse();
-        for rule_block in reader.rules {
+        if hot_reload {
+            if self.hot_reload_states.is_some() {
+                self.cleanup_for_hot_reload(&reader.rules);
+            } else {
+                self.hot_reload_states = Some(self.generate_state(&reader.rules));
+            }
+        }
+        for rule_block in &reader.rules {
             // TODO: Add support for multiple selectors in a single rule block
-            let selector = rule_block.selector;
-            let dom_query = DomQuery::new(selector.selector_type, selector.content);
+            let selectors = &rule_block.selectors;
+            for selector in selectors {
+                self.apply_rules(selector, &rule_block.rules, hot_reload);
+            }
+        }
+    }
 
-            let elements = self.element_query(&dom_query);
-            if elements.is_some() {
-                for element in elements.unwrap() {
-                    for rule in rule_block.rules.iter() {
-                        self.emit_internal_event(
-                            element,
-                            XmlChangeEvent::StyleChange(rule.name.clone(), rule.value.clone()),
-                        );
+    fn cleanup_for_hot_reload(&mut self, new_rules: &Vec<RuleBlock>) {
+        let old_state = self.hot_reload_states.as_ref().unwrap();
+        let mut state_hashed: HashMap<String, (Selector, Rule)> = HashMap::new();
+        for rule_block in new_rules.iter() {
+            for selector in &rule_block.selectors {
+                for rule in &rule_block.rules {
+                    state_hashed.insert(
+                        rule.hash_with_selector(selector),
+                        (selector.clone(), rule.clone()),
+                    );
+                }
+            }
+        }
+        // Ok, small explaination of what's going on here
+        for old_rule_block in old_state.rules.iter() {
+            for selector in &old_rule_block.selectors {
+                for rule in &old_rule_block.rules {
+                    let hash = rule.hash_with_selector(selector);
+                    // Here: rule has been removed, we need to revert the style change
+                    if !state_hashed.contains_key(&hash) {
+                        // We are selecting the correct element, so we can work on it
+                        let elements = self.element_query(&DomQuery::new(
+                            selector.selector_type.clone(),
+                            selector.content.clone(),
+                        ));
+                        if elements.is_some() {
+                            // Then we loop through all the elements and revert the style change
+                            for element in elements.unwrap() {
+                                // get the old theme, before the first css hot-reload-supported change (hot-reload-supported is when hot_reload is true)
+                                let old_theme = old_state.state.get(&element);
+                                // If we found the old theme, we can revert the style change
+                                if old_theme.is_some() {
+                                    // Get the real element
+                                    let real_element = self.elements.get_mut(&element);
+                                    // Then we clone the old theme, remove the style change from a "virtual" theme
+                                    let mut rule_to_change = old_theme.unwrap().clone();
+                                    gen_styles(&rule.name, &rule.value, &mut rule_to_change);
+                                    if real_element.is_some() {
+                                        let (_, theme) = real_element.unwrap();
+                                        // And revert the style change by applying only the changes from the old theme to the new theme
+                                        theme.apply_only_changes(
+                                            &old_theme.unwrap().clone(),
+                                            &rule_to_change,
+                                            &old_theme.unwrap().clone(),
+                                        );
+                                        // By doing all of the gen_styles and other stuff, we avoid having the create a revert function (from XmlTheme to rules)
+                                        // We still need apply_only_changes tho
+                                    }
+                                } // Normally, we should always find the old theme, but if we don't, we just skip it
+                            }
+                        } // else: invalid selector
                     }
+                }
+            }
+        }
+    }
+
+    fn generate_state(&mut self, rules: &Vec<RuleBlock>) -> HotReloadState {
+        let mut state: HashMap<i32, XmlTheme> = HashMap::new();
+        for (uid, (_, theme)) in &self.elements {
+            state.insert(*uid, theme.clone());
+        }
+        HotReloadState {
+            rules: rules.clone(),
+            state: state,
+        }
+    }
+
+    pub fn apply_rules(
+        &mut self,
+        selector: &Selector,
+        rules: &Vec<Rule>,
+        comes_from_hot_reload: bool,
+    ) {
+        let dom_query = DomQuery::new(selector.selector_type.clone(), selector.content.clone());
+
+        let elements = self.element_query(&dom_query);
+        if elements.is_some() {
+            for element in elements.unwrap() {
+                for rule in rules.iter() {
+                    self.emit_internal_event(
+                        element,
+                        XmlChangeEvent::StyleChange(rule.name.clone(), rule.value.clone()),
+                        comes_from_hot_reload,
+                    );
                 }
             }
         }
@@ -122,7 +216,8 @@ impl ElementRenderer {
                     self.classes_map.insert(class.clone(), vec![self.last_uid]);
                 }
             }
-            self.elements.insert(self.last_uid, element);
+            self.elements
+                .insert(self.last_uid, (element, xml_element.theme.clone()));
             self.last_uid += 1;
             return self.last_uid - 1;
         } else {
@@ -139,10 +234,11 @@ impl ElementRenderer {
                 .iter()
                 .filter(|v| v.target == uid)
                 .collect::<Vec<&EventListener>>();
-            let output = match element.unwrap() {
-                AnyElement::Label(label) => label.render(self, events),
-                AnyElement::Container(container) => container.render(self, events),
-                AnyElement::Button(button) => button.render(self, events),
+            let (element, theme) = element.unwrap();
+            let output = match element {
+                AnyElement::Label(label) => label.render(self, theme, events),
+                AnyElement::Container(container) => container.render(self, theme, events),
+                AnyElement::Button(button) => button.render(self, theme, events),
             };
             output
         } else {
@@ -150,13 +246,32 @@ impl ElementRenderer {
         }
     }
 
-    pub fn emit_internal_event(&mut self, uid: i32, event: XmlChangeEvent) {
+    pub fn emit_internal_event(
+        &mut self,
+        uid: i32,
+        event: XmlChangeEvent,
+        comes_from_hot_reload: bool,
+    ) {
         let element = self.elements.get_mut(&uid);
         if element.is_some() {
-            match element.unwrap() {
-                AnyElement::Label(label) => label.process_event(&event),
-                AnyElement::Container(container) => container.process_event(&event),
-                AnyElement::Button(button) => button.process_event(&event),
+            let (element, theme) = element.unwrap();
+            match event {
+                XmlChangeEvent::StyleChange(key, value) => {
+                    // Update the hot reload state if it exists
+                    if let Some(hot_reload_state) = self.hot_reload_states.as_mut()
+                        && !comes_from_hot_reload
+                    {
+                        if let Some(old_theme) = hot_reload_state.state.get_mut(&uid) {
+                            gen_styles(&key, &value, old_theme);
+                        }
+                    }
+                    gen_styles(&key, &value, theme);
+                }
+                _ => match element {
+                    AnyElement::Label(label) => label.process_event(&event),
+                    AnyElement::Container(container) => container.process_event(&event),
+                    AnyElement::Button(button) => button.process_event(&event),
+                },
             }
         }
     }

@@ -2,7 +2,7 @@ use crate::{
     xml_engine::Message,
     xml_struct::{
         elements::{ElementRenderer, EventListener},
-        parser::{XmlChangeEvent, XmlElement},
+        parser::{XmlChangeEvent, XmlElement, XmlTheme},
     },
 };
 
@@ -11,6 +11,7 @@ pub trait ElementBase {
     fn render<'a>(
         &self,
         renderer: &'a ElementRenderer,
+        theme: &'a XmlTheme,
         events: Vec<&'a EventListener>,
     ) -> iced::Element<'a, Message>;
     fn process_event(&mut self, event: &XmlChangeEvent);

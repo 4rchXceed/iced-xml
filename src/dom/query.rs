@@ -16,6 +16,16 @@ impl Default for EventResponse {
 
 pub struct QueryResponse {
     pub success: bool,
+    pub element_uid: Option<i32>,
+}
+
+impl QueryResponse {
+    pub fn new(success: bool) -> Self {
+        Self {
+            success,
+            element_uid: None,
+        }
+    }
 }
 
 pub struct Query<T> {
@@ -39,9 +49,9 @@ impl<T> QueryBuilder<T> {
         }
     }
 
-    pub fn import_css(&mut self, css: String) -> &mut Self {
+    pub fn import_css(&mut self, css: String, hot_reload: bool) -> &mut Self {
         self.build_query(DomMessage {
-            message: DomInternalMessageType::ImportCss(css),
+            message: DomInternalMessageType::ImportCss(css, hot_reload),
             uid: self.current_uid,
             selector: DomQuery::Unused,
         });

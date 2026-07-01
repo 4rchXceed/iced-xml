@@ -50,6 +50,41 @@ pub struct XmlTheme {
     pub border_width: f32,
 }
 
+impl XmlTheme {
+    /**
+     * Changes the values of the current theme to match the values of `changes` only on the properties that are different between `first` and `second`.
+     */
+    pub fn apply_only_changes(&mut self, first: &XmlTheme, second: &XmlTheme, changes: &XmlTheme) {
+        if first.background_color != second.background_color {
+            self.background_color = changes.background_color;
+        }
+        if first.text_color != second.text_color {
+            self.text_color = changes.text_color;
+        }
+        if first.snap != second.snap {
+            self.snap = changes.snap;
+        }
+        if first.shadow_color != second.shadow_color {
+            self.shadow_color = changes.shadow_color;
+        }
+        if first.shadow_blur_radius != second.shadow_blur_radius {
+            self.shadow_blur_radius = changes.shadow_blur_radius;
+        }
+        if first.shadow_offset != second.shadow_offset {
+            self.shadow_offset = changes.shadow_offset;
+        }
+        if first.border_color != second.border_color {
+            self.border_color = changes.border_color;
+        }
+        if first.border_radius != second.border_radius {
+            self.border_radius = changes.border_radius;
+        }
+        if first.border_width != second.border_width {
+            self.border_width = changes.border_width;
+        }
+    }
+}
+
 impl Default for XmlTheme {
     fn default() -> Self {
         Self {
