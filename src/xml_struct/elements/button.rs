@@ -1,7 +1,7 @@
 use iced::{Background, Border, Shadow, widget::text};
 
 use crate::{
-    dom::query::EventResponse,
+    dom::query::{EventResponse, QueryResponse},
     logger::fatal,
     xml_engine::Message,
     xml_struct::{
@@ -67,24 +67,29 @@ impl ElementBase for Button {
 
         let theme = theme.clone();
 
-        let mut button = button.style(move |_, _| iced::widget::button::Style {
-            background: Some(Background::Color(theme.background_color)),
-            text_color: theme.text_color,
-            border: Border {
-                color: theme.border_color,
-                radius: theme.border_radius,
-                width: theme.border_width,
-                ..Border::default()
-            },
-            shadow: Shadow {
-                color: theme.shadow_color,
-                blur_radius: theme.shadow_blur_radius,
-                offset: theme.shadow_offset,
-                ..Shadow::default()
-            },
-            snap: theme.snap,
-            ..Default::default()
-        });
+        let mut button = button
+            .style(move |_, _| iced::widget::button::Style {
+                background: Some(Background::Color(theme.background_color)),
+                text_color: theme.text_color,
+                border: Border {
+                    color: theme.border_color,
+                    radius: theme.border_radius,
+                    width: theme.border_width,
+                    ..Border::default()
+                },
+                shadow: Shadow {
+                    color: theme.shadow_color,
+                    blur_radius: theme.shadow_blur_radius,
+                    offset: theme.shadow_offset,
+                    ..Shadow::default()
+                },
+                snap: theme.snap,
+                ..Default::default()
+            })
+            .clip(theme.clip)
+            .height(theme.height)
+            .padding(theme.padding)
+            .width(theme.width);
 
         for event in events {
             match event.event_type.as_str() {
@@ -101,15 +106,32 @@ impl ElementBase for Button {
         return button.into();
     }
 
-    fn process_event(&mut self, event: &XmlChangeEvent) {
+    fn process_event(&mut self, event: &XmlChangeEvent) -> Option<QueryResponse> {
+        let mut query_response = QueryResponse::new(true);
         match event {
             XmlChangeEvent::PropertyChange(property, new_val) => {
-                match property.as_str() {
-                    "text" => self.text = Some(new_val.clone()),
-                    _ => (),
+                return match property.as_str() {
+                    "text" => {
+                        self.text = Some(new_val.clone());
+                        Some(query_response)
+                    }
+                    _ => None,
                 };
             }
-            _ => (),
+            XmlChangeEvent::GetProperty(property) => {
+                return match property.as_str() {
+                    "text" => {
+                        if self.text.is_some() {
+                            query_response.data_str = self.text.clone();
+                            Some(query_response)
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
+                };
+            }
+            _ => None,
         }
     }
 }

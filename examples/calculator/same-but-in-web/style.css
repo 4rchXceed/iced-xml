@@ -1,0 +1,29 @@
+button {
+    background-color: cyan;
+    padding: 20px;
+}
+
+.button-nbr {
+    width: 50px;
+}
+
+#main-row {
+    display: flex;
+}
+
+#btn-container {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    width: 250px; /* 50*3 + 10*3 + 20*4 */
+}
+
+#op-col {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+}
+
+#result {
+    display: flex;
+}

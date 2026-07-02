@@ -7,11 +7,11 @@ use crate::{
     },
 };
 
-pub struct Container {
+pub struct Row {
     children: Vec<i32>,
 }
 
-impl ElementBase for Container {
+impl ElementBase for Row {
     fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer) -> Self {
         let mut children: Vec<i32> = Vec::new();
         for child in &xml_element.children {
@@ -27,7 +27,7 @@ impl ElementBase for Container {
         _: Vec<&'a EventListener>,
         _: i32,
     ) -> iced::Element<'a, Message> {
-        let mut container: iced::widget::Column<'a, Message> = iced::widget::Column::new();
+        let mut container: iced::widget::Row<'a, Message> = iced::widget::Row::new();
 
         for child in &self.children {
             container = container.push(renderer.render_element(*child));
@@ -38,9 +38,8 @@ impl ElementBase for Container {
             .height(theme.height)
             .padding(theme.padding)
             .width(theme.width)
-            .max_width(theme.max_width)
             .spacing(theme.spacing)
-            .align_x(theme.align_x);
+            .align_y(theme.align_y);
         if theme.wrap {
             return container.wrap().into();
         }

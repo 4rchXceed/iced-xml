@@ -1,17 +1,26 @@
-use std::io::Cursor;
+use std::{collections::HashMap, io::Cursor};
 
-use iced::{Color, Vector, border::Radius};
+use iced::{
+    Color, Length, Padding, Vector,
+    alignment::{Horizontal, Vertical},
+    border::Radius,
+    widget::button::DEFAULT_PADDING,
+};
 use quick_xml::{Reader, events::Event};
 
 use crate::{
     css_reader::CssReader,
     logger::fatal,
-    utilsfn::{parse_color, parse_radius, parse_vector},
+    utilsfn::{
+        parse_align_x, parse_align_y, parse_color, parse_length, parse_padding, parse_radius,
+        parse_value, parse_vector,
+    },
 };
 
 pub enum XmlChangeEvent {
     StyleChange(String, String),    // k => v
     PropertyChange(String, String), // k => v
+    GetProperty(String),            // key
 }
 
 #[derive(Debug, Clone)]
@@ -23,6 +32,7 @@ pub struct XmlElement {
     pub theme: XmlTheme,
     pub id: Option<String>,
     pub classes: Vec<String>,
+    pub datas: HashMap<String, String>,
 }
 
 // impl XmlElement {
@@ -48,6 +58,15 @@ pub struct XmlTheme {
     pub border_color: Color,
     pub border_radius: Radius,
     pub border_width: f32,
+    pub clip: bool,
+    pub height: Length,
+    pub width: Length,
+    pub padding: Padding,
+    pub spacing: f32,
+    pub max_width: f32,
+    pub align_x: Horizontal,
+    pub align_y: Vertical,
+    pub wrap: bool,
 }
 
 impl XmlTheme {
@@ -82,6 +101,33 @@ impl XmlTheme {
         if first.border_width != second.border_width {
             self.border_width = changes.border_width;
         }
+        if first.clip != second.clip {
+            self.clip = changes.clip;
+        }
+        if first.height != second.height {
+            self.height = changes.height;
+        }
+        if first.width != second.width {
+            self.width = changes.width;
+        }
+        if first.padding != second.padding {
+            self.padding = changes.padding;
+        }
+        if first.spacing != second.spacing {
+            self.spacing = changes.spacing;
+        }
+        if first.max_width != second.max_width {
+            self.max_width = changes.max_width;
+        }
+        if first.align_x != second.align_x {
+            self.align_x = changes.align_x;
+        }
+        if first.align_y != second.align_y {
+            self.align_y = changes.align_y;
+        }
+        if first.wrap != second.wrap {
+            self.wrap = changes.wrap;
+        }
     }
 }
 
@@ -97,6 +143,15 @@ impl Default for XmlTheme {
             border_color: Color::BLACK,
             border_radius: Radius::default(),
             border_width: 0.0,
+            clip: false,
+            height: Length::Shrink,
+            width: Length::Shrink,
+            padding: DEFAULT_PADDING,
+            max_width: f32::INFINITY,
+            spacing: 0.0,
+            align_x: Horizontal::Left,
+            align_y: Vertical::Top,
+            wrap: false,
         }
     }
 }
@@ -131,12 +186,21 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         "bg" => theme.background_color = parse_color(value),
         "fg" => theme.text_color = parse_color(value),
         "snap" => theme.snap = value == "true",
-        "shadow_color" => theme.shadow_color = parse_color(value),
-        "shadow_blur" => theme.shadow_blur_radius = value.parse().unwrap_or_default(),
-        "shadow_offset" => theme.shadow_offset = parse_vector(value),
-        "border_color" => theme.border_color = parse_color(value),
-        "border_radius" => theme.border_radius = parse_radius(value),
-        "border_width" => theme.border_width = value.parse().unwrap_or_default(),
+        "shadow-color" => theme.shadow_color = parse_color(value),
+        "shadow-blur" => theme.shadow_blur_radius = value.parse().unwrap_or_default(),
+        "shadow-offset" => theme.shadow_offset = parse_vector(value),
+        "border-color" => theme.border_color = parse_color(value),
+        "border-radius" => theme.border_radius = parse_radius(value),
+        "border-width" => theme.border_width = value.parse().unwrap_or_default(),
+        "clip" => theme.clip = value == "true",
+        "height" => theme.height = parse_length(value),
+        "width" => theme.width = parse_length(value),
+        "padding" => theme.padding = parse_padding(value),
+        "max_width" => theme.max_width = value.parse().unwrap_or_default(),
+        "align-x" => theme.align_x = parse_align_x(value),
+        "spacing" => theme.spacing = parse_value(value),
+        "align-y" => theme.align_y = parse_align_y(value),
+        "wrap" => theme.wrap = value == "true",
         _ => {}
     }
 }
@@ -160,6 +224,8 @@ impl XmlParser {
                         // last_theme = last_theme.clone();
                         let mut id: Option<String> = None;
                         let mut classes_string: String = String::new();
+                        let mut datas: HashMap<String, String> = HashMap::new();
+
                         let attributes = e
                             .attributes()
                             .map(|a| {
@@ -172,6 +238,12 @@ impl XmlParser {
                                 }
                                 if k == "classes" {
                                     classes_string = v.clone();
+                                }
+                                if k.starts_with("data-") {
+                                    datas.insert(
+                                        k.strip_prefix("data-").unwrap().to_string(),
+                                        v.clone(),
+                                    );
                                 }
                                 (k, v)
                             })
@@ -190,6 +262,7 @@ impl XmlParser {
                             theme: last_theme.clone(),
                             id: id,
                             classes: classes,
+                            datas: datas,
                         });
                     }
                 },

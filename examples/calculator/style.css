@@ -1,0 +1,25 @@
+Button {
+    bg: cyan;
+    padding: 20;
+}
+
+.button-nbr {
+    width: 50f;
+}
+
+#btn-container {
+    spacing: 20;
+    wrap: true;
+    width: 270f; /* 50*3 + 10*3 + 20*4 */
+    height: 320f; /* 50*3 + 10*3 + 20*4 */
+}
+
+#op-col {
+    spacing: 13;
+    height: 320f;
+}
+
+.op-col-btn {
+    width: 75f;
+    padding: 15;
+}

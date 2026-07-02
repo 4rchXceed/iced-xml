@@ -1,0 +1,37 @@
+<Window>
+	<Label id="title">Calculator</Label>
+	<Row id="main-row">
+	    <Row id="btn-container">
+		    <Button classes="button-nbr" data-nbr="1">1</Button>
+		    <Button classes="button-nbr" data-nbr="2">2</Button>
+		    <Button classes="button-nbr" data-nbr="3">3</Button>
+		    <Button classes="button-nbr" data-nbr="4">4</Button>
+		    <Button classes="button-nbr" data-nbr="5">5</Button>
+		    <Button classes="button-nbr" data-nbr="6">6</Button>
+		    <Button classes="button-nbr" data-nbr="7">7</Button>
+		    <Button classes="button-nbr" data-nbr="8">8</Button>
+		    <Button classes="button-nbr" data-nbr="9">9</Button>
+		    <Button classes="button-nbr" data-nbr="0">0</Button>
+		    <Button id="button-calculate">Calculate!</Button>
+	    </Row>
+		<Col id="op-col">
+		    <Button classes="op-col-btn" id="button-clear"><Center
+                >Clear</Center></Button>
+            <Button classes="button-op op-col-btn" data-op="+"><Center
+                >+</Center></Button>
+            <Button classes="button-op op-col-btn" data-op="-"><Center
+                >-</Center></Button>
+            <Button classes="button-op op-col-btn" data-op="*"><Center
+                >*</Center></Button>
+            <Button classes="button-op op-col-btn" data-op="/"><Center
+                >/</Center></Button>
+		</Col>
+	</Row>
+	<Row>
+	    <Label id="label-first-nbr">0</Label>
+	    <Label id="label-operator"> + </Label>
+	    <Label id="label-second-nbr">0</Label>
+	    <Label> = </Label>
+	    <Label id="label-result">0</Label>
+	</Row>
+</Window>

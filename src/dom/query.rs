@@ -36,10 +36,12 @@ impl Default for EventResponse {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct QueryResponse {
     pub success: bool,
     pub element_uid: Option<i32>,
     pub error_message: Option<String>,
+    pub data_str: Option<String>,
 }
 
 impl QueryResponse {
@@ -48,6 +50,7 @@ impl QueryResponse {
             success,
             element_uid: None,
             error_message: None,
+            data_str: None,
         }
     }
 }
@@ -63,6 +66,7 @@ pub struct Query<T> {
 pub struct QueryBuilder<T> {
     queries: Vec<Query<T>>,
     current_uid: i32,
+    pub last: QueryResponse,
 }
 
 impl<T> QueryBuilder<T> {
@@ -70,6 +74,7 @@ impl<T> QueryBuilder<T> {
         Self {
             queries: Vec::new(),
             current_uid: 0,
+            last: QueryResponse::new(false),
         }
     }
 
@@ -194,6 +199,7 @@ impl<T> QueryBuilder<T> {
         for query in self.queries.iter_mut() {
             if query.listener_callback.is_none() || !query.listener_registered {
                 let response = engine.client_events(&query.query);
+                self.last = response.clone();
                 if let Some(callback) = query.callback {
                     callbacks.push((callback, response));
                 }

@@ -32,9 +32,11 @@ pub struct DomMessage {
 pub enum DomInternalMessageType {
     StyleChange(String, String),         // k => v
     PropertyChange(String, String),      // k => v
+    GetProperty(String),                 // key
     RegisterEventListener(String),       // event_name
     ImportCss(String, bool),             // css content
     SubscribeDynamicEvent(DynamicEvent), // dynamic events (like set_timeout, set_interval, etc.)
+    GetData(String),                     // key
 }
 
 #[derive(Debug, Clone)]
@@ -49,9 +51,24 @@ impl DomQueryResult {
         }
     }
 
+    pub fn from(dom_query: DomQuery) -> Self {
+        Self {
+            query_event: dom_query,
+        }
+    }
+
     pub fn set_property(&mut self, key: &str, value: &str) -> DomMessage {
         let event = DomMessage {
             message: DomInternalMessageType::PropertyChange(key.to_string(), value.to_string()),
+            uid: -1,
+            selector: self.query_event.clone(),
+        };
+        return event;
+    }
+
+    pub fn get_property(&mut self, key: &str) -> DomMessage {
+        let event = DomMessage {
+            message: DomInternalMessageType::GetProperty(key.to_string()),
             uid: -1,
             selector: self.query_event.clone(),
         };
@@ -70,6 +87,15 @@ impl DomQueryResult {
     pub fn add_event_listener(&mut self, name: &str) -> DomMessage {
         let event = DomMessage {
             message: DomInternalMessageType::RegisterEventListener(name.to_string()),
+            uid: -1,
+            selector: self.query_event.clone(),
+        };
+        return event;
+    }
+
+    pub fn get_data(&mut self, key: &str) -> DomMessage {
+        let event = DomMessage {
+            message: DomInternalMessageType::GetData(key.to_string()),
             uid: -1,
             selector: self.query_event.clone(),
         };

@@ -1,0 +1,13 @@
+- Props to add:
+  - clip -> button.clip() -> bool
+  - height -> button.height() -> Length
+  - padding -> button.padding() -> Padding
+  - width -> button.width() -> Length
+- Types to add:
+  - Length:
+    - max -> Fill
+    - Xfp -> FillPortion(X)
+    - min -> Shrink
+    - Xf -> Fixed(X)
+  - Padding:
+    - top, bottom, left, right (rename parse radius to generic)

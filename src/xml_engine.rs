@@ -11,6 +11,7 @@ pub enum Message {
     DomEvent(i32, EventResponse),
 }
 
+#[derive(Debug)]
 pub enum DynamicEvent {
     SetTimeout(i32),  // time in milliseconds
     SetInterval(i32), // time in milliseconds
@@ -41,10 +42,10 @@ impl XmlEngine {
                 let mut is_dynamic = event_data.is_timeout;
                 if event_data.next_timeout.is_some() {
                     is_dynamic = true;
-                    self.dyn_events.push((
-                        event_uid,
-                        DynamicEvent::SetTimeout(event_data.next_timeout.unwrap() as i32),
-                    ));
+                    // self.dyn_events.push((
+                    //     event_uid,
+                    //     DynamicEvent::SetTimeout(event_data.next_timeout.unwrap() as i32),
+                    // ));
                 }
                 self.window.emit_event(event_uid, event_data, is_dynamic);
             }
@@ -56,6 +57,7 @@ impl XmlEngine {
         return self.window.render();
     }
 
+    // TODO: allow multiple response with multiple elements
     pub fn client_events(&mut self, query: &DomMessage) -> QueryResponse {
         match &query.message {
             DomInternalMessageType::SubscribeDynamicEvent(dynamic_event) => {
@@ -92,16 +94,21 @@ impl XmlEngine {
                             element,
                             XmlChangeEvent::PropertyChange(key.clone(), value.clone()),
                             false,
-                        );
-                        QueryResponse::new(true)
+                        )
+                    }
+                    DomInternalMessageType::GetProperty(ref key) => {
+                        self.window.element_renderer.emit_internal_event(
+                            element,
+                            XmlChangeEvent::GetProperty(key.clone()),
+                            false,
+                        )
                     }
                     DomInternalMessageType::StyleChange(ref key, ref value) => {
                         self.window.element_renderer.emit_internal_event(
                             element,
                             XmlChangeEvent::StyleChange(key.clone(), value.clone()),
                             false,
-                        );
-                        QueryResponse::new(true)
+                        )
                     }
                     DomInternalMessageType::RegisterEventListener(ref event_name) => {
                         self.window.element_renderer.register_event(
@@ -110,6 +117,16 @@ impl XmlEngine {
                             query.uid,
                         );
                         QueryResponse::new(true)
+                    }
+                    DomInternalMessageType::GetData(ref key) => {
+                        let data = self.window.element_renderer.get_data(element, &key.clone());
+                        if data.is_some() {
+                            let mut qr = QueryResponse::new(true);
+                            qr.data_str = data;
+                            qr
+                        } else {
+                            QueryResponse::new(false)
+                        }
                     }
                     _ => {
                         // Handle other message types if needed

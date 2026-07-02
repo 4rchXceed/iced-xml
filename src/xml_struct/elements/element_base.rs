@@ -1,4 +1,5 @@
 use crate::{
+    dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
         elements::{ElementRenderer, EventListener},
@@ -15,5 +16,5 @@ pub trait ElementBase {
         events: Vec<&'a EventListener>,
         self_uid: i32,
     ) -> iced::Element<'a, Message>;
-    fn process_event(&mut self, event: &XmlChangeEvent);
+    fn process_event(&mut self, event: &XmlChangeEvent) -> Option<QueryResponse>;
 }

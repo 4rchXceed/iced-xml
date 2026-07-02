@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+    <head>
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <h1>Calculator:</h1>
+        <div id="main-row">
+            <div id="btn-container">
+                <button class="button-nbr" data-nbr="1">1</button>
+                <button class="button-nbr" data-nbr="2">2</button>
+                <button class="button-nbr" data-nbr="3">3</button>
+                <button class="button-nbr" data-nbr="4">4</button>
+                <button class="button-nbr" data-nbr="5">5</button>
+                <button class="button-nbr" data-nbr="6">6</button>
+                <button class="button-nbr" data-nbr="7">7</button>
+                <button class="button-nbr" data-nbr="8">8</button>
+                <button class="button-nbr" data-nbr="9">9</button>
+                <button class="button-nbr" data-nbr="0">0</button>
+                <button class="button-calculate">Calculate!</button>
+            </div>
+            <div id="op-col">
+                <button class="op-col-btn button-clear">Clear</button>
+                <button class="button-op" data-op="+">+</button>
+                <button class="button-op" data-op="-">-</button>
+                <button class="button-op" data-op="*">*</button>
+                <button class="button-op" data-op="/">/</button>
+            </div>
+        </div>
+        <div id="result">
+            <p id="first-nbr">0</p>
+            <p id="op">+</p>
+            <p id="second-nbr">0</p>
+            <p>=</p>
+            <p id="result-nbr">0</p>
+        </div>
+        <script src="script.js"></script>
+    </body>
+</html>
