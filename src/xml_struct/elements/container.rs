@@ -3,7 +3,8 @@ use crate::{
     xml_engine::Message,
     xml_struct::{
         elements::{ElementRenderer, EventListener, element_base::ElementBase},
-        parser::{XmlChangeEvent, XmlElement, XmlTheme},
+        parser::{XmlChangeEvent, XmlElement},
+        theming::XmlTheme,
     },
 };
 
@@ -15,7 +16,7 @@ impl ElementBase for Container {
     fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer) -> Self {
         let mut children: Vec<i32> = Vec::new();
         for child in &xml_element.children {
-            children.push(renderer.init_element(child));
+            children.push(renderer.init_element_from_xml(child));
         }
         Self { children: children }
     }
@@ -48,7 +49,7 @@ impl ElementBase for Container {
         return container.into();
     }
 
-    fn process_event(&mut self, event: &XmlChangeEvent) -> Option<QueryResponse> {
+    fn process_event(&mut self, event: &XmlChangeEvent) -> Option<(QueryResponse, Vec<i32>)> {
         match event {
             _ => None,
         }

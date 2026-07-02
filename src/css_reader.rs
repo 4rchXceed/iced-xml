@@ -58,6 +58,10 @@ impl CssReader {
         }
     }
 
+    pub fn eof(&mut self) -> bool {
+        self.pos >= self.input.chars().count()
+    }
+
     pub fn peek_unchecked(&mut self) -> char {
         let mut chars = self.input.chars().take(self.pos + 2).skip(self.pos + 1);
         let current = chars.next();
@@ -74,19 +78,21 @@ impl CssReader {
             return;
         }
         let mut it = 0;
-        while self.pos < self.input.len()
+        while !self.eof()
             && it < self.max_it
-            && self.input[self.pos..]
-                .starts_with(|c: char| c.is_whitespace() || c == '\n' || c == '\r' || c == '/')
+            && (self.cur_unchecked().is_whitespace()
+                || self.cur_unchecked() == '\n'
+                || self.cur_unchecked() == '\r'
+                || self.cur_unchecked() == '/')
         {
             it += 1;
             // CSS Comments
             if self.cur_unchecked() == '/' && self.peek_unchecked() == '*' {
                 self.pos += 2;
                 let mut it = 0;
-                while self.pos < self.input.len()
+                while !self.eof()
                     && it < self.max_it
-                    && !(self.input[self.pos..].starts_with("*/"))
+                    && !(self.cur_unchecked() == '*' && self.peek_unchecked() == '/')
                 {
                     it += 1;
                     self.pos += 1;
@@ -101,7 +107,7 @@ impl CssReader {
     pub fn parse(&mut self) {
         self.skip_whitespace();
         let mut it = 0;
-        while self.pos < self.input.len() && it < self.max_it {
+        while !self.eof() && it < self.max_it {
             it += 1;
             self.skip_whitespace();
             let selectors = self.parse_selectors();
@@ -159,7 +165,7 @@ impl CssReader {
         let mut reading_name = true;
         let mut finished = false;
         let mut it = 0;
-        while self.pos < self.input.len() && !finished && it < self.max_it {
+        while !self.eof() && !finished && it < self.max_it {
             it += 1;
             let current = self.cur_unchecked();
             if current == ':' && reading_name {
@@ -195,7 +201,7 @@ impl CssReader {
         let mut selector = String::new();
         let mut reading_selector = true;
         let mut it = 0;
-        while self.pos < self.input.len() && reading_selector && it < self.max_it {
+        while !self.eof() && reading_selector && it < self.max_it {
             it += 1;
             let current = self.cur_unchecked();
             if current == ',' {

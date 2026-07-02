@@ -1,3 +1,13 @@
+pub mod button;
+pub mod center;
+pub mod checkbox;
+pub mod container;
+pub mod element_base;
+pub mod label;
+pub mod row;
+// Library
+pub mod library;
+
 use std::collections::HashMap;
 
 use iced::widget::text;
@@ -5,31 +15,15 @@ use iced::widget::text;
 use crate::{
     css_reader::{CssReader, Rule, RuleBlock, Selector},
     dom::{events::DomQuery, query::QueryResponse},
-    logger::fatal,
     xml_engine::Message,
     xml_struct::{
-        elements::{
-            button::Button, center::Center, container::Container, element_base::ElementBase,
-            label::Label, row::Row,
+        elements::library::{
+            AnyElement, generate_element_from_tag, process_event_for_element, render_element,
         },
-        parser::{XmlChangeEvent, XmlElement, XmlTheme, gen_styles},
+        parser::{XmlChangeEvent, XmlElement},
+        theming::{XmlTheme, gen_styles},
     },
 };
-
-pub mod button;
-pub mod center;
-pub mod container;
-pub mod element_base;
-pub mod label;
-pub mod row;
-
-pub enum AnyElement {
-    Label(Label),
-    Container(Container),
-    Button(Button),
-    Row(Row),
-    Center(Center),
-}
 
 pub struct EventListener {
     pub event_type: String,
@@ -168,6 +162,7 @@ impl ElementRenderer {
             state: state,
         }
     }
+
     fn update_state(&mut self, rules: &Vec<RuleBlock>) {
         // Update only new rules, and keep the old state for the rest
         let mut state_hashed: HashMap<String, (Selector, Rule)> = HashMap::new();
@@ -221,6 +216,18 @@ impl ElementRenderer {
         }
     }
 
+    pub fn get_element(&mut self, uid: i32) -> &mut AnyElement {
+        let element = self.elements.get_mut(&uid);
+        if element.is_some() {
+            return &mut element.unwrap().0;
+        } else {
+            panic!(
+                "Element not found: {}, but called with a no-fail method. Probably a program state issue",
+                uid
+            )
+        }
+    }
+
     pub fn element_query(&self, query: &DomQuery) -> Option<Vec<i32>> {
         return match query {
             DomQuery::ById(id) => {
@@ -256,51 +263,60 @@ impl ElementRenderer {
         };
     }
 
-    pub fn init_element(&mut self, xml_element: &XmlElement) -> i32 {
+    pub fn init_element_from_xml(&mut self, xml_element: &XmlElement) -> i32 {
         // TODO: Add "plugin" support (function provided by the user to resolve custom elements)
-        let element: Option<AnyElement> = match xml_element.tag.as_str() {
-            "Label" => Some(AnyElement::Label(Label::new(xml_element, self))),
-            "Div" => Some(AnyElement::Container(Container::new(xml_element, self))),
-            "Col" => Some(AnyElement::Container(Container::new(xml_element, self))),
-            "Row" => Some(AnyElement::Row(Row::new(xml_element, self))),
-            "Window" => Some(AnyElement::Container(Container::new(xml_element, self))), // Window works the same way as a container (FOR NOW), we'll use the same logic
-            "Button" => Some(AnyElement::Button(Button::new(xml_element, self))),
-            "Center" => Some(AnyElement::Center(Center::new(xml_element, self))),
-            _ => None,
-        };
+        let element = generate_element_from_tag(xml_element, self);
         if let Some(element) = element {
-            if xml_element.id.is_some() {
-                self.id_map
-                    .insert(xml_element.id.clone().unwrap().to_string(), self.last_uid);
-            }
-            for class in &xml_element.classes {
-                let class_map = self.classes_map.get(class);
-                if class_map.is_some() {
-                    self.classes_map.get_mut(class).unwrap().push(self.last_uid);
-                } else {
-                    self.classes_map.insert(class.clone(), vec![self.last_uid]);
-                }
-            }
-            let tag_map = self.tags_map.get(&xml_element.tag);
-            if tag_map.is_some() {
-                self.tags_map
-                    .get_mut(&xml_element.tag)
-                    .unwrap()
-                    .push(self.last_uid);
-            } else {
-                self.tags_map
-                    .insert(xml_element.tag.clone(), vec![self.last_uid]);
-            }
-            self.elements.insert(
-                self.last_uid,
-                (element, xml_element.theme.clone(), xml_element.clone()),
-            );
-            self.last_uid += 1;
-            return self.last_uid - 1;
+            return self.init_element(element, Some(xml_element.clone()), None);
         } else {
-            fatal(format!("Block: <{} /> doesn't exists", &xml_element.tag).as_str());
-            return -1;
+            panic!("Block: <{} /> doesn't exists", &xml_element.tag);
         }
+    }
+
+    pub fn init_element(
+        &mut self,
+        element: AnyElement,
+        xml: Option<XmlElement>,
+        parent_theme: Option<XmlTheme>,
+    ) -> i32 {
+        let mut xml_element;
+        if let Some(xml) = xml {
+            xml_element = xml;
+        } else {
+            xml_element = XmlElement::virt();
+            if parent_theme.is_some() {
+                xml_element.theme = parent_theme.unwrap();
+            }
+        }
+
+        if xml_element.id.is_some() {
+            self.id_map
+                .insert(xml_element.id.clone().unwrap().to_string(), self.last_uid);
+        }
+        for class in &xml_element.classes {
+            let class_map = self.classes_map.get(class);
+            if class_map.is_some() {
+                self.classes_map.get_mut(class).unwrap().push(self.last_uid);
+            } else {
+                self.classes_map.insert(class.clone(), vec![self.last_uid]);
+            }
+        }
+        let tag_map = self.tags_map.get(&xml_element.tag);
+        if tag_map.is_some() {
+            self.tags_map
+                .get_mut(&xml_element.tag)
+                .unwrap()
+                .push(self.last_uid);
+        } else {
+            self.tags_map
+                .insert(xml_element.tag.clone(), vec![self.last_uid]);
+        }
+        self.elements.insert(
+            self.last_uid,
+            (element, xml_element.theme.clone(), xml_element.clone()),
+        );
+        self.last_uid += 1;
+        return self.last_uid - 1;
     }
 
     pub fn render_element(&self, uid: i32) -> iced::Element<'_, Message> {
@@ -312,13 +328,7 @@ impl ElementRenderer {
                 .filter(|v| v.target == uid)
                 .collect::<Vec<&EventListener>>();
             let (element, theme, _) = element.unwrap();
-            let output = match element {
-                AnyElement::Label(label) => label.render(self, theme, events, uid),
-                AnyElement::Container(container) => container.render(self, theme, events, uid),
-                AnyElement::Button(button) => button.render(self, theme, events, uid),
-                AnyElement::Row(row) => row.render(self, theme, events, uid),
-                AnyElement::Center(center) => center.render(self, theme, events, uid),
-            };
+            let output = render_element(element, self, theme, events, uid);
             output
         } else {
             return text(format!("Element with id {} not found", uid)).into();
@@ -335,7 +345,7 @@ impl ElementRenderer {
         let element = self.elements.get_mut(&uid);
         if element.is_some() {
             let (element, theme, _) = element.unwrap();
-            event_response = match event {
+            let ev_with_forward = match event.clone() {
                 XmlChangeEvent::StyleChange(key, value) => {
                     // Update the hot reload state if it exists
                     if let Some(hot_reload_state) = self.hot_reload_states.as_mut()
@@ -348,14 +358,14 @@ impl ElementRenderer {
                     gen_styles(&key, &value, theme);
                     None
                 }
-                _ => match element {
-                    AnyElement::Label(label) => label.process_event(&event),
-                    AnyElement::Container(container) => container.process_event(&event),
-                    AnyElement::Button(button) => button.process_event(&event),
-                    AnyElement::Row(row) => row.process_event(&event),
-                    AnyElement::Center(center) => center.process_event(&event),
-                },
+                _ => process_event_for_element(element, event.clone()),
             };
+            if let Some(ev_with_forward) = ev_with_forward {
+                for target in ev_with_forward.1 {
+                    self.emit_internal_event(target, event.clone(), comes_from_hot_reload);
+                }
+                event_response = Some(ev_with_forward.0);
+            }
         }
         if event_response.is_none() {
             return QueryResponse::new(false);

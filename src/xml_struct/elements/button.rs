@@ -1,49 +1,57 @@
-use iced::{Background, Border, Shadow, widget::text};
+use std::panic;
+
+use iced::{Background, Border, Shadow};
 
 use crate::{
     dom::query::{EventResponse, QueryResponse},
-    logger::fatal,
     xml_engine::Message,
     xml_struct::{
-        elements::{ElementRenderer, EventListener, element_base::ElementBase},
-        parser::{XmlChangeEvent, XmlElement, XmlTheme},
+        elements::{
+            ElementRenderer, EventListener, element_base::ElementBase, label::Label,
+            library::AnyElement,
+        },
+        parser::{XmlChangeEvent, XmlElement},
+        theming::XmlTheme,
     },
 };
 
 pub struct Button {
     children: Vec<i32>,
     text: Option<String>,
+    virtual_text: i32,
 }
 
 impl ElementBase for Button {
     fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer) -> Self {
+        let virtual_text = renderer.init_element(
+            AnyElement::Label(Label::virt(xml_element.text.clone())),
+            None,
+            Some(xml_element.theme.clone()),
+        );
+
         if !xml_element.text.is_empty() {
             if xml_element.children.is_empty() {
                 Self {
                     children: Vec::new(),
                     text: Some(xml_element.text.clone()),
+                    virtual_text: virtual_text,
                 }
             } else {
-                fatal(
-                    format!(
-                        "Button with text cannot have children: {}",
-                        xml_element.text
-                    )
-                    .as_str(),
+                panic!(
+                    "Button with text cannot have children: {}",
+                    xml_element.text
                 );
-                Self {
-                    children: Vec::new(),
-                    text: None,
-                }
             }
         } else {
             let mut children: Vec<i32> = Vec::new();
             for child in &xml_element.children {
-                children.push(renderer.init_element(child));
+                children.push(renderer.init_element_from_xml(child));
             }
+
             Self {
                 children: children,
                 text: None,
+                virtual_text: virtual_text,
             }
         }
     }
@@ -62,7 +70,7 @@ impl ElementBase for Button {
         let mut button: iced::widget::Button<'a, Message> = iced::widget::Button::new(button_child);
 
         if self.text.is_some() {
-            button = iced::widget::Button::new(text(self.text.clone().unwrap()));
+            button = iced::widget::Button::new(renderer.render_element(self.virtual_text));
         }
 
         let theme = theme.clone();
@@ -106,14 +114,17 @@ impl ElementBase for Button {
         return button.into();
     }
 
-    fn process_event(&mut self, event: &XmlChangeEvent) -> Option<QueryResponse> {
+    fn process_event(&mut self, event: &XmlChangeEvent) -> Option<(QueryResponse, Vec<i32>)> {
+        // returns (query_response, elementsToForwardTheEvent)
         let mut query_response = QueryResponse::new(true);
+        let mut elements_to_forward = Vec::new();
         match event {
             XmlChangeEvent::PropertyChange(property, new_val) => {
                 return match property.as_str() {
                     "text" => {
                         self.text = Some(new_val.clone());
-                        Some(query_response)
+                        elements_to_forward.push(self.virtual_text);
+                        Some((query_response, elements_to_forward))
                     }
                     _ => None,
                 };
@@ -123,7 +134,7 @@ impl ElementBase for Button {
                     "text" => {
                         if self.text.is_some() {
                             query_response.data_str = self.text.clone();
-                            Some(query_response)
+                            Some((query_response, elements_to_forward))
                         } else {
                             None
                         }

@@ -1,6 +1,5 @@
 use crate::{
     dom::query::EventResponse,
-    logger::fatal,
     xml_engine::Message,
     xml_struct::{elements::ElementRenderer, parser::XmlElement},
 };
@@ -16,10 +15,10 @@ pub struct XmlWindow {
 impl XmlWindow {
     pub fn new(root: XmlElement) -> Self {
         if root.tag != "Window" {
-            fatal("Root element must be a <Window></Window>");
+            panic!("Root element must be a <Window></Window>");
         }
         let mut element_renderer = ElementRenderer::new();
-        let uid = element_renderer.init_element(&root);
+        let uid = element_renderer.init_element_from_xml(&root);
 
         Self {
             // title: String::new(),
@@ -38,11 +37,22 @@ impl XmlWindow {
         if is_dynamic {
             self.fired_events.push((event_uid, event_data.clone()));
         } else {
+            let mut target: Option<i32> = None;
+            let mut event_type: Option<String> = None;
             for event_listener in self.element_renderer.event_listeners.iter_mut() {
                 if event_listener.event_uid == event_uid {
+                    target = Some(event_listener.target);
+                    event_type = Some(event_listener.event_type.clone());
                     self.fired_events
                         .push((event_listener.handler, event_data.clone()));
                 }
+            }
+            if target.is_some() && event_type.is_some() {
+                self.element_renderer.emit_internal_event(
+                    target.unwrap(),
+                    super::parser::XmlChangeEvent::EventFired(event_type.unwrap()),
+                    false,
+                );
             }
         }
     }

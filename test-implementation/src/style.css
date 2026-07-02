@@ -1,3 +1,7 @@
+#hello-world {
+    font-size: 30;
+}
+
 #btn-1,
 .btn {
     bg: rgb(0, 255, 255);
@@ -6,4 +10,9 @@
     border_color: #00ffff;
     border_width: 5;
     border_radius: 20;
+}
+
+Checkbox {
+    element-size: 100;
+    checkbox-icon: "Y" 100 absolute 15;
 }

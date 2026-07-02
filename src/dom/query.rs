@@ -4,7 +4,6 @@ use iced::{Subscription, time};
 
 use crate::{
     dom::events::{DomInternalMessageType, DomMessage, DomQuery},
-    logger::log,
     xml_engine::{DynamicEvent, Message, XmlEngine},
 };
 
@@ -42,6 +41,7 @@ pub struct QueryResponse {
     pub element_uid: Option<i32>,
     pub error_message: Option<String>,
     pub data_str: Option<String>,
+    pub data_bool: Option<bool>,
 }
 
 impl QueryResponse {
@@ -51,6 +51,7 @@ impl QueryResponse {
             element_uid: None,
             error_message: None,
             data_str: None,
+            data_bool: None,
         }
     }
 }
@@ -168,7 +169,7 @@ impl<T> QueryBuilder<T> {
                         .map(|a| a.0),
                 );
             } else {
-                log("! set_interval or set_timeout event with 0 or less interval/timeout");
+                println!("! set_interval or set_timeout event with 0 or less interval/timeout");
             }
         }
         return Subscription::batch(subscriptions);

@@ -4,14 +4,19 @@ use crate::{
     dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        elements::{ElementRenderer, EventListener, element_base::ElementBase},
-        parser::{XmlChangeEvent, XmlElement, XmlTheme},
+        elements::{
+            ElementRenderer, EventListener, element_base::ElementBase, label::Label,
+            library::AnyElement,
+        },
+        parser::{XmlChangeEvent, XmlElement},
+        theming::XmlTheme,
     },
 };
 
 pub struct Center {
     children: Option<i32>,
     text: Option<String>,
+    virtual_label: i32,
 }
 
 impl ElementBase for Center {
@@ -23,15 +28,23 @@ impl ElementBase for Center {
             panic!("Center element must have either children or text, not both");
         }
 
+        let virtual_label = renderer.init_element(
+            AnyElement::Label(Label::virt(xml_element.text.clone())),
+            None,
+            Some(xml_element.theme.clone()),
+        );
+
         if xml_element.text.is_empty() {
             Self {
-                children: Some(renderer.init_element(&xml_element.children[0])),
+                children: Some(renderer.init_element_from_xml(&xml_element.children[0])),
                 text: None,
+                virtual_label,
             }
         } else {
             Self {
                 children: None,
                 text: Some(xml_element.text.clone()),
+                virtual_label,
             }
         }
     }
@@ -53,20 +66,24 @@ impl ElementBase for Center {
         }
     }
 
-    fn process_event(&mut self, event: &XmlChangeEvent) -> Option<QueryResponse> {
+    fn process_event(&mut self, event: &XmlChangeEvent) -> Option<(QueryResponse, Vec<i32>)> {
         let mut result = QueryResponse::new(true);
+        let mut elements_to_forward = Vec::new();
         match event {
             XmlChangeEvent::PropertyChange(key, newval) => {
                 if key == "text" {
                     self.text = Some(newval.clone());
+                    elements_to_forward.push(self.virtual_label);
+                    Some((result, elements_to_forward))
+                } else {
+                    None
                 }
-                Some(result)
             }
             XmlChangeEvent::GetProperty(key) => {
                 if key == "text" {
                     if self.text.is_some() {
                         result.data_str = self.text.clone();
-                        Some(result)
+                        Some((result, elements_to_forward))
                     } else {
                         None
                     }

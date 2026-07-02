@@ -38,7 +38,11 @@ impl App {
 
     fn reload_css(&mut self, path: &str) {
         let content = self.load_file(path);
-        self.qb.import_css(content, true);
+        self.qb.import_css(content, true).then(|_, d| {
+            if !d.success {
+                println!("Error: {}", d.error_message.unwrap_or_default());
+            }
+        });
     }
 }
 
@@ -129,6 +133,18 @@ impl AppTemplate<Self> for App {
                 me.process();
             })
             .then(App::fatal_selector);
+        self.qb
+            .b(Dom::get_element_by_id("checkbox-01").add_event_listener("checked"))
+            .with_callback(|me, _| {
+                me.qb
+                    .b(Dom::get_element_by_id("checkbox-01").get_property("checked"))
+                    .then(|_, d| {
+                        if d.success && d.data_bool.is_some() {
+                            println!("Checkbox 01 is checked: {}", d.data_bool.unwrap());
+                        }
+                    });
+                me.process();
+            });
         self.process();
     }
 }
