@@ -9,7 +9,7 @@ use crate::{
 };
 
 pub trait ElementBase {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer) -> Self;
+    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self;
     fn render<'a>(
         &self,
         renderer: &'a ElementRenderer,

@@ -17,7 +17,7 @@ pub struct Checkbox {
 }
 
 impl ElementBase for Checkbox {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer) -> Self {
+    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
         // If it supports children, initialize them here with renderer.init_element
         // let mut children: Vec<i32> = Vec::new();
         // for child in &xml_element.children {

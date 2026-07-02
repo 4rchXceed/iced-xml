@@ -22,11 +22,11 @@ pub struct Button {
 }
 
 impl ElementBase for Button {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer) -> Self {
-        let virtual_text = renderer.init_element(
+    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+        let virtual_text = renderer.init_element_virt(
             AnyElement::Label(Label::virt(xml_element.text.clone())),
-            None,
             Some(xml_element.theme.clone()),
+            self_uid,
         );
 
         if !xml_element.text.is_empty() {

@@ -24,16 +24,17 @@ pub enum AnyElement {
 pub fn generate_element_from_tag(
     xml_element: &XmlElement,
     renderer: &mut ElementRenderer,
+    self_uid: i32
 ) -> Option<AnyElement> {
     return match xml_element.tag.as_str() {
-        "Label" => Some(AnyElement::Label(Label::new(xml_element, renderer))),
-        "Div" => Some(AnyElement::Container(Container::new(xml_element, renderer))),
-        "Col" => Some(AnyElement::Container(Container::new(xml_element, renderer))),
-        "Row" => Some(AnyElement::Row(Row::new(xml_element, renderer))),
-        "Window" => Some(AnyElement::Container(Container::new(xml_element, renderer))), // Window works the same way as a container (FOR NOW), we'll use the same logic
-        "Button" => Some(AnyElement::Button(Button::new(xml_element, renderer))),
-        "Center" => Some(AnyElement::Center(Center::new(xml_element, renderer))),
-        "Checkbox" => Some(AnyElement::Checkbox(Checkbox::new(xml_element, renderer))),
+        "Label" => Some(AnyElement::Label(Label::new(xml_element, renderer, self_uid))),
+        "Div" => Some(AnyElement::Container(Container::new(xml_element, renderer, self_uid))),
+        "Col" => Some(AnyElement::Container(Container::new(xml_element, renderer, self_uid))),
+        "Row" => Some(AnyElement::Row(Row::new(xml_element, renderer, self_uid))),
+        "Window" => Some(AnyElement::Container(Container::new(xml_element, renderer, self_uid))), // Window works the same way as a container (FOR NOW), we'll use the same logic
+        "Button" => Some(AnyElement::Button(Button::new(xml_element, renderer, self_uid))),
+        "Center" => Some(AnyElement::Center(Center::new(xml_element, renderer, self_uid))),
+        "Checkbox" => Some(AnyElement::Checkbox(Checkbox::new(xml_element, renderer, self_uid))),
         _ => None,
     };
 }

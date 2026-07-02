@@ -20,7 +20,7 @@ pub struct Center {
 }
 
 impl ElementBase for Center {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer) -> Self {
+    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
         if xml_element.children.len() != 1 && xml_element.text.is_empty() {
             panic!("Center element must have exactly one child (or text inside)");
         }
@@ -28,10 +28,10 @@ impl ElementBase for Center {
             panic!("Center element must have either children or text, not both");
         }
 
-        let virtual_label = renderer.init_element(
+        let virtual_label = renderer.init_element_virt(
             AnyElement::Label(Label::virt(xml_element.text.clone())),
-            None,
             Some(xml_element.theme.clone()),
+            self_uid,
         );
 
         if xml_element.text.is_empty() {

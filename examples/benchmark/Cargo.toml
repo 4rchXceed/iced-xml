@@ -1,0 +1,14 @@
+[package]
+name = "iced-xml-benchmark"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+iced-xml = { path = "../../" }
+
+
+[features]
+dev-mode = ["iced-xml/css-watcher"]
+
+[profile.release]
+opt-level = 3

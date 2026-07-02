@@ -1,0 +1,6 @@
+<Window>
+    <Label>Benchmark</Label>
+    <Button id="start-set-timeout">Start Benchmark (setTimeout)</Button>
+    <Button id="start-change-text">Start Benchmark (change text)</Button>
+    <Label id="txt">Just some random text</Label>
+</Window>

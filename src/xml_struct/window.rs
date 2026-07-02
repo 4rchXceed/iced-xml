@@ -43,8 +43,10 @@ impl XmlWindow {
                 if event_listener.event_uid == event_uid {
                     target = Some(event_listener.target);
                     event_type = Some(event_listener.event_type.clone());
-                    self.fired_events
-                        .push((event_listener.handler, event_data.clone()));
+                    for handler in event_listener.handlers.iter() {
+                        self.fired_events
+                            .push((handler.clone(), event_data.clone()));
+                    }
                 }
             }
             if target.is_some() && event_type.is_some() {

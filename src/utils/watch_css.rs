@@ -1,5 +1,6 @@
 use notify::RecommendedWatcher;
 use notify::{Event, Result, Watcher};
+use std::panic;
 use std::{path::Path, sync::mpsc};
 
 use crate::app_wrapper::AppTemplate;
@@ -27,7 +28,10 @@ pub fn watch_css_file<T: AppTemplate<T> + 'static>(
     )?;
 
     objects.qb.set_interval(interval).with_callback(|me, _| {
-        let ev = me.get_objects().css_watcher_rx.try_recv();
+        if me.get_objects().css_watcher_rx.is_none() {
+            panic!("css_watcher_rx is None. Make sure to correctly implement set_css_watcher_rx in your AppTemplate implementation.");
+        }
+        let ev = me.get_objects().css_watcher_rx.unwrap().try_recv();
         if let Ok(ev) = ev {
             if let notify::event::EventKind::Access(ref t) = ev.unwrap().kind {
                 if let notify::event::AccessKind::Close(close_type) = t {

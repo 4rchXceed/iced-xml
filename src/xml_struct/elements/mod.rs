@@ -14,7 +14,10 @@ use iced::widget::text;
 
 use crate::{
     css_reader::{CssReader, Rule, RuleBlock, Selector},
-    dom::{events::DomQuery, query::QueryResponse},
+    dom::{
+        events::{DomQuery, DomQueryType},
+        query::QueryResponse,
+    },
     xml_engine::Message,
     xml_struct::{
         elements::library::{
@@ -28,7 +31,7 @@ use crate::{
 pub struct EventListener {
     pub event_type: String,
     pub target: i32,
-    pub handler: i32,
+    pub handlers: Vec<i32>, // List of callbacks to forward the event to
     pub event_uid: i32,
 }
 
@@ -37,13 +40,19 @@ struct HotReloadState {
     pub state: HashMap<i32, XmlTheme>,
 }
 
+struct ElementExtraData {
+    pub theme: XmlTheme,
+    pub xml_element: XmlElement,
+}
+
 pub struct ElementRenderer {
-    pub elements: HashMap<i32, (AnyElement, XmlTheme, XmlElement)>,
-    pub id_map: HashMap<String, i32>,
-    pub classes_map: HashMap<String, Vec<i32>>,
-    pub tags_map: HashMap<String, Vec<i32>>,
-    pub last_uid: i32,
     pub event_listeners: Vec<EventListener>,
+    elements: HashMap<i32, (AnyElement, ElementExtraData)>,
+    id_map: HashMap<String, i32>,
+    classes_map: HashMap<String, Vec<i32>>,
+    tags_map: HashMap<String, Vec<i32>>,
+    virtual_elements: HashMap<i32, Vec<i32>>, // key: parent_uid, value: virtual children uids
+    last_uid: i32,
     hot_reload_states: Option<HotReloadState>,
 }
 
@@ -57,6 +66,7 @@ impl ElementRenderer {
             tags_map: HashMap::new(),
             event_listeners: Vec::new(),
             hot_reload_states: None,
+            virtual_elements: HashMap::new(),
         }
     }
 
@@ -88,8 +98,8 @@ impl ElementRenderer {
     pub fn get_data(&mut self, element: i32, key: &str) -> Option<String> {
         let element = self.elements.get_mut(&element);
         if element.is_some() {
-            let (_, _, xml_element) = element.unwrap();
-            xml_element.datas.get(key).cloned()
+            let (_, data) = element.unwrap();
+            data.xml_element.datas.get(key).cloned()
         } else {
             None
         }
@@ -119,33 +129,32 @@ impl ElementRenderer {
                         let elements = self.element_query(&DomQuery::new(
                             selector.selector_type.clone(),
                             selector.content.clone(),
+                            selector.flag.clone(),
                         ));
-                        if elements.is_some() {
-                            // Then we loop through all the elements and revert the style change
-                            for element in elements.unwrap() {
-                                // get the old theme, before the first css hot-reload-supported change (hot-reload-supported is when hot_reload is true)
-                                let old_theme = old_state.state.get(&element);
-                                // If we found the old theme, we can revert the style change
-                                if old_theme.is_some() {
-                                    // Get the real element
-                                    let real_element = self.elements.get_mut(&element);
-                                    // Then we clone the old theme, remove the style change from a "virtual" theme
-                                    let mut rule_to_change = old_theme.unwrap().clone();
-                                    gen_styles(&rule.name, &rule.value, &mut rule_to_change);
-                                    if real_element.is_some() {
-                                        let (_, theme, _) = real_element.unwrap();
-                                        // And revert the style change by applying only the changes from the old theme to the new theme
-                                        theme.apply_only_changes(
-                                            &old_theme.unwrap().clone(),
-                                            &rule_to_change,
-                                            &old_theme.unwrap().clone(),
-                                        );
-                                        // By doing all of the gen_styles and other stuff, we avoid having the create a revert function (from XmlTheme to rules)
-                                        // We still need apply_only_changes tho
-                                    }
-                                } // Normally, we should always find the old theme, but if we don't, we just skip it
-                            }
-                        } // else: invalid selector
+                        // Then we loop through all the elements and revert the style change
+                        for element in elements {
+                            // get the old theme, before the first css hot-reload-supported change (hot-reload-supported is when hot_reload is true)
+                            let old_theme = old_state.state.get(&element);
+                            // If we found the old theme, we can revert the style change
+                            if old_theme.is_some() {
+                                // Get the real element
+                                let real_element = self.elements.get_mut(&element);
+                                // Then we clone the old theme, remove the style change from a "virtual" theme
+                                let mut rule_to_change = old_theme.unwrap().clone();
+                                gen_styles(&rule.name, &rule.value, &mut rule_to_change);
+                                if real_element.is_some() {
+                                    let (_, datas) = real_element.unwrap();
+                                    // And revert the style change by applying only the changes from the old theme to the new theme
+                                    datas.theme.apply_only_changes(
+                                        &old_theme.unwrap().clone(),
+                                        &rule_to_change,
+                                        &old_theme.unwrap().clone(),
+                                    );
+                                    // By doing all of the gen_styles and other stuff, we avoid having the create a revert function (from XmlTheme to rules)
+                                    // We still need apply_only_changes tho
+                                }
+                            } // Normally, we should always find the old theme, but if we don't, we just skip it
+                        }
                     }
                 }
             }
@@ -154,8 +163,8 @@ impl ElementRenderer {
 
     fn generate_state(&mut self, rules: &Vec<RuleBlock>) -> HotReloadState {
         let mut state: HashMap<i32, XmlTheme> = HashMap::new();
-        for (uid, (_, theme, _)) in &self.elements {
-            state.insert(*uid, theme.clone());
+        for (uid, (_, datas)) in &self.elements {
+            state.insert(*uid, datas.theme.clone());
         }
         HotReloadState {
             rules: rules.clone(),
@@ -200,18 +209,21 @@ impl ElementRenderer {
         rules: &Vec<Rule>,
         comes_from_hot_reload: bool,
     ) {
-        let dom_query = DomQuery::new(selector.selector_type.clone(), selector.content.clone());
+        let dom_query = DomQuery::new(
+            selector.selector_type.clone(),
+            selector.content.clone(),
+            selector.flag.clone(),
+        );
 
         let elements = self.element_query(&dom_query);
-        if elements.is_some() {
-            for element in elements.unwrap() {
-                for rule in rules.iter() {
-                    self.emit_internal_event(
-                        element,
-                        XmlChangeEvent::StyleChange(rule.name.clone(), rule.value.clone()),
-                        comes_from_hot_reload,
-                    );
-                }
+        for element in elements {
+            for rule in rules.iter() {
+                // HERE
+                self.emit_internal_event(
+                    element,
+                    XmlChangeEvent::StyleChange(rule.name.clone(), rule.value.clone()),
+                    comes_from_hot_reload,
+                );
             }
         }
     }
@@ -228,49 +240,100 @@ impl ElementRenderer {
         }
     }
 
-    pub fn element_query(&self, query: &DomQuery) -> Option<Vec<i32>> {
-        return match query {
-            DomQuery::ById(id) => {
+    fn post_process_query_result(&self, query: &DomQuery, element: i32) -> Vec<i32> {
+        if query.flag.is_some() {
+            let flag = query.flag.as_ref().unwrap();
+            return match flag.as_str() {
+                "virtuals" => {
+                    let virtual_children = self.virtual_elements.get(&element);
+                    if virtual_children.is_some() {
+                        virtual_children.unwrap().clone()
+                    } else {
+                        vec![]
+                    }
+                }
+                _ => {
+                    println!("Unknown selector flag: {}", flag);
+                    vec![]
+                }
+            };
+        } else {
+            return vec![element];
+        }
+    }
+
+    pub fn element_query(&self, query: &DomQuery) -> Vec<i32> {
+        let query_result = match &query.query_type {
+            DomQueryType::ById(id) => {
                 if let Some(uid) = self.id_map.get(id) {
-                    Some(vec![*uid])
+                    vec![*uid]
                 } else {
-                    None
+                    vec![]
                 }
             }
-            DomQuery::ByUid(uid) => {
+            DomQueryType::ByUid(uid) => {
                 if self.elements.contains_key(&uid) {
-                    Some(vec![uid.clone()])
+                    vec![uid.clone()]
                 } else {
-                    None
+                    vec![]
                 }
             } // _ => None,
-            DomQuery::Class(class) => {
+            DomQueryType::Class(class) => {
                 if let Some(uids) = self.classes_map.get(class) {
-                    Some(uids.clone())
+                    uids.clone()
                 } else {
-                    None
+                    vec![]
                 }
             }
-            DomQuery::Tag(tag) => {
+            DomQueryType::Tag(tag) => {
                 if let Some(uids) = self.tags_map.get(tag) {
-                    Some(uids.clone())
+                    uids.clone()
                 } else {
-                    None
+                    vec![]
                 }
             }
-            DomQuery::All => Some(self.elements.keys().cloned().collect()),
-            DomQuery::Unused => None,
+            DomQueryType::All => self.elements.keys().cloned().collect(),
+            DomQueryType::Unused => vec![],
         };
+        return query_result
+            .iter()
+            .map(|e| self.post_process_query_result(query, e.clone()))
+            .flatten()
+            .collect();
     }
 
     pub fn init_element_from_xml(&mut self, xml_element: &XmlElement) -> i32 {
         // TODO: Add "plugin" support (function provided by the user to resolve custom elements)
-        let element = generate_element_from_tag(xml_element, self);
+        self.last_uid += 1;
+        let uid = self.last_uid; // "Backup"
+        let element = generate_element_from_tag(xml_element, self, uid);
         if let Some(element) = element {
-            return self.init_element(element, Some(xml_element.clone()), None);
+            self.init_element(element, Some(xml_element.clone()), None, uid);
+            return uid;
         } else {
             panic!("Block: <{} /> doesn't exists", &xml_element.tag);
         }
+    }
+
+    pub fn init_element_virt(
+        &mut self,
+        element: AnyElement,
+        parent_theme: Option<XmlTheme>,
+        parent_uid: i32,
+    ) -> i32 {
+        self.last_uid += 1;
+        let uid = self.last_uid; // "Backup"
+        self.init_element(element, None, parent_theme, uid);
+        let parent_virtual_children = self.virtual_elements.get_mut(&parent_uid);
+        if parent_virtual_children.is_some() {
+            self.virtual_elements
+                .get_mut(&parent_uid)
+                .unwrap()
+                .push(uid);
+        } else {
+            self.virtual_elements.insert(parent_uid, vec![uid]);
+        }
+        return uid;
     }
 
     pub fn init_element(
@@ -278,7 +341,8 @@ impl ElementRenderer {
         element: AnyElement,
         xml: Option<XmlElement>,
         parent_theme: Option<XmlTheme>,
-    ) -> i32 {
+        uid: i32,
+    ) {
         let mut xml_element;
         if let Some(xml) = xml {
             xml_element = xml;
@@ -291,32 +355,32 @@ impl ElementRenderer {
 
         if xml_element.id.is_some() {
             self.id_map
-                .insert(xml_element.id.clone().unwrap().to_string(), self.last_uid);
+                .insert(xml_element.id.clone().unwrap().to_string(), uid);
         }
         for class in &xml_element.classes {
             let class_map = self.classes_map.get(class);
             if class_map.is_some() {
-                self.classes_map.get_mut(class).unwrap().push(self.last_uid);
+                self.classes_map.get_mut(class).unwrap().push(uid);
             } else {
-                self.classes_map.insert(class.clone(), vec![self.last_uid]);
+                self.classes_map.insert(class.clone(), vec![uid]);
             }
         }
         let tag_map = self.tags_map.get(&xml_element.tag);
         if tag_map.is_some() {
-            self.tags_map
-                .get_mut(&xml_element.tag)
-                .unwrap()
-                .push(self.last_uid);
+            self.tags_map.get_mut(&xml_element.tag).unwrap().push(uid);
         } else {
-            self.tags_map
-                .insert(xml_element.tag.clone(), vec![self.last_uid]);
+            self.tags_map.insert(xml_element.tag.clone(), vec![uid]);
         }
         self.elements.insert(
-            self.last_uid,
-            (element, xml_element.theme.clone(), xml_element.clone()),
+            uid,
+            (
+                element,
+                ElementExtraData {
+                    theme: xml_element.theme.clone(),
+                    xml_element: xml_element,
+                },
+            ),
         );
-        self.last_uid += 1;
-        return self.last_uid - 1;
     }
 
     pub fn render_element(&self, uid: i32) -> iced::Element<'_, Message> {
@@ -327,8 +391,8 @@ impl ElementRenderer {
                 .iter()
                 .filter(|v| v.target == uid)
                 .collect::<Vec<&EventListener>>();
-            let (element, theme, _) = element.unwrap();
-            let output = render_element(element, self, theme, events, uid);
+            let (element, datas) = element.unwrap();
+            let output = render_element(element, self, &datas.theme, events, uid);
             output
         } else {
             return text(format!("Element with id {} not found", uid)).into();
@@ -344,7 +408,7 @@ impl ElementRenderer {
         let mut event_response: Option<QueryResponse> = None;
         let element = self.elements.get_mut(&uid);
         if element.is_some() {
-            let (element, theme, _) = element.unwrap();
+            let (element, datas) = element.unwrap();
             let ev_with_forward = match event.clone() {
                 XmlChangeEvent::StyleChange(key, value) => {
                     // Update the hot reload state if it exists
@@ -355,7 +419,7 @@ impl ElementRenderer {
                             gen_styles(&key, &value, old_theme);
                         }
                     }
-                    gen_styles(&key, &value, theme);
+                    gen_styles(&key, &value, &mut datas.theme);
                     None
                 }
                 _ => process_event_for_element(element, event.clone()),
@@ -374,12 +438,26 @@ impl ElementRenderer {
     }
 
     pub fn register_event(&mut self, event_type: String, target: i32, handler: i32) {
-        self.event_listeners.push(EventListener {
-            event_type: event_type,
-            target: target,
-            handler: handler,
-            event_uid: self.last_uid,
-        });
-        self.last_uid += 1;
+        if self
+            .event_listeners
+            .iter()
+            .any(|e| e.event_type == event_type && e.target == target)
+        {
+            let event_listener = self
+                .event_listeners
+                .iter_mut()
+                .find(|e| e.event_type == event_type && e.target == target)
+                .unwrap();
+            event_listener.handlers.push(handler);
+            return;
+        } else {
+            self.event_listeners.push(EventListener {
+                event_type: event_type,
+                target: target,
+                handlers: vec![handler],
+                event_uid: self.last_uid,
+            });
+            self.last_uid += 1;
+        }
     }
 }

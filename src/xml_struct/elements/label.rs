@@ -21,7 +21,7 @@ impl Label {
 }
 
 impl ElementBase for Label {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer) -> Self {
+    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
         if xml_element.children.len() > 0 {
             panic!("<Label> elements cannot have children");
         }

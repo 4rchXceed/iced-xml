@@ -13,7 +13,7 @@ pub struct Container {
 }
 
 impl ElementBase for Container {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer) -> Self {
+    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, _: i32) -> Self {
         let mut children: Vec<i32> = Vec::new();
         for child in &xml_element.children {
             children.push(renderer.init_element_from_xml(child));

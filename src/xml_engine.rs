@@ -87,54 +87,49 @@ impl XmlEngine {
         };
         let mut response = QueryResponse::new(false);
         let elements = self.window.element_renderer.element_query(&query.selector);
-        if elements.is_some() {
-            for element in elements.unwrap() {
-                response = match query.message {
-                    DomInternalMessageType::PropertyChange(ref key, ref value) => {
-                        self.window.element_renderer.emit_internal_event(
-                            element,
-                            XmlChangeEvent::PropertyChange(key.clone(), value.clone()),
-                            false,
-                        )
-                    }
-                    DomInternalMessageType::GetProperty(ref key) => {
-                        self.window.element_renderer.emit_internal_event(
-                            element,
-                            XmlChangeEvent::GetProperty(key.clone()),
-                            false,
-                        )
-                    }
-                    DomInternalMessageType::StyleChange(ref key, ref value) => {
-                        self.window.element_renderer.emit_internal_event(
-                            element,
-                            XmlChangeEvent::StyleChange(key.clone(), value.clone()),
-                            false,
-                        )
-                    }
-                    DomInternalMessageType::RegisterEventListener(ref event_name) => {
-                        self.window.element_renderer.register_event(
-                            event_name.clone(),
-                            element,
-                            query.uid,
-                        );
-                        QueryResponse::new(true)
-                    }
-                    DomInternalMessageType::GetData(ref key) => {
-                        let data = self.window.element_renderer.get_data(element, &key.clone());
-                        if data.is_some() {
-                            let mut qr = QueryResponse::new(true);
-                            qr.data_str = data;
-                            qr
-                        } else {
-                            QueryResponse::new(false)
-                        }
-                    }
-                    _ => {
-                        // Handle other message types if needed
+        for element in elements {
+            response = match query.message {
+                DomInternalMessageType::PropertyChange(ref key, ref value) => {
+                    self.window.element_renderer.emit_internal_event(
+                        element,
+                        XmlChangeEvent::PropertyChange(key.clone(), value.clone()),
+                        false,
+                    )
+                }
+                DomInternalMessageType::GetProperty(ref key) => self
+                    .window
+                    .element_renderer
+                    .emit_internal_event(element, XmlChangeEvent::GetProperty(key.clone()), false),
+                DomInternalMessageType::StyleChange(ref key, ref value) => {
+                    self.window.element_renderer.emit_internal_event(
+                        element,
+                        XmlChangeEvent::StyleChange(key.clone(), value.clone()),
+                        false,
+                    )
+                }
+                DomInternalMessageType::RegisterEventListener(ref event_name) => {
+                    self.window.element_renderer.register_event(
+                        event_name.clone(),
+                        element,
+                        query.uid,
+                    );
+                    QueryResponse::new(true)
+                }
+                DomInternalMessageType::GetData(ref key) => {
+                    let data = self.window.element_renderer.get_data(element, &key.clone());
+                    if data.is_some() {
+                        let mut qr = QueryResponse::new(true);
+                        qr.data_str = data;
+                        qr
+                    } else {
                         QueryResponse::new(false)
                     }
-                };
-            }
+                }
+                _ => {
+                    // Handle other message types if needed
+                    QueryResponse::new(false)
+                }
+            };
         }
         return response;
     }

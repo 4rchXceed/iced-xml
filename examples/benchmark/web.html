@@ -1,0 +1,28 @@
+<p>text</p>
+<script>
+    let b = prompt("Enter 0 for setInterval + changeText benchmark, 1 for changeText");
+    if (b == "0") {
+
+        let start = performance.now();
+        let i = 0;
+        let in_ = setInterval(() => {
+            i++;
+            document.querySelector('p').innerText = i;
+            if (i === 1000) {
+                console.log("Time estimate: " + (performance.now() - start) * 1000 + " ms");
+            }
+            if (i >= 1_000_000) {
+                clearInterval(in_);
+                console.log(`Time taken: ${performance.now() - start} ms (perfect = 0 ms)`);
+            }
+        }, 0);
+    } else {
+        let start = performance.now();
+        let i = 0;
+        while (i < 1_000_000) {
+            i++;
+            document.querySelector('p').innerText = i;
+        }
+        console.log(`Time taken: ${performance.now() - start} ms (perfect = 0 ms)`);
+    }
+</script>

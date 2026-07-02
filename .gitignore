@@ -1,2 +1,4 @@
 /target
 personal-tests
+examples/test-implementation/
+examples/benchmark/target/

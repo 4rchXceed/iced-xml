@@ -3,7 +3,7 @@ use std::time::Duration;
 use iced::{Subscription, time};
 
 use crate::{
-    dom::events::{DomInternalMessageType, DomMessage, DomQuery},
+    dom::events::{DomInternalMessageType, DomMessage, DomQuery, DomQueryType},
     xml_engine::{DynamicEvent, Message, XmlEngine},
 };
 
@@ -20,7 +20,10 @@ impl EventResponse {
         Self {
             next_timeout: None,
             is_timeout: false,
-            target: Some(DomQuery::ByUid(uid)),
+            target: Some(DomQuery {
+                query_type: DomQueryType::ByUid(uid),
+                flag: None,
+            }),
         }
     }
 }
@@ -83,7 +86,10 @@ impl<T> QueryBuilder<T> {
         self.build_query(DomMessage {
             message: DomInternalMessageType::ImportCss(css, hot_reload),
             uid: self.current_uid,
-            selector: DomQuery::Unused,
+            selector: DomQuery {
+                query_type: DomQueryType::Unused,
+                flag: None,
+            },
         });
         self
     }
@@ -115,7 +121,10 @@ impl<T> QueryBuilder<T> {
                 timeout,
             )),
             uid: self.current_uid,
-            selector: DomQuery::Unused,
+            selector: DomQuery {
+                query_type: DomQueryType::Unused,
+                flag: None,
+            },
         });
         self
     }
@@ -126,7 +135,10 @@ impl<T> QueryBuilder<T> {
                 interval,
             )),
             uid: self.current_uid,
-            selector: DomQuery::Unused,
+            selector: DomQuery {
+                query_type: DomQueryType::Unused,
+                flag: None,
+            },
         });
         self
     }
@@ -161,7 +173,7 @@ impl<T> QueryBuilder<T> {
                     ev_data.is_timeout = true;
                 }
             };
-            if every > 0 {
+            if every >= 0 {
                 let ev_uid = uid.clone();
                 subscriptions.push(
                     time::every(Duration::from_millis(every.clone() as u64))
@@ -169,7 +181,7 @@ impl<T> QueryBuilder<T> {
                         .map(|a| a.0),
                 );
             } else {
-                println!("! set_interval or set_timeout event with 0 or less interval/timeout");
+                println!("! set_interval or set_timeout event less than 0 interval/timeout");
             }
         }
         return Subscription::batch(subscriptions);

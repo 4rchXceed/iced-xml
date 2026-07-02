@@ -2,6 +2,7 @@
 pub struct Selector {
     pub selector_type: String,
     pub content: String,
+    pub flag: Option<String>, // Supported: virtuals (parsed as: ::virtual)
 }
 
 #[derive(Clone)]
@@ -194,6 +195,7 @@ impl CssReader {
             return Selector {
                 selector_type: String::new(),
                 content: String::new(),
+                flag: None,
             };
         }
 
@@ -217,26 +219,36 @@ impl CssReader {
             }
         }
         self.skip_whitespace();
+        let flag = selector
+            .split("::")
+            .collect::<Vec<&str>>()
+            .get(1)
+            .map(|s| s.to_string());
+        let selector = selector.split("::").collect::<Vec<&str>>()[0].to_string();
         if !selector.is_empty() {
             if selector.starts_with("#") {
                 return Selector {
                     selector_type: "id".to_string(),
                     content: selector.strip_prefix("#").unwrap().to_string(),
+                    flag: flag,
                 };
             } else if selector.starts_with(".") {
                 return Selector {
                     selector_type: "class".to_string(),
                     content: selector.strip_prefix(".").unwrap().to_string(),
+                    flag: flag,
                 };
             } else if selector == "*" {
                 return Selector {
                     selector_type: "all".to_string(),
                     content: selector,
+                    flag: flag,
                 };
             } else {
                 return Selector {
                     selector_type: "tag".to_string(),
                     content: selector,
+                    flag: flag,
                 };
             }
         } else {
@@ -245,6 +257,7 @@ impl CssReader {
             return Selector {
                 selector_type: String::new(),
                 content: String::new(),
+                flag: None,
             };
         }
     }

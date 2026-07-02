@@ -35,9 +35,7 @@ pub struct Objects<'a, App> {
     pub engine: &'a mut XmlEngine,
     pub qb: &'a mut QueryBuilder<App>,
     #[cfg(feature = "css-watcher")]
-    pub css_watcher_rx: &'a mut CssRx,
-    #[cfg(feature = "css-watcher")]
-    pub css_watcher_tx: &'a mut CssTx,
+    pub css_watcher_rx: Option<&'a mut CssRx>,
     #[cfg(feature = "css-watcher")]
     pub css_path: &'a str,
 }

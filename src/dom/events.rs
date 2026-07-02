@@ -1,7 +1,7 @@
 use crate::xml_engine::DynamicEvent;
 
 #[derive(Debug, Clone, Hash)]
-pub enum DomQuery {
+pub enum DomQueryType {
     ById(String),
     ByUid(i32),
     Class(String),
@@ -10,15 +10,25 @@ pub enum DomQuery {
     Unused,
 }
 
+#[derive(Debug, Clone, Hash)]
+pub struct DomQuery {
+    pub query_type: DomQueryType,
+    pub flag: Option<String>,
+}
+
 impl DomQuery {
-    pub fn new(selector_type: String, val: String) -> Self {
-        return match selector_type.as_str() {
-            "id" => DomQuery::ById(val),
-            "uid" => DomQuery::ByUid(val.parse::<i32>().unwrap()),
-            "class" => DomQuery::Class(val),
-            "tag" => DomQuery::Tag(val),
-            "all" => DomQuery::All,
+    pub fn new(selector_type: String, val: String, flag: Option<String>) -> Self {
+        let selector = match selector_type.as_str() {
+            "id" => DomQueryType::ById(val),
+            "uid" => DomQueryType::ByUid(val.parse::<i32>().unwrap()),
+            "class" => DomQueryType::Class(val),
+            "tag" => DomQueryType::Tag(val),
+            "all" => DomQueryType::All,
             _ => panic!("Invalid query type: {}", selector_type),
+        };
+        return Self {
+            query_type: selector,
+            flag: flag,
         };
     }
 }
@@ -47,8 +57,13 @@ pub struct DomQueryResult {
 impl DomQueryResult {
     pub fn new(query_type: String, element: String) -> Self {
         Self {
-            query_event: DomQuery::new(query_type, element),
+            query_event: DomQuery::new(query_type, element, None),
         }
+    }
+
+    pub fn with_flag(mut self, flag: String) -> Self {
+        self.query_event.flag = Some(flag);
+        return self;
     }
 
     pub fn from(dom_query: DomQuery) -> Self {
