@@ -1,8 +1,5 @@
 use iced_xml::{
-    app_wrapper::{
-        AppResult, AppTemplate, CssChannelType, CssRx, CssTx, CssWatcher, Objects, ObjectsReadOnly,
-        run_app,
-    },
+    app_wrapper::{AppResult, AppTemplate, CssRx, CssWatcher, Objects, ObjectsReadOnly, run_app},
     dom::{api::Dom, query::QueryBuilder},
     utils::watch_css::watch_css_file,
     xml_engine::XmlEngine,
@@ -11,8 +8,7 @@ use iced_xml::{
 struct App {
     qb: QueryBuilder<App>,
     engine: XmlEngine,
-    rx: CssRx,
-    tx: CssTx,
+    rx: Option<CssRx>,
     watcher: Option<CssWatcher>,
     first_nbr: Option<String>,
     second_nbr: Option<String>,
@@ -85,13 +81,12 @@ impl AppTemplate<App> for App {
         return Objects {
             engine: &mut self.engine,
             qb: &mut self.qb,
-            css_watcher_rx: &mut self.rx,
-            css_watcher_tx: &mut self.tx,
+            css_watcher_rx: self.rx.as_mut(),
             css_path: "style.css",
         };
     }
     fn set_css_watcher_rx(&mut self, rx: CssRx) {
-        self.rx = rx;
+        self.rx = Some(rx);
     }
     fn get_objects_read_only(&self) -> iced_xml::app_wrapper::ObjectsReadOnly<'_, Self> {
         return ObjectsReadOnly {
@@ -103,12 +98,10 @@ impl AppTemplate<App> for App {
         return self;
     }
     fn new() -> Self {
-        let (tx, rx) = std::sync::mpsc::channel::<CssChannelType>();
         Self {
             qb: QueryBuilder::new(),
             engine: XmlEngine::new(include_bytes!("main.xml").to_vec()),
-            rx: rx,
-            tx: tx,
+            rx: None,
             watcher: None,
             first_nbr: None,
             second_nbr: None,
