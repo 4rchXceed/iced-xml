@@ -18,3 +18,12 @@
 + Benchmark tests
 
 ### Commit msg: "+ Added ::virtuals selectors for styling + Improved virtual API for elements + Added styling flag API ~ Change test_implementation to test some other things + Added link to personal roadmap + Benchmark tests"
+
+## Last commit: 2e98fe9d3c1657f1a16a61e878fb14cb75f4d0cc
++ ComboBox element (called Select)
++ Added new styling options for elements
++ Brand new API for elements: ::for(xyz), allows multiple themes for the same element
++ Fixed some bugs
++ Added missing styling options for elements
+
+### Commit msg: "+ ComboBox element (called Select) + Added new styling options for elements + Brand new API for elements: ::for(xyz), allows multiple themes for the same element + Fixed some bugs + Added missing styling options for elements"

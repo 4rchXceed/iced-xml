@@ -3,9 +3,8 @@ use crate::{
     dom::query::{EventResponse, QueryResponse},
     xml_engine::Message,
     xml_struct::{
-        elements::{ElementRenderer, EventListener, element_base::ElementBase},
+        elements::{ElementExtraData, ElementRenderer, EventListener, element_base::ElementBase},
         parser::{XmlChangeEvent, XmlElement},
-        theming::XmlTheme,
     },
 };
 
@@ -38,7 +37,7 @@ impl ElementBase for Checkbox {
     fn render<'a>(
         &self,
         _: &'a ElementRenderer,
-        theme: &'a XmlTheme,
+        datas: &'a ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,
     ) -> iced::Element<'a, Message> {
@@ -46,6 +45,16 @@ impl ElementBase for Checkbox {
         // let mut container: iced::widget::Column<'a, Message> = iced::widget::Column::new();
         let mut checkbox: iced::widget::Checkbox<'a, Message> =
             iced::widget::checkbox::Checkbox::new(self.checked);
+        let mut theme = datas.default_theme.clone();
+        if self.checked {
+            if datas.flag_themes.contains_key("checked") {
+                theme = datas.flag_themes.get("checked").unwrap().clone();
+            }
+        } else {
+            if datas.flag_themes.contains_key("unchecked") {
+                theme = datas.flag_themes.get("unchecked").unwrap().clone();
+            }
+        }
 
         checkbox = checkbox
             .font(theme.font)
@@ -53,7 +62,17 @@ impl ElementBase for Checkbox {
             .text_line_height(theme.line_height)
             .text_shaping(theme.shaping)
             .text_wrapping(theme.text_wrapping)
-            .width(theme.width);
+            .width(theme.width)
+            .style(move |_, _| iced::widget::checkbox::Style {
+                background: iced::Background::Color(theme.background_color),
+                border: iced::Border {
+                    color: theme.border_color,
+                    width: theme.border_width,
+                    radius: theme.border_radius,
+                },
+                icon_color: theme.icon_color,
+                text_color: Some(theme.text_color),
+            });
 
         if let Some(size) = theme.size {
             checkbox = checkbox.size(size);
@@ -72,11 +91,17 @@ impl ElementBase for Checkbox {
 
         // Register any events here
         let me = self_uid.clone();
+        checkbox = checkbox.on_toggle(move |_| {
+            return Message::DomEvent(-1, EventResponse::new(me, "checked".to_string()));
+        });
         for event in events {
             match event.event_type.as_str() {
                 "checked" => {
                     checkbox = checkbox.on_toggle(move |_| {
-                        return Message::DomEvent(event.event_uid, EventResponse::new(me));
+                        return Message::DomEvent(
+                            event.event_uid,
+                            EventResponse::new(me, event.event_type.clone()),
+                        );
                     });
                 }
                 _ => (),
@@ -108,7 +133,7 @@ impl ElementBase for Checkbox {
                     return None;
                 }
             }
-            XmlChangeEvent::EventFired(event_type) => {
+            XmlChangeEvent::EventFired(event_type, _) => {
                 if event_type == "checked" {
                     self.checked = !self.checked;
                     return Some((QueryResponse::new(true), Vec::new()));

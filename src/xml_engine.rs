@@ -9,9 +9,10 @@ use quick_xml::Reader;
 #[derive(Debug, Clone, Hash)]
 pub enum Message {
     DomEvent(i32, EventResponse),
+    Void,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Hash)]
 pub enum DynamicEvent {
     SetTimeout(i32),  // time in milliseconds
     SetInterval(i32), // time in milliseconds
@@ -49,6 +50,7 @@ impl XmlEngine {
                 }
                 self.window.emit_event(event_uid, event_data, is_dynamic);
             }
+            Message::Void => {}
         };
         return self.window.fired_events.clone();
     }
@@ -100,10 +102,14 @@ impl XmlEngine {
                     .window
                     .element_renderer
                     .emit_internal_event(element, XmlChangeEvent::GetProperty(key.clone()), false),
-                DomInternalMessageType::StyleChange(ref key, ref value) => {
+                DomInternalMessageType::StyleChange(ref key, ref value, ref custom_style_flag) => {
                     self.window.element_renderer.emit_internal_event(
                         element,
-                        XmlChangeEvent::StyleChange(key.clone(), value.clone()),
+                        XmlChangeEvent::StyleChange(
+                            key.clone(),
+                            value.clone(),
+                            custom_style_flag.clone(),
+                        ),
                         false,
                     )
                 }

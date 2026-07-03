@@ -5,6 +5,7 @@ pub mod container;
 pub mod element_base;
 pub mod label;
 pub mod row;
+pub mod select;
 // Library
 pub mod library;
 
@@ -35,13 +36,20 @@ pub struct EventListener {
     pub event_uid: i32,
 }
 
-struct HotReloadState {
-    pub rules: Vec<RuleBlock>,
-    pub state: HashMap<i32, XmlTheme>,
+#[derive(Clone, Debug)]
+struct HotReloadStateEntry {
+    pub default_theme: XmlTheme,
+    pub flag_themes: HashMap<String, XmlTheme>,
 }
 
-struct ElementExtraData {
-    pub theme: XmlTheme,
+struct HotReloadState {
+    pub rules: Vec<RuleBlock>,
+    pub state: HashMap<i32, HotReloadStateEntry>,
+}
+
+pub struct ElementExtraData {
+    pub default_theme: XmlTheme,
+    pub flag_themes: HashMap<String, XmlTheme>,
     pub xml_element: XmlElement,
 }
 
@@ -126,34 +134,80 @@ impl ElementRenderer {
                     // Here: rule has been removed, we need to revert the style change
                     if !state_hashed.contains_key(&hash) {
                         // We are selecting the correct element, so we can work on it
-                        let elements = self.element_query(&DomQuery::new(
+                        let query = DomQuery::new(
                             selector.selector_type.clone(),
                             selector.content.clone(),
                             selector.flag.clone(),
-                        ));
+                        );
+                        let elements: Vec<i32> = self
+                            .element_query(&query)
+                            .iter()
+                            .map(|e| self.post_process_query_result(&query, e.clone()))
+                            .flatten()
+                            .collect();
+                        let mut flag: Option<String> = None;
+                        if selector.flag.is_some() {
+                            flag = extract_selector_style_flag(&selector.flag.as_ref().unwrap());
+                        }
                         // Then we loop through all the elements and revert the style change
                         for element in elements {
-                            // get the old theme, before the first css hot-reload-supported change (hot-reload-supported is when hot_reload is true)
-                            let old_theme = old_state.state.get(&element);
-                            // If we found the old theme, we can revert the style change
-                            if old_theme.is_some() {
-                                // Get the real element
-                                let real_element = self.elements.get_mut(&element);
-                                // Then we clone the old theme, remove the style change from a "virtual" theme
-                                let mut rule_to_change = old_theme.unwrap().clone();
-                                gen_styles(&rule.name, &rule.value, &mut rule_to_change);
-                                if real_element.is_some() {
-                                    let (_, datas) = real_element.unwrap();
-                                    // And revert the style change by applying only the changes from the old theme to the new theme
-                                    datas.theme.apply_only_changes(
-                                        &old_theme.unwrap().clone(),
-                                        &rule_to_change,
-                                        &old_theme.unwrap().clone(),
-                                    );
-                                    // By doing all of the gen_styles and other stuff, we avoid having the create a revert function (from XmlTheme to rules)
-                                    // We still need apply_only_changes tho
+                            if flag.is_some() {
+                                let old_themes = old_state.state.get(&element);
+                                if old_themes.is_some() {
+                                    let mut old_flag_theme_op = old_themes
+                                        .as_ref()
+                                        .unwrap()
+                                        .flag_themes
+                                        .get(&flag.as_ref().unwrap().to_string())
+                                        .cloned();
+                                    if old_flag_theme_op.is_none() {
+                                        old_flag_theme_op = Some(
+                                            old_themes.as_ref().unwrap().default_theme.clone(),
+                                        );
+                                    }
+
+                                    let mut old_flag_theme = old_flag_theme_op.unwrap();
+                                    let real_element = self.elements.get_mut(&element);
+                                    if real_element.is_some() {
+                                        let rule_to_change = old_flag_theme.clone();
+                                        gen_styles(&rule.name, &rule.value, &mut old_flag_theme);
+                                        let (_, datas) = real_element.unwrap();
+                                        let mut flag_theme = datas
+                                            .flag_themes
+                                            .get_mut(&flag.as_ref().unwrap().to_string());
+                                        if flag_theme.is_some() {
+                                            flag_theme.as_mut().unwrap().apply_only_changes(
+                                                &old_flag_theme,
+                                                &rule_to_change,
+                                                &rule_to_change.clone(),
+                                            );
+                                        }
+                                    }
                                 }
-                            } // Normally, we should always find the old theme, but if we don't, we just skip it
+                            } else {
+                                // get the old theme, before the first css hot-reload-supported change (hot-reload-supported is when hot_reload is true)
+                                let old_theme = old_state.state.get(&element);
+                                // If we found the old theme, we can revert the style change
+                                if old_theme.is_some() {
+                                    // Get the real element
+                                    let real_element = self.elements.get_mut(&element);
+                                    // Then we clone the old theme, remove the style change from a "virtual" theme
+                                    let mut rule_to_change =
+                                        old_theme.unwrap().default_theme.clone();
+                                    gen_styles(&rule.name, &rule.value, &mut rule_to_change);
+                                    if real_element.is_some() {
+                                        let (_, datas) = real_element.unwrap();
+                                        // And revert the style change by applying only the changes from the old theme to the new theme
+                                        datas.default_theme.apply_only_changes(
+                                            &old_theme.unwrap().default_theme.clone(),
+                                            &rule_to_change,
+                                            &old_theme.unwrap().default_theme.clone(),
+                                        );
+                                        // By doing all of the gen_styles and other stuff, we avoid having the create a revert function (from XmlTheme to rules)
+                                        // We still need apply_only_changes tho
+                                    }
+                                } // Normally, we should always find the old theme, but if we don't, we just skip it
+                            }
                         }
                     }
                 }
@@ -162,9 +216,15 @@ impl ElementRenderer {
     }
 
     fn generate_state(&mut self, rules: &Vec<RuleBlock>) -> HotReloadState {
-        let mut state: HashMap<i32, XmlTheme> = HashMap::new();
+        let mut state: HashMap<i32, HotReloadStateEntry> = HashMap::new();
         for (uid, (_, datas)) in &self.elements {
-            state.insert(*uid, datas.theme.clone());
+            state.insert(
+                *uid,
+                HotReloadStateEntry {
+                    default_theme: datas.default_theme.clone(),
+                    flag_themes: datas.flag_themes.clone(),
+                },
+            );
         }
         HotReloadState {
             rules: rules.clone(),
@@ -216,12 +276,19 @@ impl ElementRenderer {
         );
 
         let elements = self.element_query(&dom_query);
+        let mut custom_style_for_flag = None;
+        if selector.flag.is_some() {
+            custom_style_for_flag = extract_selector_style_flag(&selector.flag.as_ref().unwrap());
+        }
         for element in elements {
             for rule in rules.iter() {
-                // HERE
                 self.emit_internal_event(
                     element,
-                    XmlChangeEvent::StyleChange(rule.name.clone(), rule.value.clone()),
+                    XmlChangeEvent::StyleChange(
+                        rule.name.clone(),
+                        rule.value.clone(),
+                        custom_style_for_flag.clone(),
+                    ),
                     comes_from_hot_reload,
                 );
             }
@@ -253,8 +320,11 @@ impl ElementRenderer {
                     }
                 }
                 _ => {
-                    println!("Unknown selector flag: {}", flag);
-                    vec![]
+                    if extract_selector_style_flag(flag).is_some() {
+                        vec![element]
+                    } else {
+                        vec![]
+                    }
                 }
             };
         } else {
@@ -376,7 +446,8 @@ impl ElementRenderer {
             (
                 element,
                 ElementExtraData {
-                    theme: xml_element.theme.clone(),
+                    default_theme: xml_element.theme.clone(),
+                    flag_themes: HashMap::new(),
                     xml_element: xml_element,
                 },
             ),
@@ -392,7 +463,7 @@ impl ElementRenderer {
                 .filter(|v| v.target == uid)
                 .collect::<Vec<&EventListener>>();
             let (element, datas) = element.unwrap();
-            let output = render_element(element, self, &datas.theme, events, uid);
+            let output = render_element(element, self, &datas, events, uid);
             output
         } else {
             return text(format!("Element with id {} not found", uid)).into();
@@ -410,16 +481,35 @@ impl ElementRenderer {
         if element.is_some() {
             let (element, datas) = element.unwrap();
             let ev_with_forward = match event.clone() {
-                XmlChangeEvent::StyleChange(key, value) => {
+                XmlChangeEvent::StyleChange(key, value, custom_flag) => {
                     // Update the hot reload state if it exists
                     if let Some(hot_reload_state) = self.hot_reload_states.as_mut()
                         && !comes_from_hot_reload
                     {
                         if let Some(old_theme) = hot_reload_state.state.get_mut(&uid) {
-                            gen_styles(&key, &value, old_theme);
+                            if custom_flag.is_some() {
+                                gen_styles(
+                                    &key,
+                                    &value,
+                                    &mut old_theme
+                                        .flag_themes
+                                        .entry(custom_flag.clone().unwrap())
+                                        .or_insert(old_theme.default_theme.clone()),
+                                );
+                            } else {
+                                gen_styles(&key, &value, &mut old_theme.default_theme);
+                            }
                         }
                     }
-                    gen_styles(&key, &value, &mut datas.theme);
+                    let mut flag_theme = &mut datas.default_theme;
+                    if custom_flag.is_some() {
+                        let flag = custom_flag.unwrap();
+                        flag_theme = datas
+                            .flag_themes
+                            .entry(flag.clone())
+                            .or_insert(datas.default_theme.clone());
+                    }
+                    gen_styles(&key, &value, flag_theme);
                     None
                 }
                 _ => process_event_for_element(element, event.clone()),
@@ -460,4 +550,19 @@ impl ElementRenderer {
             self.last_uid += 1;
         }
     }
+}
+
+pub fn extract_selector_style_flag(flag: &String) -> Option<String> {
+    let mut custom_style_for_flag: Option<String> = None;
+    let flag = flag;
+    if flag.starts_with("for(") && flag.ends_with(")") {
+        custom_style_for_flag = Some(
+            flag.strip_prefix("for(")
+                .unwrap()
+                .strip_suffix(")")
+                .unwrap()
+                .to_string(),
+        );
+    }
+    custom_style_for_flag
 }

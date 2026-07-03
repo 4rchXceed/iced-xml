@@ -2,9 +2,8 @@ use crate::{
     dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        elements::{ElementRenderer, EventListener, element_base::ElementBase},
+        elements::{ElementExtraData, ElementRenderer, EventListener, element_base::ElementBase},
         parser::{XmlChangeEvent, XmlElement},
-        theming::XmlTheme,
     },
 };
 
@@ -24,10 +23,11 @@ impl ElementBase for Container {
     fn render<'a>(
         &self,
         renderer: &'a ElementRenderer,
-        theme: &'a XmlTheme,
+        datas: &'a ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
     ) -> iced::Element<'a, Message> {
+        let theme = datas.default_theme.clone();
         let mut container: iced::widget::Column<'a, Message> = iced::widget::Column::new();
 
         for child in &self.children {

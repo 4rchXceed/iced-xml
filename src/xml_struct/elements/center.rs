@@ -5,11 +5,10 @@ use crate::{
     xml_engine::Message,
     xml_struct::{
         elements::{
-            ElementRenderer, EventListener, element_base::ElementBase, label::Label,
-            library::AnyElement,
+            ElementExtraData, ElementRenderer, EventListener, element_base::ElementBase,
+            label::Label, library::AnyElement,
         },
         parser::{XmlChangeEvent, XmlElement},
-        theming::XmlTheme,
     },
 };
 
@@ -21,10 +20,10 @@ pub struct Center {
 
 impl ElementBase for Center {
     fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
-        if xml_element.children.len() != 1 && xml_element.text.is_empty() {
+        if xml_element.children.len() != 1 && xml_element.text.trim().is_empty() {
             panic!("Center element must have exactly one child (or text inside)");
         }
-        if xml_element.children.len() == 1 && !xml_element.text.is_empty() {
+        if xml_element.children.len() == 1 && !xml_element.text.trim().is_empty() {
             panic!("Center element must have either children or text, not both");
         }
 
@@ -34,7 +33,7 @@ impl ElementBase for Center {
             self_uid,
         );
 
-        if xml_element.text.is_empty() {
+        if xml_element.text.trim().is_empty() {
             Self {
                 children: Some(renderer.init_element_from_xml(&xml_element.children[0])),
                 text: None,
@@ -52,7 +51,7 @@ impl ElementBase for Center {
     fn render<'a>(
         &self,
         renderer: &'a ElementRenderer,
-        _: &'a XmlTheme,
+        _: &'a ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
     ) -> iced::Element<'a, Message> {

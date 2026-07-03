@@ -5,8 +5,8 @@ use iced::{
     border::Radius,
     font::{Family, Stretch, Weight},
     widget::{
-        checkbox::Icon,
         text::{LineHeight, Shaping, Wrapping},
+        text_input::Side,
     },
 };
 
@@ -338,7 +338,11 @@ pub fn parse_text_wrapping(value: &str) -> Wrapping {
     }
 }
 
-pub fn parse_checkbox_icon(value: &str, font: &Font, shaping: Shaping) -> Option<Icon<Font>> {
+pub fn parse_checkbox_icon(
+    value: &str,
+    font: &Font,
+    shaping: Shaping,
+) -> Option<iced::widget::checkbox::Icon<Font>> {
     if value == "none" {
         return None;
     }
@@ -375,12 +379,69 @@ pub fn parse_checkbox_icon(value: &str, font: &Font, shaping: Shaping) -> Option
         "relative" => LineHeight::Relative(parts[i + 1].parse::<f32>().unwrap_or(10.0)),
         _ => LineHeight::Relative(10.0),
     };
-    return Some(Icon {
+    return Some(iced::widget::checkbox::Icon {
         font: font.clone(),
         code_point: char,
         size: size,
         line_height: line_height,
         shaping: shaping,
+    });
+}
+
+pub fn parse_select_icon(value: &str, font: &Font) -> Option<iced::widget::text_input::Icon<Font>> {
+    if value == "none" {
+        return None;
+    }
+    let err_msg = "Invalid icon: must be (example) `select-icon: \">\" 20 left 15; (font settings are taken from the checkbox)`";
+    if value.is_empty() {
+        println!("{}", err_msg);
+        return None;
+    }
+    let parts: Vec<&str> = value.split(" ").collect();
+    if parts.len() != 4 && parts.len() != 3 {
+        println!("{}", err_msg);
+        return None;
+    }
+    let mut chars = parts[0].chars();
+    // let first = char.next();
+    if chars.next() != Some('"') {
+        println!("{}", err_msg);
+        return None;
+    }
+    let char = chars.next().unwrap_or('☑');
+    if chars.next() != Some('"') {
+        println!("{}", err_msg);
+        return None;
+    }
+    let mut i = 1;
+    let size_str = parts[1].parse::<f32>();
+    let mut size: Option<Pixels> = None;
+    if size_str.is_ok() {
+        size = Some(Pixels(size_str.unwrap()));
+        i = 2;
+    }
+    let side = match parts[i] {
+        "left" => Side::Left,
+        "right" => Side::Right,
+        _ => {
+            println!(
+                "Unknown side: {}, expected `left` or `right`. Using left as default",
+                parts[i]
+            );
+            Side::Left
+        }
+    };
+    let spacing_op = parts[i + 1].parse::<f32>();
+    if spacing_op.is_err() {
+        println!("Error: spacing {} is not a number (f32)", parts[i + 1]);
+        return None;
+    }
+    return Some(iced::widget::text_input::Icon {
+        font: font.clone(),
+        code_point: char,
+        size: size,
+        side: side,
+        spacing: spacing_op.unwrap(),
     });
 }
 

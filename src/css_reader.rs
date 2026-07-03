@@ -20,8 +20,11 @@ pub struct Rule {
 impl Rule {
     pub fn hash_with_selector(&self, selector: &Selector) -> String {
         return format!(
-            "{}:{}:{}",
-            selector.selector_type, selector.content, self.name
+            "{}:{}:{}:{}",
+            selector.selector_type,
+            selector.content,
+            self.name,
+            selector.flag.clone().unwrap_or("none".to_string())
         );
     }
 }

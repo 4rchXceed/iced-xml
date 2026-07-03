@@ -37,22 +37,23 @@ impl XmlWindow {
         if is_dynamic {
             self.fired_events.push((event_uid, event_data.clone()));
         } else {
-            let mut target: Option<i32> = None;
-            let mut event_type: Option<String> = None;
-            for event_listener in self.element_renderer.event_listeners.iter_mut() {
-                if event_listener.event_uid == event_uid {
-                    target = Some(event_listener.target);
-                    event_type = Some(event_listener.event_type.clone());
-                    for handler in event_listener.handlers.iter() {
-                        self.fired_events
-                            .push((handler.clone(), event_data.clone()));
+            if event_uid != -1 {
+                for event_listener in self.element_renderer.event_listeners.iter_mut() {
+                    if event_listener.event_uid == event_uid {
+                        for handler in event_listener.handlers.iter() {
+                            self.fired_events
+                                .push((handler.clone(), event_data.clone()));
+                        }
                     }
                 }
             }
-            if target.is_some() && event_type.is_some() {
+            if event_data.target_uid != -1 {
                 self.element_renderer.emit_internal_event(
-                    target.unwrap(),
-                    super::parser::XmlChangeEvent::EventFired(event_type.unwrap()),
+                    event_data.target_uid,
+                    super::parser::XmlChangeEvent::EventFired(
+                        event_data.event_type.clone(),
+                        event_data.clone(),
+                    ),
                     false,
                 );
             }

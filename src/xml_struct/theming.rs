@@ -5,14 +5,15 @@ use iced::{
     widget::{
         button::DEFAULT_PADDING,
         text::{LineHeight, Shaping, Wrapping},
+        text_input::Side,
     },
 };
 
 use crate::parse_utils::{
     parse_align_x, parse_align_y, parse_checkbox_icon, parse_color, parse_font, parse_font_family,
     parse_font_stretch, parse_font_style, parse_font_weight, parse_length, parse_line_height,
-    parse_padding, parse_radius, parse_shaping, parse_text_wrapping, parse_value,
-    parse_value_maybe, parse_vector,
+    parse_padding, parse_radius, parse_select_icon, parse_shaping, parse_text_wrapping,
+    parse_value, parse_value_maybe, parse_vector,
 };
 
 #[derive(Debug, Clone)]
@@ -43,6 +44,13 @@ pub struct XmlTheme {
     pub text_wrapping: Wrapping,
     pub checkbox_icon: Option<iced::widget::checkbox::Icon<Font>>,
     pub line_height: LineHeight,
+    pub select_icon: Option<iced::widget::text_input::Icon<Font>>,
+    pub icon_color: Color,
+    pub input_placeholder_color: Color,
+    pub selection_color: Color,
+    pub select_menu_height: Length,
+    pub selected_background_color: Color,
+    pub selected_text_color: Color,
 }
 
 impl XmlTheme {
@@ -128,6 +136,42 @@ impl XmlTheme {
         if first.line_height != second.line_height {
             self.line_height = changes.line_height;
         }
+        if first.select_icon.is_some() && second.select_icon.is_some() {
+            let a = first.select_icon.clone().unwrap();
+            let b = second.select_icon.clone().unwrap();
+            let side_a = match a.side {
+                Side::Left => "l",
+                Side::Right => "r",
+            };
+            let side_b = match a.side {
+                Side::Left => "l",
+                Side::Right => "r",
+            };
+            if a.code_point == b.code_point
+                && a.font == b.font
+                && a.size == b.size
+                && a.spacing == b.spacing
+                && side_a == side_b
+            {}
+        }
+        if first.icon_color != second.icon_color {
+            self.icon_color = changes.icon_color;
+        }
+        if first.input_placeholder_color != second.input_placeholder_color {
+            self.input_placeholder_color = changes.input_placeholder_color;
+        }
+        if first.selection_color != second.selection_color {
+            self.selection_color = changes.selection_color;
+        }
+        if first.select_menu_height != second.select_menu_height {
+            self.select_menu_height = changes.select_menu_height;
+        }
+        if first.selected_background_color != second.selected_background_color {
+            self.selected_background_color = changes.selected_background_color;
+        }
+        if first.selected_text_color != second.selected_text_color {
+            self.selected_text_color = changes.selected_text_color;
+        }
     }
 }
 
@@ -145,7 +189,7 @@ impl Default for XmlTheme {
             border_width: 0.0,
             clip: false,
             height: Length::Shrink,
-            width: Length::Shrink,
+            width: Length::FillPortion(1),
             padding: DEFAULT_PADDING,
             max_width: f32::INFINITY,
             spacing: 0.0,
@@ -160,6 +204,13 @@ impl Default for XmlTheme {
             checkbox_icon: None,
             line_height: LineHeight::default(),
             font_size: None,
+            select_icon: None,
+            icon_color: Color::BLACK,
+            input_placeholder_color: Color::BLACK,
+            selection_color: Color::BLACK,
+            select_menu_height: Length::Shrink,
+            selected_background_color: Color::from_rgb(0.8, 0.8, 0.8),
+            selected_text_color: Color::BLACK,
         }
     }
 }
@@ -198,6 +249,13 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         }
         "line-height" => theme.line_height = parse_line_height(value),
         "font-size" => theme.font_size = parse_value_maybe(value),
+        "select-icon" => theme.select_icon = parse_select_icon(value, &theme.font),
+        "input-icon-color" => theme.icon_color = parse_color(value),
+        "input-placeholder-color" => theme.input_placeholder_color = parse_color(value),
+        "input-selection-color" => theme.selection_color = parse_color(value),
+        "select-menu-height" => theme.select_menu_height = parse_length(value),
+        "current-item-bg" => theme.selected_background_color = parse_color(value),
+        "current-item-fg" => theme.selected_text_color = parse_color(value),
         _ => {}
     }
 }

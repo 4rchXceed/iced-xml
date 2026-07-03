@@ -3,7 +3,7 @@ use std::time::Duration;
 use iced::{Subscription, time};
 
 use crate::{
-    dom::events::{DomInternalMessageType, DomMessage, DomQuery, DomQueryType},
+    dom::events::{DomInternalMessageType, DomMessage, DomQuery, DomQueryResult, DomQueryType},
     xml_engine::{DynamicEvent, Message, XmlEngine},
 };
 
@@ -13,10 +13,13 @@ pub struct EventResponse {
     pub next_timeout: Option<u64>,
     pub is_timeout: bool,
     pub target: Option<DomQuery>,
+    pub data_str: Option<String>,
+    pub target_uid: i32,
+    pub event_type: String,
 }
 
 impl EventResponse {
-    pub fn new(uid: i32) -> Self {
+    pub fn new(uid: i32, event_type: String) -> Self {
         Self {
             next_timeout: None,
             is_timeout: false,
@@ -24,6 +27,9 @@ impl EventResponse {
                 query_type: DomQueryType::ByUid(uid),
                 flag: None,
             }),
+            target_uid: uid,
+            data_str: None,
+            event_type: event_type,
         }
     }
 }
@@ -34,6 +40,9 @@ impl Default for EventResponse {
             next_timeout: None,
             is_timeout: false,
             target: None,
+            data_str: None,
+            event_type: String::new(),
+            target_uid: -1,
         }
     }
 }
@@ -83,40 +92,43 @@ impl<T> QueryBuilder<T> {
     }
 
     pub fn import_css(&mut self, css: String, hot_reload: bool) -> &mut Self {
-        self.build_query(DomMessage {
+        self.build_query(&mut DomQueryResult::from_dom_message(DomMessage {
             message: DomInternalMessageType::ImportCss(css, hot_reload),
             uid: self.current_uid,
             selector: DomQuery {
                 query_type: DomQueryType::Unused,
                 flag: None,
             },
-        });
+        }));
         self
     }
 
-    pub fn b(&mut self, e: DomMessage) -> &mut Self {
+    pub fn b(&mut self, e: &mut DomQueryResult) -> &mut Self {
         self.build_query(e)
     }
 
-    pub fn build_query(&mut self, event: DomMessage) -> &mut Self {
-        let query = Query {
-            query: DomMessage {
-                message: event.message,
+    pub fn build_query(&mut self, query_result: &mut DomQueryResult) -> &mut Self {
+        if query_result.event.is_some() {
+            let ev = query_result.event.as_ref().unwrap().clone();
+            let query = Query {
+                query: DomMessage {
+                    message: ev.message,
+                    uid: self.current_uid,
+                    selector: ev.selector,
+                },
+                callback: None,
+                listener_callback: None,
+                listener_registered: false,
                 uid: self.current_uid,
-                selector: event.selector,
-            },
-            callback: None,
-            listener_callback: None,
-            listener_registered: false,
-            uid: self.current_uid,
-        };
-        self.current_uid += 1;
-        self.queries.push(query);
+            };
+            self.current_uid += 1;
+            self.queries.push(query);
+        }
         self
     }
 
     pub fn set_timeout(&mut self, timeout: i32) -> &mut Self {
-        self.build_query(DomMessage {
+        let dom_message = DomMessage {
             message: DomInternalMessageType::SubscribeDynamicEvent(DynamicEvent::SetTimeout(
                 timeout,
             )),
@@ -125,12 +137,13 @@ impl<T> QueryBuilder<T> {
                 query_type: DomQueryType::Unused,
                 flag: None,
             },
-        });
+        };
+        self.build_query(&mut DomQueryResult::from_dom_message(dom_message));
         self
     }
 
     pub fn set_interval(&mut self, interval: i32) -> &mut Self {
-        self.build_query(DomMessage {
+        let dom_message = DomMessage {
             message: DomInternalMessageType::SubscribeDynamicEvent(DynamicEvent::SetInterval(
                 interval,
             )),
@@ -139,7 +152,8 @@ impl<T> QueryBuilder<T> {
                 query_type: DomQueryType::Unused,
                 flag: None,
             },
-        });
+        };
+        self.build_query(&mut DomQueryResult::from_dom_message(dom_message));
         self
     }
 

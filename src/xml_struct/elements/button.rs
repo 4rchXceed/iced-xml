@@ -7,11 +7,10 @@ use crate::{
     xml_engine::Message,
     xml_struct::{
         elements::{
-            ElementRenderer, EventListener, element_base::ElementBase, label::Label,
-            library::AnyElement,
+            ElementExtraData, ElementRenderer, EventListener, element_base::ElementBase,
+            label::Label, library::AnyElement,
         },
         parser::{XmlChangeEvent, XmlElement},
-        theming::XmlTheme,
     },
 };
 
@@ -29,7 +28,7 @@ impl ElementBase for Button {
             self_uid,
         );
 
-        if !xml_element.text.is_empty() {
+        if !xml_element.text.trim().is_empty() {
             if xml_element.children.is_empty() {
                 Self {
                     children: Vec::new(),
@@ -58,7 +57,7 @@ impl ElementBase for Button {
     fn render<'a>(
         &self,
         renderer: &'a ElementRenderer,
-        theme: &'a XmlTheme,
+        datas: &'a ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,
     ) -> iced::Element<'a, Message> {
@@ -73,7 +72,7 @@ impl ElementBase for Button {
             button = iced::widget::Button::new(renderer.render_element(self.virtual_text));
         }
 
-        let theme = theme.clone();
+        let theme = datas.default_theme.clone();
 
         let mut button = button
             .style(move |_, _| iced::widget::button::Style {
@@ -104,7 +103,7 @@ impl ElementBase for Button {
                 "click" => {
                     button = button.on_press(Message::DomEvent(
                         event.event_uid,
-                        EventResponse::new(self_uid),
+                        EventResponse::new(self_uid, event.event_type.clone()),
                     ));
                 }
                 _ => (),

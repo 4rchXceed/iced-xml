@@ -4,9 +4,8 @@ use crate::{
     dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        elements::{ElementRenderer, EventListener, element_base::ElementBase},
+        elements::{ElementExtraData, ElementRenderer, EventListener, element_base::ElementBase},
         parser::{XmlChangeEvent, XmlElement},
-        theming::XmlTheme,
     },
 };
 
@@ -33,10 +32,11 @@ impl ElementBase for Label {
     fn render<'a>(
         &self,
         _: &'a ElementRenderer,
-        theme: &'a XmlTheme,
+        datas: &'a ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
     ) -> iced::Element<'a, Message> {
+        let theme = datas.default_theme.clone();
         let text_element = text(self.text.clone());
 
         let text_element = text_element.style(move |_| iced::widget::text::Style {
@@ -49,7 +49,10 @@ impl ElementBase for Label {
             .font(theme.font)
             .shaping(theme.shaping)
             .wrapping(theme.text_wrapping)
-            .line_height(theme.line_height);
+            .line_height(theme.line_height)
+            .style(move |_| iced::widget::text::Style {
+                color: Some(theme.text_color),
+            });
 
         if let Some(font_size) = theme.font_size {
             text_element = text_element.size(font_size);

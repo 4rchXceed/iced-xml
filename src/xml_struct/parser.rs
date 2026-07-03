@@ -4,15 +4,16 @@ use quick_xml::{Reader, events::Event};
 
 use crate::{
     css_reader::CssReader,
+    dom::query::EventResponse,
     xml_struct::theming::{XmlTheme, gen_styles},
 };
 
 #[derive(Debug, Clone)]
 pub enum XmlChangeEvent {
-    StyleChange(String, String),    // k => v
-    PropertyChange(String, String), // k => v
-    GetProperty(String),            // key
-    EventFired(String),             // event name
+    StyleChange(String, String, Option<String>), // k => v, flag
+    PropertyChange(String, String),              // k => v
+    GetProperty(String),                         // key
+    EventFired(String, EventResponse),           // event name
 }
 
 #[derive(Debug, Clone)]

@@ -2,18 +2,17 @@ use crate::{
     dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        elements::{ElementRenderer, EventListener},
+        elements::{ElementExtraData, ElementRenderer, EventListener},
         parser::{XmlChangeEvent, XmlElement},
-        theming::XmlTheme,
     },
 };
 
 pub trait ElementBase {
     fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self;
     fn render<'a>(
-        &self,
+        &'a self,
         renderer: &'a ElementRenderer,
-        theme: &'a XmlTheme,
+        datas: &'a ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,
     ) -> iced::Element<'a, Message>;

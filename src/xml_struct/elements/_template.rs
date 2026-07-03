@@ -3,8 +3,8 @@ use crate::{
     dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        elements::{ElementRenderer, EventListener, element_base::ElementBase},
-        parser::{XmlChangeEvent, XmlElement, XmlTheme},
+        elements::{ElementExtraData, ElementRenderer, EventListener, element_base::ElementBase},
+        parser::{XmlChangeEvent, XmlElement},
     },
 };
 
@@ -14,7 +14,7 @@ pub struct __EL__NAME {
 }
 
 impl ElementBase for __EL__NAME {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer) -> Self {
+    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
         // If it supports children, initialize them here with renderer.init_element
         // let mut children: Vec<i32> = Vec::new();
         // for child in &xml_element.children {
@@ -33,7 +33,7 @@ impl ElementBase for __EL__NAME {
     fn render<'a>(
         &self,
         renderer: &'a ElementRenderer,
-        theme: &'a XmlTheme,
+        datas: &'a ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
     ) -> iced::Element<'a, Message> {
