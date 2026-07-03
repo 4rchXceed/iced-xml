@@ -1,4 +1,4 @@
-use crate::{xml_engine::DynamicEvent, xml_struct::elements::extract_selector_style_flag};
+use crate::{xml_engine::DynamicEvent, xml_struct::element_renderer::extract_selector_style_flag};
 
 #[derive(Debug, Clone, Hash)]
 pub enum DomQueryType {

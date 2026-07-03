@@ -4,7 +4,8 @@ use crate::{
     dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        elements::{ElementExtraData, ElementRenderer, EventListener, element_base::ElementBase},
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+        elements::element_base::ElementBase,
         parser::{XmlChangeEvent, XmlElement},
     },
 };
@@ -58,7 +59,7 @@ impl ElementBase for Label {
             text_element = text_element.size(font_size);
         }
 
-        if theme.center {
+        if theme.center_all {
             text_element = text_element.center();
         }
 

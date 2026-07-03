@@ -27,3 +27,10 @@
 + Added missing styling options for elements
 
 ### Commit msg: "+ ComboBox element (called Select) + Added new styling options for elements + Brand new API for elements: ::for(xyz), allows multiple themes for the same element + Fixed some bugs + Added missing styling options for elements"
+
+## Last commit: 50b76be4c53f53e2ed651e66cbb2e6b43b49b12c
+~ Move all element_renderer logic to a separate file
+~ Renamed container (old object) to col (aka column)
++ Added new element: Container (only 1 child allowed)
+
+### Commit msg: "~ Move all element_renderer logic to a separate file ~ Renamed container (old object) to col (aka column) + Added new element: Container (only 1 child allowed)"

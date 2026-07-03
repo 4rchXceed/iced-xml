@@ -75,7 +75,13 @@ impl XmlParser {
                                 let b = a.unwrap();
                                 let k = String::from_utf8(b.key.as_ref().to_vec()).unwrap();
                                 let v = String::from_utf8(b.value.to_vec()).unwrap();
-                                gen_styles(&k, &v, &mut last_theme);
+                                if k.starts_with("style:") {
+                                    gen_styles(
+                                        &k.strip_prefix("style:").unwrap().to_string(),
+                                        &v,
+                                        &mut last_theme,
+                                    );
+                                }
                                 if k == "id" {
                                     id = Some(v.clone());
                                 }

@@ -2,10 +2,10 @@ use crate::{
     dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
         elements::{
-            ElementExtraData, ElementRenderer, EventListener, button::Button, center::Center,
-            checkbox::Checkbox, container::Container, element_base::ElementBase, label::Label,
-            row::Row, select::Select,
+            button::Button, center::Center, checkbox::Checkbox, col::Col, container::Container,
+            element_base::ElementBase, label::Label, row::Row, select::Select,
         },
         parser::{XmlChangeEvent, XmlElement},
     },
@@ -13,12 +13,13 @@ use crate::{
 
 pub enum AnyElement {
     Label(Label),
-    Container(Container),
+    Col(Col),
     Button(Button),
     Row(Row),
     Center(Center),
     Checkbox(Checkbox),
     Select(Select),
+    Container(Container),
 }
 
 #[rustfmt::skip]
@@ -30,9 +31,9 @@ pub fn generate_element_from_tag(
     return match xml_element.tag.as_str() {
         "Label" => Some(AnyElement::Label(Label::new(xml_element, renderer, self_uid))),
         "Div" => Some(AnyElement::Container(Container::new(xml_element, renderer, self_uid))),
-        "Col" => Some(AnyElement::Container(Container::new(xml_element, renderer, self_uid))),
+        "Col" => Some(AnyElement::Col(Col::new(xml_element, renderer, self_uid))),
         "Row" => Some(AnyElement::Row(Row::new(xml_element, renderer, self_uid))),
-        "Window" => Some(AnyElement::Container(Container::new(xml_element, renderer, self_uid))), // Window works the same way as a container (FOR NOW), we'll use the same logic
+        "Window" => Some(AnyElement::Col(Col::new(xml_element, renderer, self_uid))), // Window works the same way as a container (FOR NOW), we'll use the same logic
         "Button" => Some(AnyElement::Button(Button::new(xml_element, renderer, self_uid))),
         "Center" => Some(AnyElement::Center(Center::new(xml_element, renderer, self_uid))),
         "Checkbox" => Some(AnyElement::Checkbox(Checkbox::new(xml_element, renderer, self_uid))),
@@ -50,12 +51,13 @@ pub fn render_element<'a>(
 ) -> iced::Element<'a, Message> {
     return match element {
         AnyElement::Label(label) => label.render(renderer, datas, events, uid),
-        AnyElement::Container(container) => container.render(renderer, datas, events, uid),
+        AnyElement::Col(col) => col.render(renderer, datas, events, uid),
         AnyElement::Button(button) => button.render(renderer, datas, events, uid),
         AnyElement::Row(row) => row.render(renderer, datas, events, uid),
         AnyElement::Center(center) => center.render(renderer, datas, events, uid),
         AnyElement::Checkbox(checkbox) => checkbox.render(renderer, datas, events, uid),
         AnyElement::Select(select) => select.render(renderer, datas, events, uid),
+        AnyElement::Container(container) => container.render(renderer, datas, events, uid),
     };
 }
 
@@ -65,11 +67,12 @@ pub fn process_event_for_element<'a>(
 ) -> Option<(QueryResponse, Vec<i32>)> {
     match element {
         AnyElement::Label(label) => label.process_event(&event),
-        AnyElement::Container(container) => container.process_event(&event),
+        AnyElement::Col(col) => col.process_event(&event),
         AnyElement::Button(button) => button.process_event(&event),
         AnyElement::Row(row) => row.process_event(&event),
         AnyElement::Center(center) => center.process_event(&event),
         AnyElement::Checkbox(checkbox) => checkbox.process_event(&event),
         AnyElement::Select(select) => select.process_event(&event),
+        AnyElement::Container(container) => container.process_event(&event),
     }
 }

@@ -16,6 +16,7 @@ use crate::parse_utils::{
     parse_value, parse_value_maybe, parse_vector,
 };
 
+// The theme struct
 #[derive(Debug, Clone)]
 pub struct XmlTheme {
     pub background_color: Color,
@@ -36,7 +37,7 @@ pub struct XmlTheme {
     pub align_x: Horizontal,
     pub align_y: Vertical,
     pub wrap: bool,
-    pub center: bool,
+    pub center_all: bool,
     pub font: Font,
     pub shaping: Shaping,
     pub size: Option<f32>,
@@ -51,6 +52,9 @@ pub struct XmlTheme {
     pub select_menu_height: Length,
     pub selected_background_color: Color,
     pub selected_text_color: Color,
+    pub center_x: bool,
+    pub center_y: bool,
+    pub max_height: f32,
 }
 
 impl XmlTheme {
@@ -112,8 +116,8 @@ impl XmlTheme {
         if first.wrap != second.wrap {
             self.wrap = changes.wrap;
         }
-        if first.center != second.center {
-            self.center = changes.center;
+        if first.center_all != second.center_all {
+            self.center_all = changes.center_all;
         }
         if first.font != second.font {
             self.font = changes.font;
@@ -172,6 +176,15 @@ impl XmlTheme {
         if first.selected_text_color != second.selected_text_color {
             self.selected_text_color = changes.selected_text_color;
         }
+        if first.center_x != second.center_x {
+            self.center_x = changes.center_x;
+        }
+        if first.center_y != second.center_y {
+            self.center_y = changes.center_y;
+        }
+        if first.max_height != second.max_height {
+            self.max_height = changes.max_height;
+        }
     }
 }
 
@@ -196,7 +209,7 @@ impl Default for XmlTheme {
             align_x: Horizontal::Left,
             align_y: Vertical::Top,
             wrap: false,
-            center: false,
+            center_all: false,
             font: Font::default(),
             shaping: Shaping::Auto,
             size: None,
@@ -211,6 +224,9 @@ impl Default for XmlTheme {
             select_menu_height: Length::Shrink,
             selected_background_color: Color::from_rgb(0.8, 0.8, 0.8),
             selected_text_color: Color::BLACK,
+            center_x: false,
+            center_y: false,
+            max_height: f32::INFINITY,
         }
     }
 }
@@ -235,7 +251,11 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         "spacing" => theme.spacing = parse_value(value),
         "align-y" => theme.align_y = parse_align_y(value),
         "wrap" => theme.wrap = value == "true",
-        "center" => theme.center = value == "true",
+        "center" => {
+            theme.center_all = value == "all";
+            theme.center_x = value == "x";
+            theme.center_y = value == "y";
+        }
         "font-family" => parse_font_family(&mut theme.font.family, value),
         "font-weight" => parse_font_weight(&mut theme.font.weight, value),
         "font-stretch" => parse_font_stretch(&mut theme.font.stretch, value),
@@ -256,6 +276,9 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         "select-menu-height" => theme.select_menu_height = parse_length(value),
         "current-item-bg" => theme.selected_background_color = parse_color(value),
         "current-item-fg" => theme.selected_text_color = parse_color(value),
-        _ => {}
+        "max-height" => theme.max_height = parse_value(value),
+        _ => {
+            println!("Unknown theme property: {} = {}", key, value);
+        }
     }
 }

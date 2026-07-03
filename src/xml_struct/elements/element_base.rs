@@ -2,7 +2,7 @@ use crate::{
     dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        elements::{ElementExtraData, ElementRenderer, EventListener},
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
         parser::{XmlChangeEvent, XmlElement},
     },
 };

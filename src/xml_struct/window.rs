@@ -1,7 +1,7 @@
 use crate::{
     dom::query::EventResponse,
     xml_engine::Message,
-    xml_struct::{elements::ElementRenderer, parser::XmlElement},
+    xml_struct::{element_renderer::ElementRenderer, parser::XmlElement},
 };
 
 pub struct XmlWindow {

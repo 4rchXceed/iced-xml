@@ -7,7 +7,8 @@ use crate::{
     dom::query::{EventResponse, QueryResponse},
     xml_engine::Message,
     xml_struct::{
-        elements::{ElementExtraData, ElementRenderer, EventListener, element_base::ElementBase},
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+        elements::element_base::ElementBase,
         parser::{XmlChangeEvent, XmlElement},
     },
 };

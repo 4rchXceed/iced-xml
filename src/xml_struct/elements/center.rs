@@ -4,10 +4,8 @@ use crate::{
     dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        elements::{
-            ElementExtraData, ElementRenderer, EventListener, element_base::ElementBase,
-            label::Label, library::AnyElement,
-        },
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+        elements::{element_base::ElementBase, label::Label, library::AnyElement},
         parser::{XmlChangeEvent, XmlElement},
     },
 };
