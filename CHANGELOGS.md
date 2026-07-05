@@ -34,3 +34,11 @@
 + Added new element: Container (only 1 child allowed)
 
 ### Commit msg: "~ Move all element_renderer logic to a separate file ~ Renamed container (old object) to col (aka column) + Added new element: Container (only 1 child allowed)"
+
+## Last commit: 3b1bef719c70d308465b014456b6eeba769249a2
++ Added new element: float
+~ Fixed a bug with padding
+~ Fixed a bug on XML style inheritance
++ Added new element: grid (!! requires grid-responsive-width to work properly)
+
+### Commit msg: "+ Added new element: float ~ Fixed a bug with padding ~ Fixed a bug on XML style inheritance + Added new element: grid (!! requires grid-responsive-width to work properly)"

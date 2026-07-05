@@ -10,8 +10,10 @@ Button {
 #btn-container {
     spacing: 20;
     wrap: true;
-    width: 270f; /* 50*3 + 10*3 + 20*4 */
-    height: 320f; /* 50*3 + 10*3 + 20*4 */
+    width: 270f;
+    /* 50*3 + 10*3 + 20*4 */
+    height: 320f;
+    /* 50*3 + 10*3 + 20*4 */
 }
 
 #op-col {

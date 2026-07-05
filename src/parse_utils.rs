@@ -20,9 +20,17 @@ pub fn safe_read_file(filename: &str) -> String {
 
 pub fn parse_length(value: &String) -> Length {
     if value.ends_with("fp") {
-        return Length::FillPortion(value[..value.len() - 2].parse().unwrap());
+        if value[..value.len() - 2].parse::<f32>().is_err() {
+            println!("Invalid length: {}", value);
+            return Length::FillPortion(0);
+        }
+        return Length::FillPortion(value[..value.len() - 2].parse::<u16>().unwrap());
     } else if value.ends_with("f") {
-        return Length::Fixed(value[..value.len() - 1].parse().unwrap());
+        if value[..value.len() - 1].parse::<f32>().is_err() {
+            println!("Invalid length: {}", value);
+            return Length::Fixed(0.0);
+        }
+        return Length::Fixed(value[..value.len() - 1].parse::<f32>().unwrap());
     } else if value == "max" {
         return Length::Fill;
     } else if value == "min" {
@@ -188,16 +196,16 @@ pub fn parse_padding(value: &String) -> Padding {
             match val_kw {
                 "top" => top = val_f32,
                 "right" => right = val_f32,
-                "left" => left = val_f32,
                 "bottom" => bottom = val_f32,
+                "left" => left = val_f32,
                 _ => println!("Invalid radius keyword: {}", val_kw),
             }
         }
         return Padding {
-            top: bottom,
-            right: top,
-            left: right,
-            bottom: left,
+            top: top,
+            right: right,
+            left: left,
+            bottom: bottom,
         };
     } else {
         let value_float = value_float.unwrap();
@@ -224,6 +232,10 @@ pub fn parse_align_y(value: &String) -> Vertical {
 }
 
 pub fn parse_value(value: &String) -> f32 {
+    value.parse().unwrap_or_default()
+}
+
+pub fn parse_value_int(value: &String) -> i32 {
     value.parse().unwrap_or_default()
 }
 

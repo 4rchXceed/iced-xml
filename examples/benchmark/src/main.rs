@@ -119,21 +119,124 @@ impl BenchmarkApp {
         });
         self.process();
     }
+
+    fn start_benchmark_styling(&mut self) {
+        println!(
+            "Starting benchmark with {} iterations",
+            self.benchmark_conig.iterations
+        );
+        self.qb
+            .b(Dom::get_element_by_id("txt").set_style("bg", "white"));
+        self.process();
+        let f = std::time::Instant::now();
+        self.qb
+            .b(Dom::get_element_by_id("txt").set_style("bg", "black"));
+        self.process();
+        let elapsed = f.elapsed();
+        println!(
+            "Time for 1 text change: {}ns. Perfect would be 0",
+            elapsed.as_nanos()
+        );
+        // First: setInterval
+        self.start = std::time::Instant::now();
+        while self.i < self.benchmark_conig.iterations {
+            self.i += 1;
+            self.qb.b(Dom::get_element_by_id("container-styling")
+                .set_style("bg", if self.i % 2 == 0 { "black" } else { "white" }));
+            self.process();
+        }
+        println!("Benchmark finished after {}ns iterations", self.i);
+        let elapsed = self.start.elapsed();
+        println!(
+            "duration of {:128}. Perfect score would be 0.",
+            elapsed.as_nanos()
+        );
+        self.i = 0;
+        self.start = std::time::Instant::now();
+        self.qb.set_interval(0).with_callback(|this, _| {
+            this.i += 1;
+            this.qb.b(Dom::get_element_by_id("container-styling")
+                .set_style("bg", if this.i % 2 == 0 { "black" } else { "white" }));
+            this.process();
+            if this.i >= this.benchmark_conig.iterations {
+                println!("Benchmark finished after {}ns iterations", this.i);
+                let elapsed = this.start.elapsed();
+                println!(
+                    "Changing text & reloading the page took {}ns. Perfect score would be 0.",
+                    elapsed.as_nanos()
+                );
+                exit(0);
+            }
+        });
+        self.process();
+    }
 }
 
 impl AppTemplate<BenchmarkApp> for BenchmarkApp {
     fn new() -> Self {
+        let mut xml_content = std::fs::read("src/res/main.xml")
+            .unwrap_or_else(|_| panic!("Failed to read XML file: src/res/main.xml"));
+        let benchmark_type = std::env::args().nth(1).unwrap_or_else(|| {
+            panic!("Please provide a benchmark type as the first argument. Options: set-timeout, change-text, style")
+        });
+        let nbr_iterations = std::env::args().nth(2).unwrap_or_else(|| {
+            panic!("Please provide the number of iterations as the second argument.")
+        });
+        let it = nbr_iterations
+            .parse::<i32>()
+            .unwrap_or_else(|_| panic!("Failed to parse number of iterations: {}", nbr_iterations));
+        match benchmark_type.as_str() {
+            "set-timeout" => {
+                println!("Benchmarking set-timeout...");
+            }
+            "change-text" => {
+                println!("Benchmarking change-text...");
+            }
+            "style" => {
+                println!("Benchmarking style...");
+                println!(
+                    "This benchmark will change the background of an element very quickly, please make sure you are not sensitive to flashing lights. Do you want to continue? (y/n)"
+                );
+                let mut yesno_buffer = String::new();
+                std::io::stdin().read_line(&mut yesno_buffer).unwrap();
+                if yesno_buffer.trim() != "y" {
+                    exit(0);
+                }
+                println!("Benchmarking style...");
+            }
+            "lot-element" => {
+                println!("Benchmarking lot-element...");
+                let mut content: String = String::from(
+                    "<Window><Label style:font-size=\"10\">Lots of elements benchmark</Label><Row>",
+                );
+                for i in 0..it {
+                    if i % 100 == 0 {
+                        content.push_str("</Row><Row>");
+                    }
+                    content.push_str(&format!(
+                        "<Label style:width=\"min\" style:height=\"min\" id=\"elem-{}\" style:font-size=\"3\">Element {}</Label>",
+                        i,i
+                    ));
+                }
+                content.push_str("</Row></Window>");
+                xml_content = content.into_bytes();
+            }
+            _ => {
+                panic!(
+                    "Unknown benchmark type: {}. Options: set-timeout, change-text, style",
+                    benchmark_type
+                );
+            }
+        }
         Self {
             qb: QueryBuilder::new(),
-            engine: XmlEngine::new(include_bytes!("res/main.xml").to_vec()),
+            engine: XmlEngine::new(xml_content),
             #[cfg(feature = "dev-mode")]
             css_rx: None,
             #[cfg(feature = "dev-mode")]
             _keep_watcher: None,
             i: 0,
-            benchmark_conig: BenchmarkConfig {
-                iterations: 1000_000,
-            },
+            benchmark_conig: BenchmarkConfig { iterations: it },
             start: std::time::Instant::now(),
         }
     }
@@ -163,17 +266,39 @@ impl AppTemplate<BenchmarkApp> for BenchmarkApp {
     fn post_construct(&mut self) {
         #[cfg(feature = "dev-mode")]
         self.watch_css();
-        self.qb
-            .b(Dom::get_element_by_id("start-set-timeout").add_event_listener("click"))
-            .with_callback(|this, _| {
-                this.start_benchmark_set_timeout();
-            });
-        self.qb
-            .b(Dom::get_element_by_id("start-change-text").add_event_listener("click"))
-            .with_callback(|this, _| {
-                this.start_benchmark_change_text();
-            });
-        self.process();
+        let benchmark_type = std::env::args().nth(1).unwrap_or_else(|| {
+            panic!("Please provide a benchmark type as the first argument. Options: set-timeout, change-text, style, lot-element")
+        });
+        match benchmark_type.as_str() {
+            "set-timeout" => {
+                self.start_benchmark_set_timeout();
+            }
+            "change-text" => {
+                self.start_benchmark_change_text();
+            }
+            "style" => {
+                self.start_benchmark_styling();
+            }
+            "lot-element" => {
+                let diff = self.start.elapsed();
+                println!(
+                    "Time to load {} elements: {}ns. Perfect score would be 0.",
+                    self.benchmark_conig.iterations,
+                    diff.as_nanos()
+                );
+                let start = std::time::Instant::now();
+                self.qb
+                    .b(Dom::get_elements_by_tag("Label").set_style("fg", "red"));
+                self.process();
+                let diff = start.elapsed();
+                println!(
+                    "Time to change style of {} elements: {}ns. Perfect score would be 0.",
+                    self.benchmark_conig.iterations,
+                    diff.as_nanos()
+                );
+            }
+            _ => {}
+        }
     }
 
     #[cfg(feature = "dev-mode")]

@@ -13,7 +13,7 @@ use crate::parse_utils::{
     parse_align_x, parse_align_y, parse_checkbox_icon, parse_color, parse_font, parse_font_family,
     parse_font_stretch, parse_font_style, parse_font_weight, parse_length, parse_line_height,
     parse_padding, parse_radius, parse_select_icon, parse_shaping, parse_text_wrapping,
-    parse_value, parse_value_maybe, parse_vector,
+    parse_value, parse_value_int, parse_value_maybe, parse_vector,
 };
 
 // The theme struct
@@ -55,6 +55,10 @@ pub struct XmlTheme {
     pub center_x: bool,
     pub center_y: bool,
     pub max_height: f32,
+    pub scale: f32,
+    pub grid_columns: usize,
+    pub grid_responsive_width: Option<f32>,
+    pub grid_width: Option<f32>,
 }
 
 impl XmlTheme {
@@ -185,6 +189,18 @@ impl XmlTheme {
         if first.max_height != second.max_height {
             self.max_height = changes.max_height;
         }
+        if first.scale != second.scale {
+            self.scale = changes.scale;
+        }
+        if first.grid_columns != second.grid_columns {
+            self.grid_columns = changes.grid_columns;
+        }
+        if first.grid_responsive_width != second.grid_responsive_width {
+            self.grid_responsive_width = changes.grid_responsive_width;
+        }
+        if first.grid_width != second.grid_width {
+            self.grid_width = changes.grid_width;
+        }
     }
 }
 
@@ -227,6 +243,10 @@ impl Default for XmlTheme {
             center_x: false,
             center_y: false,
             max_height: f32::INFINITY,
+            scale: 1.0,
+            grid_columns: 1,
+            grid_responsive_width: None,
+            grid_width: None,
         }
     }
 }
@@ -277,6 +297,10 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         "current-item-bg" => theme.selected_background_color = parse_color(value),
         "current-item-fg" => theme.selected_text_color = parse_color(value),
         "max-height" => theme.max_height = parse_value(value),
+        "scale" => theme.scale = parse_value(value),
+        "grid-columns" => theme.grid_columns = parse_value_int(value).min(1) as usize,
+        "grid-responsive-width" => theme.grid_responsive_width = parse_value(value).into(),
+        "grid-width" => theme.grid_width = parse_value(value).into(),
         _ => {
             println!("Unknown theme property: {} = {}", key, value);
         }

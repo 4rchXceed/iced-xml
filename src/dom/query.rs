@@ -12,10 +12,10 @@ pub struct EventResponse {
     // HERE: All properties in Option<> for every event response, so that we can return None if the event is not applicable to the element
     pub next_timeout: Option<u64>,
     pub is_timeout: bool,
-    pub target: Option<DomQuery>,
-    pub data_str: Option<String>,
     pub target_uid: i32,
     pub event_type: String,
+    pub target: Option<DomQuery>,
+    pub data_str: Option<String>,
 }
 
 impl EventResponse {

@@ -125,12 +125,13 @@ impl XmlParser {
                 Ok(Event::End(_)) => {
                     let node = stack.pop().unwrap();
 
+                    let theme = node.theme.clone();
+                    last_theme = theme;
+
                     if let Some(parent) = stack.last_mut() {
                         parent.children.push(node);
                     } else {
-                        let theme = node.theme.clone();
                         root = Some(node);
-                        last_theme = theme;
                     }
                 }
                 _ => {}

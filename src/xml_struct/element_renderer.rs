@@ -89,7 +89,7 @@ impl ElementRenderer {
                 self.apply_rules(selector, &rule_block.rules, hot_reload);
             }
         }
-        (true, String::new())
+        return (true, String::new());
     }
 
     pub fn get_data(&mut self, element: i32, key: &str) -> Option<String> {

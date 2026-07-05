@@ -5,7 +5,8 @@ use crate::{
         element_renderer::{ElementExtraData, ElementRenderer, EventListener},
         elements::{
             button::Button, center::Center, checkbox::Checkbox, col::Col, container::Container,
-            element_base::ElementBase, label::Label, row::Row, select::Select,
+            element_base::ElementBase, float::FloatingElement, grid::Grid, label::Label, row::Row,
+            select::Select,
         },
         parser::{XmlChangeEvent, XmlElement},
     },
@@ -20,6 +21,8 @@ pub enum AnyElement {
     Checkbox(Checkbox),
     Select(Select),
     Container(Container),
+    FloatingElement(FloatingElement),
+    Grid(Grid),
 }
 
 #[rustfmt::skip]
@@ -38,6 +41,8 @@ pub fn generate_element_from_tag(
         "Center" => Some(AnyElement::Center(Center::new(xml_element, renderer, self_uid))),
         "Checkbox" => Some(AnyElement::Checkbox(Checkbox::new(xml_element, renderer, self_uid))),
         "Select" => Some(AnyElement::Select(Select::new(xml_element, renderer, self_uid))),
+        "Float" => Some(AnyElement::FloatingElement(FloatingElement::new(xml_element, renderer, self_uid))),
+        "Grid" => Some(AnyElement::Grid(Grid::new(xml_element, renderer, self_uid))),
         _ => None,
     };
 }
@@ -58,6 +63,10 @@ pub fn render_element<'a>(
         AnyElement::Checkbox(checkbox) => checkbox.render(renderer, datas, events, uid),
         AnyElement::Select(select) => select.render(renderer, datas, events, uid),
         AnyElement::Container(container) => container.render(renderer, datas, events, uid),
+        AnyElement::FloatingElement(floating_element) => {
+            floating_element.render(renderer, datas, events, uid)
+        }
+        AnyElement::Grid(grid) => grid.render(renderer, datas, events, uid),
     };
 }
 
@@ -74,5 +83,7 @@ pub fn process_event_for_element<'a>(
         AnyElement::Checkbox(checkbox) => checkbox.process_event(&event),
         AnyElement::Select(select) => select.process_event(&event),
         AnyElement::Container(container) => container.process_event(&event),
+        AnyElement::FloatingElement(floating_element) => floating_element.process_event(&event),
+        AnyElement::Grid(grid) => grid.process_event(&event),
     }
 }
