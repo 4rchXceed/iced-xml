@@ -113,6 +113,13 @@ impl XmlEngine {
                         false,
                     )
                 }
+                DomInternalMessageType::FireEvent(ref event_name, ref ev_datas) => {
+                    self.window.element_renderer.emit_internal_event(
+                        element,
+                        XmlChangeEvent::EmittedEvent(event_name.clone(), ev_datas.clone()),
+                        false,
+                    )
+                }
                 DomInternalMessageType::RegisterEventListener(ref event_name) => {
                     self.window.element_renderer.register_event(
                         event_name.clone(),

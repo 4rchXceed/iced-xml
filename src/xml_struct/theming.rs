@@ -59,6 +59,7 @@ pub struct XmlTheme {
     pub grid_columns: usize,
     pub grid_responsive_width: Option<f32>,
     pub grid_width: Option<f32>,
+    pub pane_min_size: f32, // Minimum size for panes in a pane grid
 }
 
 impl XmlTheme {
@@ -201,16 +202,19 @@ impl XmlTheme {
         if first.grid_width != second.grid_width {
             self.grid_width = changes.grid_width;
         }
+        if first.pane_min_size != second.pane_min_size {
+            self.pane_min_size = changes.pane_min_size;
+        }
     }
 }
 
 impl Default for XmlTheme {
     fn default() -> Self {
         Self {
-            background_color: Color::WHITE,
+            background_color: Color::TRANSPARENT,
             text_color: Color::BLACK,
             snap: false,
-            shadow_color: Color::BLACK,
+            shadow_color: Color::TRANSPARENT,
             shadow_blur_radius: 0.0,
             shadow_offset: Vector { x: 0.0, y: 0.0 },
             border_color: Color::BLACK,
@@ -247,6 +251,7 @@ impl Default for XmlTheme {
             grid_columns: 1,
             grid_responsive_width: None,
             grid_width: None,
+            pane_min_size: 50.0,
         }
     }
 }
@@ -301,6 +306,7 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         "grid-columns" => theme.grid_columns = parse_value_int(value).min(1) as usize,
         "grid-responsive-width" => theme.grid_responsive_width = parse_value(value).into(),
         "grid-width" => theme.grid_width = parse_value(value).into(),
+        "pane-min-size" => theme.pane_min_size = parse_value(value),
         _ => {
             println!("Unknown theme property: {} = {}", key, value);
         }

@@ -6,7 +6,7 @@ use crate::{
         elements::{
             button::Button, center::Center, checkbox::Checkbox, col::Col, container::Container,
             element_base::ElementBase, float::FloatingElement, grid::Grid, label::Label, row::Row,
-            select::Select,
+            select::Select, window_system::WindowSystem,
         },
         parser::{XmlChangeEvent, XmlElement},
     },
@@ -23,6 +23,7 @@ pub enum AnyElement {
     Container(Container),
     FloatingElement(FloatingElement),
     Grid(Grid),
+    WindowSystem(WindowSystem),
 }
 
 #[rustfmt::skip]
@@ -37,12 +38,17 @@ pub fn generate_element_from_tag(
         "Col" => Some(AnyElement::Col(Col::new(xml_element, renderer, self_uid))),
         "Row" => Some(AnyElement::Row(Row::new(xml_element, renderer, self_uid))),
         "Window" => Some(AnyElement::Col(Col::new(xml_element, renderer, self_uid))), // Window works the same way as a container (FOR NOW), we'll use the same logic
+        "WindowContent" => Some(AnyElement::Col(Col::new(xml_element, renderer, self_uid))), // Same for WindowContent
+        "CloseButton" => Some(AnyElement::Col(Col::new(xml_element, renderer, self_uid))), // Same for WindowContent
+        "MaximizeButton" => Some(AnyElement::Col(Col::new(xml_element, renderer, self_uid))), // Same for WindowContent
+        "Content" => Some(AnyElement::Container(Container::new(xml_element, renderer, self_uid))), // Same for WindowContent
         "Button" => Some(AnyElement::Button(Button::new(xml_element, renderer, self_uid))),
         "Center" => Some(AnyElement::Center(Center::new(xml_element, renderer, self_uid))),
         "Checkbox" => Some(AnyElement::Checkbox(Checkbox::new(xml_element, renderer, self_uid))),
         "Select" => Some(AnyElement::Select(Select::new(xml_element, renderer, self_uid))),
         "Float" => Some(AnyElement::FloatingElement(FloatingElement::new(xml_element, renderer, self_uid))),
         "Grid" => Some(AnyElement::Grid(Grid::new(xml_element, renderer, self_uid))),
+        "WindowSystem" => Some(AnyElement::WindowSystem(WindowSystem::new(xml_element, renderer, self_uid))),
         _ => None,
     };
 }
@@ -67,6 +73,9 @@ pub fn render_element<'a>(
             floating_element.render(renderer, datas, events, uid)
         }
         AnyElement::Grid(grid) => grid.render(renderer, datas, events, uid),
+        AnyElement::WindowSystem(window_system) => {
+            window_system.render(renderer, datas, events, uid)
+        }
     };
 }
 
@@ -85,5 +94,6 @@ pub fn process_event_for_element<'a>(
         AnyElement::Container(container) => container.process_event(&event),
         AnyElement::FloatingElement(floating_element) => floating_element.process_event(&event),
         AnyElement::Grid(grid) => grid.process_event(&event),
+        AnyElement::WindowSystem(window_system) => window_system.process_event(&event),
     }
 }

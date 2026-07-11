@@ -74,7 +74,7 @@ pub fn parse_color(color: &String) -> Color {
         }
         let color_clean_f32: [f32; 4] = color_clean
             .iter()
-            .map(|c| c.parse().unwrap())
+            .map(|c| c.trim().parse().unwrap_or(0.0))
             .collect::<Vec<f32>>()
             .try_into()
             .unwrap();
@@ -82,7 +82,7 @@ pub fn parse_color(color: &String) -> Color {
             color_clean_f32[0] / 255.0,
             color_clean_f32[1] / 255.0,
             color_clean_f32[2] / 255.0,
-            color_clean_f32[3] / 255.0,
+            color_clean_f32[3],
         );
     } else if color.starts_with("rgb") {
         let color_clean = color.strip_prefix("rgb(");
@@ -103,7 +103,7 @@ pub fn parse_color(color: &String) -> Color {
         }
         let color_clean_f32: [f32; 3] = color_clean
             .iter()
-            .map(|c| c.trim().parse().unwrap())
+            .map(|c| c.trim().parse().unwrap_or(0.0))
             .collect::<Vec<f32>>()
             .try_into()
             .unwrap();
@@ -468,4 +468,18 @@ pub fn parse_line_height(value: &str) -> LineHeight {
         "relative" => LineHeight::Relative(split[1].parse::<f32>().unwrap_or(10.0)),
         _ => LineHeight::Relative(10.0),
     };
+}
+
+pub fn parse_pane_axis(value: &str) -> iced::widget::pane_grid::Axis {
+    match value {
+        "horizontal" => iced::widget::pane_grid::Axis::Horizontal,
+        "vertical" => iced::widget::pane_grid::Axis::Vertical,
+        _ => {
+            println!(
+                "Invalid axis: {}, expected `horizontal` or `vertical`. Using horizontal as default",
+                value
+            );
+            iced::widget::pane_grid::Axis::Horizontal
+        }
+    }
 }

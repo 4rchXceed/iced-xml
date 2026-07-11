@@ -42,3 +42,10 @@
 + Added new element: grid (!! requires grid-responsive-width to work properly)
 
 ### Commit msg: "+ Added new element: float ~ Fixed a bug with padding ~ Fixed a bug on XML style inheritance + Added new element: grid (!! requires grid-responsive-width to work properly)"
+
+## Last commit: 3784f9e5c667e85934b498c826eb1cce0cc0d8b5
++ Added new element: WindowSystem: a pane grid system, allows for multiple windows to be opened at once, and supports window dragging and resizing
++ Added elements / code related to the WindowSystem element
++ Added new EmitEvent system for DOM -> Element communication
+
+### Commit msg: "+ Added new element: WindowSystem: a pane grid system, allows for multiple windows to be opened at once, and supports window dragging and resizing + Added elements / code related to the WindowSystem element + Added new EmitEvent system for DOM -> Element communication. View CHANGELOGS.md for more details"

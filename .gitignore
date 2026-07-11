@@ -2,3 +2,6 @@
 personal-tests
 examples/test-implementation/
 examples/benchmark/target/
+tmp/
+examples/tests
+.zed

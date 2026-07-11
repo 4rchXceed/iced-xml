@@ -1,4 +1,7 @@
-use crate::{xml_engine::DynamicEvent, xml_struct::element_renderer::extract_selector_style_flag};
+use crate::{
+    dom::query::DomEvent, xml_engine::DynamicEvent,
+    xml_struct::element_renderer::extract_selector_style_flag,
+};
 
 #[derive(Debug, Clone, Hash)]
 pub enum DomQueryType {
@@ -49,6 +52,7 @@ pub enum DomInternalMessageType {
     ImportCss(String, bool),                     // css content
     SubscribeDynamicEvent(DynamicEvent), // dynamic events (like set_timeout, set_interval, etc.)
     GetData(String),                     // key
+    FireEvent(String, DomEvent),         // event name, event data
 }
 
 #[derive(Debug, Clone)]
@@ -147,6 +151,16 @@ impl DomQueryResult {
     pub fn get_data(&mut self, key: &str) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::GetData(key.to_string()),
+            uid: -1,
+            selector: self.query_event.clone(),
+        };
+        self.event = Some(event);
+        return self;
+    }
+
+    pub fn fire_event(&mut self, name: &str, data: &mut DomEvent) -> &mut Self {
+        let event = DomMessage {
+            message: DomInternalMessageType::FireEvent(name.to_string(), data.clone()),
             uid: -1,
             selector: self.query_event.clone(),
         };

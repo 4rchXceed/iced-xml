@@ -1,5 +1,5 @@
 use crate::{
-    dom::query::QueryBuilder,
+    dom::query::{QueryBuilder, QueryResponse},
     xml_engine::{Message, XmlEngine},
 };
 
@@ -64,12 +64,14 @@ pub trait AppTemplate<T: 'static> {
     // for query in self.qb.execute(&mut self.engine) {
     //     (query.0)(self, query.1);
     // }
-    fn process(&mut self) {
+    fn process(&mut self) -> QueryResponse {
         let me = self.get_objects();
         for query in me.qb.execute(me.engine) {
             let me = self.get_self();
             (query.0)(me, query.1);
         }
+        let me = self.get_objects();
+        return me.qb.last.clone();
     }
     // use the "render" helper
     fn render(&self) -> iced::Element<'_, crate::xml_engine::Message> {

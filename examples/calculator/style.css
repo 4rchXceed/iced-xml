@@ -1,6 +1,7 @@
 Button {
     bg: cyan;
     padding: 20;
+    width: min;
 }
 
 .button-nbr {
@@ -24,4 +25,8 @@ Button {
 .op-col-btn {
     width: 75f;
     padding: 15;
+}
+
+Label {
+    width: min;
 }

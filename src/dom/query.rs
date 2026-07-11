@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 use iced::{Subscription, time};
 
@@ -6,6 +6,116 @@ use crate::{
     dom::events::{DomInternalMessageType, DomMessage, DomQuery, DomQueryResult, DomQueryType},
     xml_engine::{DynamicEvent, Message, XmlEngine},
 };
+
+// Hash types that aren't natively hashable
+#[derive(Debug, Clone)]
+pub struct HashableF32(f32);
+
+impl HashableF32 {
+    pub fn new(value: f32) -> Self {
+        HashableF32(value)
+    }
+
+    pub fn value(&self) -> f32 {
+        self.0
+    }
+}
+
+impl std::hash::Hash for HashableF32 {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.to_bits().hash(state);
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct HashableGridTarget(iced::widget::pane_grid::Target);
+
+impl HashableGridTarget {
+    pub fn new(value: iced::widget::pane_grid::Target) -> Self {
+        HashableGridTarget(value)
+    }
+    pub fn value(&self) -> iced::widget::pane_grid::Target {
+        self.0
+    }
+    fn hash_edge(edge: &iced::widget::pane_grid::Edge) -> u64 {
+        match edge {
+            iced::widget::pane_grid::Edge::Bottom => 0,
+            iced::widget::pane_grid::Edge::Left => 1,
+            iced::widget::pane_grid::Edge::Right => 2,
+            iced::widget::pane_grid::Edge::Top => 3,
+        }
+    }
+}
+
+impl std::hash::Hash for HashableGridTarget {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        let first = match self.0 {
+            iced::widget::pane_grid::Target::Edge(edge) => {
+                let edge_hash = HashableGridTarget::hash_edge(&edge);
+                1 + edge_hash
+            }
+            iced::widget::pane_grid::Target::Pane(pane, region) => {
+                pane.hash(state);
+                let region_hash = match region {
+                    iced::widget::pane_grid::Region::Center => 0,
+                    iced::widget::pane_grid::Region::Edge(edge) => {
+                        HashableGridTarget::hash_edge(&edge)
+                    }
+                };
+                4 + region_hash
+            }
+        };
+        first.hash(state);
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct HashableHashMap<K, V>(pub HashMap<K, V>);
+
+impl<K, V> HashableHashMap<K, V> {
+    pub fn new(map: HashMap<K, V>) -> Self {
+        HashableHashMap(map)
+    }
+    pub fn value(&self) -> &HashMap<K, V> {
+        &self.0
+    }
+}
+
+impl<K: std::hash::Hash, V: std::hash::Hash> std::hash::Hash for HashableHashMap<K, V> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        let mut items: Vec<(&K, &V)> = self.0.iter().collect();
+        items.sort_by(|a, b| a.0.hash(state).cmp(&b.0.hash(state)));
+        for (k, v) in items {
+            k.hash(state);
+            v.hash(state);
+        }
+    }
+}
+
+#[derive(Debug, Clone, Hash)]
+pub struct DomEvent {
+    pub datas_str: HashableHashMap<String, String>,
+    pub data_bool: Option<bool>,
+    pub data_int: Option<i32>,
+    pub data_float: Option<HashableF32>,
+}
+
+impl DomEvent {
+    pub fn new() -> Self {
+        Self {
+            datas_str: HashableHashMap::new(HashMap::new()),
+            data_bool: None,
+            data_int: None,
+            data_float: None,
+        }
+    }
+    pub fn with(&mut self, key: &str, value: &str) -> &mut Self {
+        self.datas_str
+            .0
+            .insert(key.to_string().clone(), value.to_string().clone());
+        self
+    }
+}
 
 #[derive(Debug, Clone, Hash)]
 pub struct EventResponse {
@@ -16,6 +126,13 @@ pub struct EventResponse {
     pub event_type: String,
     pub target: Option<DomQuery>,
     pub data_str: Option<String>,
+    pub data_bool: Option<bool>,
+    pub data_int: Option<i32>,
+    pub data_float: Option<HashableF32>,
+    // Element-specific properties (with non-builtin types):
+    pub window_system_data_window: Option<iced::widget::pane_grid::Pane>,
+    pub window_system_data_split: Option<iced::widget::pane_grid::Split>,
+    pub window_system_data_target: Option<HashableGridTarget>,
 }
 
 impl EventResponse {
@@ -29,7 +146,13 @@ impl EventResponse {
             }),
             target_uid: uid,
             data_str: None,
+            data_bool: None,
+            data_int: None,
             event_type: event_type,
+            window_system_data_window: None,
+            window_system_data_split: None,
+            data_float: None,
+            window_system_data_target: None,
         }
     }
 }
@@ -43,6 +166,12 @@ impl Default for EventResponse {
             data_str: None,
             event_type: String::new(),
             target_uid: -1,
+            data_bool: None,
+            data_int: None,
+            window_system_data_window: None,
+            window_system_data_split: None,
+            data_float: None,
+            window_system_data_target: None,
         }
     }
 }
@@ -71,7 +200,7 @@ impl QueryResponse {
 pub struct Query<T> {
     pub query: DomMessage,
     pub callback: Option<fn(&mut T, QueryResponse)>,
-    pub listener_callback: Option<fn(&mut T, EventResponse)>,
+    pub listener_callback: Option<Vec<fn(&mut T, EventResponse)>>,
     pub listener_registered: bool,
     pub uid: i32,
 }
@@ -159,7 +288,16 @@ impl<T> QueryBuilder<T> {
 
     pub fn with_callback(&mut self, callback: fn(&mut T, EventResponse)) -> &mut Self {
         if let Some(last_query) = self.queries.last_mut() {
-            last_query.listener_callback = Some(callback);
+            if last_query.listener_callback.is_none() {
+                last_query.listener_callback = Some(Vec::new());
+            }
+            if last_query.listener_callback.is_some() {
+                last_query
+                    .listener_callback
+                    .as_mut()
+                    .unwrap()
+                    .push(callback);
+            }
         }
         self
     }
@@ -208,8 +346,10 @@ impl<T> QueryBuilder<T> {
         let mut callbacks = Vec::new();
         for (uid, event_response) in returned_callbacks {
             if let Some(query) = self.queries.iter().find(|q| q.uid == uid) {
-                if let Some(callback) = query.listener_callback {
-                    callbacks.push((callback, event_response));
+                if query.listener_callback.is_some() {
+                    for callback in query.listener_callback.as_ref().unwrap().iter() {
+                        callbacks.push((*callback, event_response.clone()));
+                    }
                 }
             }
         }
