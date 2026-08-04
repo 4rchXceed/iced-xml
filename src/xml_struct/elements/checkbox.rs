@@ -3,7 +3,7 @@ use crate::{
     dom::query::{EventResponse, QueryResponse},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
         elements::element_base::ElementBase,
         parser::{XmlChangeEvent, XmlElement},
     },
@@ -112,15 +112,18 @@ impl ElementBase for Checkbox {
         return checkbox.into();
     }
 
-    fn process_event(&mut self, event: &XmlChangeEvent) -> Option<(QueryResponse, Vec<i32>)> {
+    fn process_event(
+        &mut self,
+        event: &XmlChangeEvent,
+    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
         match event {
             XmlChangeEvent::PropertyChange(key, newval) => {
                 if key == "text" {
                     self.text = Some(newval.clone());
-                    return Some((QueryResponse::new(true), Vec::new()));
+                    return Some((QueryResponse::new(true), Vec::new(), Vec::new()));
                 } else if key == "checked" {
                     self.checked = newval == "true";
-                    return Some((QueryResponse::new(true), Vec::new()));
+                    return Some((QueryResponse::new(true), Vec::new(), Vec::new()));
                 } else {
                     return None;
                 }
@@ -129,7 +132,7 @@ impl ElementBase for Checkbox {
                 if key == "checked" {
                     let mut qr = QueryResponse::new(true);
                     qr.data_bool = Some(self.checked);
-                    return Some((qr, Vec::new()));
+                    return Some((qr, Vec::new(), Vec::new()));
                 } else {
                     return None;
                 }
@@ -137,7 +140,7 @@ impl ElementBase for Checkbox {
             XmlChangeEvent::EventFired(event_type, _) => {
                 if event_type == "checked" {
                     self.checked = !self.checked;
-                    return Some((QueryResponse::new(true), Vec::new()));
+                    return Some((QueryResponse::new(true), Vec::new(), Vec::new()));
                 } else {
                     return None;
                 }

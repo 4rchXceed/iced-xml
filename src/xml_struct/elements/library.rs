@@ -2,11 +2,11 @@ use crate::{
     dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
         elements::{
             button::Button, center::Center, checkbox::Checkbox, col::Col, container::Container,
-            element_base::ElementBase, float::FloatingElement, grid::Grid, label::Label, row::Row,
-            select::Select, window_system::WindowSystem,
+            element_base::ElementBase, float::FloatingElement, grid::Grid, label::Label,
+            radio::RadioButton, row::Row, select::Select, window_system::WindowSystem,
         },
         parser::{XmlChangeEvent, XmlElement},
     },
@@ -24,6 +24,7 @@ pub enum AnyElement {
     FloatingElement(FloatingElement),
     Grid(Grid),
     WindowSystem(WindowSystem),
+    Radio(RadioButton),
 }
 
 #[rustfmt::skip]
@@ -44,6 +45,7 @@ pub fn generate_element_from_tag(
         "Content" => Some(AnyElement::Container(Container::new(xml_element, renderer, self_uid))), // Same for WindowContent
         "Button" => Some(AnyElement::Button(Button::new(xml_element, renderer, self_uid))),
         "Center" => Some(AnyElement::Center(Center::new(xml_element, renderer, self_uid))),
+        "Radio" => Some(AnyElement::Radio(RadioButton::new(xml_element, renderer, self_uid))),
         "Checkbox" => Some(AnyElement::Checkbox(Checkbox::new(xml_element, renderer, self_uid))),
         "Select" => Some(AnyElement::Select(Select::new(xml_element, renderer, self_uid))),
         "Float" => Some(AnyElement::FloatingElement(FloatingElement::new(xml_element, renderer, self_uid))),
@@ -76,13 +78,14 @@ pub fn render_element<'a>(
         AnyElement::WindowSystem(window_system) => {
             window_system.render(renderer, datas, events, uid)
         }
+        AnyElement::Radio(radio) => radio.render(renderer, datas, events, uid),
     };
 }
 
 pub fn process_event_for_element<'a>(
     element: &'a mut AnyElement,
     event: XmlChangeEvent,
-) -> Option<(QueryResponse, Vec<i32>)> {
+) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
     match element {
         AnyElement::Label(label) => label.process_event(&event),
         AnyElement::Col(col) => col.process_event(&event),
@@ -95,5 +98,6 @@ pub fn process_event_for_element<'a>(
         AnyElement::FloatingElement(floating_element) => floating_element.process_event(&event),
         AnyElement::Grid(grid) => grid.process_event(&event),
         AnyElement::WindowSystem(window_system) => window_system.process_event(&event),
+        AnyElement::Radio(radio) => radio.process_event(&event),
     }
 }

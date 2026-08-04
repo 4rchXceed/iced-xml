@@ -6,7 +6,7 @@ use crate::{
     dom::query::{EventResponse, QueryResponse},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
         elements::{element_base::ElementBase, label::Label, library::AnyElement},
         parser::{XmlChangeEvent, XmlElement},
     },
@@ -111,7 +111,10 @@ impl ElementBase for Button {
         return button.into();
     }
 
-    fn process_event(&mut self, event: &XmlChangeEvent) -> Option<(QueryResponse, Vec<i32>)> {
+    fn process_event(
+        &mut self,
+        event: &XmlChangeEvent,
+    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
         // returns (query_response, elementsToForwardTheEvent)
         let mut query_response = QueryResponse::new(true);
         let mut elements_to_forward = Vec::new();
@@ -121,7 +124,7 @@ impl ElementBase for Button {
                     "text" => {
                         self.text = Some(new_val.clone());
                         elements_to_forward.push(self.virtual_text);
-                        Some((query_response, elements_to_forward))
+                        Some((query_response, elements_to_forward, Vec::new()))
                     }
                     _ => None,
                 };
@@ -131,7 +134,7 @@ impl ElementBase for Button {
                     "text" => {
                         if self.text.is_some() {
                             query_response.data_str = self.text.clone();
-                            Some((query_response, elements_to_forward))
+                            Some((query_response, elements_to_forward, Vec::new()))
                         } else {
                             None
                         }

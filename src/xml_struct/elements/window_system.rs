@@ -7,11 +7,12 @@ use iced::{
 
 // Copy-paste template
 use crate::{
-    dom::query::{EventResponse, HashableF32, HashableGridTarget, QueryResponse},
+    dom::query::{EventResponse, QueryResponse},
     parse_utils::parse_pane_axis,
+    rs_utils::{HashableF32, HashableGridTarget},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
         elements::{element_base::ElementBase, window_system::PaneType::InternalPane},
         parser::{XmlChangeEvent, XmlElement},
     },
@@ -445,7 +446,10 @@ impl ElementBase for WindowSystem {
         return pane_grid.into();
     }
 
-    fn process_event(&mut self, event: &XmlChangeEvent) -> Option<(QueryResponse, Vec<i32>)> {
+    fn process_event(
+        &mut self,
+        event: &XmlChangeEvent,
+    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
         let hintmsg = "WindowSystem focus event must include a window ID. Hint: use DomEvent::new().with(\"window\", window_id) to include the window ID.";
         match event {
             XmlChangeEvent::EmittedEvent(name, datas) => match name.as_str() {

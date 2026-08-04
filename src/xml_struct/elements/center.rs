@@ -4,7 +4,7 @@ use crate::{
     dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
         elements::{element_base::ElementBase, label::Label, library::AnyElement},
         parser::{XmlChangeEvent, XmlElement},
     },
@@ -63,7 +63,10 @@ impl ElementBase for Center {
         }
     }
 
-    fn process_event(&mut self, event: &XmlChangeEvent) -> Option<(QueryResponse, Vec<i32>)> {
+    fn process_event(
+        &mut self,
+        event: &XmlChangeEvent,
+    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
         let mut result = QueryResponse::new(true);
         let mut elements_to_forward = Vec::new();
         match event {
@@ -71,7 +74,7 @@ impl ElementBase for Center {
                 if key == "text" {
                     self.text = Some(newval.clone());
                     elements_to_forward.push(self.virtual_label);
-                    Some((result, elements_to_forward))
+                    Some((result, elements_to_forward, Vec::new()))
                 } else {
                     None
                 }
@@ -80,7 +83,7 @@ impl ElementBase for Center {
                 if key == "text" {
                     if self.text.is_some() {
                         result.data_str = self.text.clone();
-                        Some((result, elements_to_forward))
+                        Some((result, elements_to_forward, Vec::new()))
                     } else {
                         None
                     }

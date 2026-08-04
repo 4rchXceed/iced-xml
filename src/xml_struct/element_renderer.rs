@@ -10,8 +10,11 @@ use crate::{
     },
     xml_engine::Message,
     xml_struct::{
-        elements::library::{
-            AnyElement, generate_element_from_tag, process_event_for_element, render_element,
+        elements::{
+            library::{
+                AnyElement, generate_element_from_tag, process_event_for_element, render_element,
+            },
+            radio::RadioElement,
         },
         parser::{XmlChangeEvent, XmlElement},
         theming::{XmlTheme, gen_styles},
@@ -23,6 +26,11 @@ pub struct EventListener {
     pub target: i32,
     pub handlers: Vec<i32>, // List of callbacks to forward the event to
     pub event_uid: i32,
+}
+
+pub enum RendererEvent {
+    // If elements wants to emit an event to the renderer, it can use this enum
+    RadioSelectionChange(String, RadioElement), // (selection_id, selected_element)
 }
 
 #[derive(Clone, Debug)]
@@ -51,6 +59,9 @@ pub struct ElementRenderer {
     virtual_elements: HashMap<i32, Vec<i32>>, // key: parent_uid, value: virtual children uids
     last_uid: i32,
     hot_reload_states: Option<HotReloadState>,
+    // Custom storage for elements
+    radio_button_map: HashMap<String, RadioElement>,
+    string_map: HashMap<i32, String>,
 }
 
 impl ElementRenderer {
@@ -64,7 +75,28 @@ impl ElementRenderer {
             event_listeners: Vec::new(),
             hot_reload_states: None,
             virtual_elements: HashMap::new(),
+            // Specific elements for radiobuttons comm
+            radio_button_map: HashMap::new(),
+            string_map: HashMap::new(),
         }
+    }
+
+    pub fn set_radio_selection(&mut self, id: String, value: RadioElement) {
+        self.radio_button_map.insert(id, value);
+    }
+
+    pub fn get_radio_selection(&self, id: String) -> Option<RadioElement> {
+        return self.radio_button_map.get(&id).cloned();
+    }
+
+    pub fn register_stringdb(&mut self, str: String) -> i32 {
+        self.last_uid += 1;
+        self.string_map.insert(self.last_uid, str);
+        return self.last_uid;
+    }
+
+    pub fn get_stringdb(&self, id: i32) -> Option<String> {
+        return self.string_map.get(&id).cloned();
     }
 
     // TODO: Move all hot-reload logic into a separate file
@@ -504,6 +536,13 @@ impl ElementRenderer {
                 _ => process_event_for_element(element, event.clone()),
             };
             if let Some(ev_with_forward) = ev_with_forward {
+                for renderer_event in ev_with_forward.2 {
+                    match renderer_event {
+                        RendererEvent::RadioSelectionChange(id, value) => {
+                            self.set_radio_selection(id, value);
+                        }
+                    }
+                }
                 for target in ev_with_forward.1 {
                     self.emit_internal_event(target, event.clone(), comes_from_hot_reload);
                 }

@@ -2,7 +2,7 @@ use crate::{
     dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
         parser::{XmlChangeEvent, XmlElement},
     },
 };
@@ -17,5 +17,8 @@ pub trait ElementBase {
         self_uid: i32,
     ) -> iced::Element<'a, Message>;
     // returns (query_response, elementsToForwardTheEvent)
-    fn process_event(&mut self, event: &XmlChangeEvent) -> Option<(QueryResponse, Vec<i32>)>;
+    fn process_event(
+        &mut self,
+        event: &XmlChangeEvent,
+    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)>;
 }

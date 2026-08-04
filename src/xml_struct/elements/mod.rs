@@ -7,6 +7,7 @@ pub mod element_base;
 pub mod float;
 pub mod grid;
 pub mod label;
+pub mod radio;
 pub mod row;
 pub mod select;
 pub mod window_system;

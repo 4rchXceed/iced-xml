@@ -49,3 +49,11 @@
 + Added new EmitEvent system for DOM -> Element communication
 
 ### Commit msg: "+ Added new element: WindowSystem: a pane grid system, allows for multiple windows to be opened at once, and supports window dragging and resizing + Added elements / code related to the WindowSystem element + Added new EmitEvent system for DOM -> Element communication. View CHANGELOGS.md for more details"
+
+## Last commit: 0f1cfe212ecdb9da21353403babb2486191e9bfc
++ Added new element: radio
+~ Structure change for radio element:
+  + stringdb -> id to string database
+  + Added RendererEvent for the elements to modify the renderer
+
+### Commit msg: "+ Added new element: radio ~ Structure change for radio element: + stringdb -> id to string database + Added RendererEvent for the elements to modify the renderer"

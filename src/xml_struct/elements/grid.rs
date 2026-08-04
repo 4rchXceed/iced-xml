@@ -3,7 +3,7 @@ use crate::{
     dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
         elements::element_base::ElementBase,
         parser::{XmlChangeEvent, XmlElement},
     },
@@ -52,7 +52,10 @@ impl ElementBase for Grid {
         return grid.into();
     }
 
-    fn process_event(&mut self, event: &XmlChangeEvent) -> Option<(QueryResponse, Vec<i32>)> {
+    fn process_event(
+        &mut self,
+        event: &XmlChangeEvent,
+    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
         match event {
             _ => None,
         }

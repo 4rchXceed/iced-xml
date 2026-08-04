@@ -295,7 +295,7 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         "line-height" => theme.line_height = parse_line_height(value),
         "font-size" => theme.font_size = parse_value_maybe(value),
         "select-icon" => theme.select_icon = parse_select_icon(value, &theme.font),
-        "input-icon-color" => theme.icon_color = parse_color(value),
+        "icon-color" => theme.icon_color = parse_color(value),
         "input-placeholder-color" => theme.input_placeholder_color = parse_color(value),
         "input-selection-color" => theme.selection_color = parse_color(value),
         "select-menu-height" => theme.select_menu_height = parse_length(value),

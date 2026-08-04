@@ -7,7 +7,7 @@ use crate::{
     dom::query::{EventResponse, QueryResponse},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
         elements::element_base::ElementBase,
         parser::{XmlChangeEvent, XmlElement},
     },
@@ -225,7 +225,10 @@ impl ElementBase for Select {
         return combo_box.into();
     }
 
-    fn process_event(&mut self, event: &XmlChangeEvent) -> Option<(QueryResponse, Vec<i32>)> {
+    fn process_event(
+        &mut self,
+        event: &XmlChangeEvent,
+    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
         match event {
             // Process PropertyChange / GetProperty / Custom events
             // The second parameter is a list of element IDs to forward the event to
