@@ -483,3 +483,16 @@ pub fn parse_pane_axis(value: &str) -> iced::widget::pane_grid::Axis {
         }
     }
 }
+
+pub fn check_anchor(value: &str) -> String {
+    match value {
+        "top" | "bottom" | "left" | "right" => value.to_string(),
+        _ => {
+            println!(
+                "Invalid anchor: {}, expected `top`, `bottom`, `left` or `right`. Using top as default",
+                value
+            );
+            "top".to_string()
+        }
+    }
+}

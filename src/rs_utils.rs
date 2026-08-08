@@ -84,3 +84,11 @@ impl<K: std::hash::Hash, V: std::hash::Hash> std::hash::Hash for HashableHashMap
         }
     }
 }
+
+#[derive(Debug, Clone, Hash)]
+pub struct ScrollState {
+    pub scroll_left: HashableF32,
+    pub scroll_top: HashableF32,
+    pub scroll_width: HashableF32,
+    pub scroll_height: HashableF32,
+}

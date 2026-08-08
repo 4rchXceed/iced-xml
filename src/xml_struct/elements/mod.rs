@@ -9,6 +9,7 @@ pub mod grid;
 pub mod label;
 pub mod radio;
 pub mod row;
+pub mod scrollable;
 pub mod select;
 pub mod window_system;
 // Library

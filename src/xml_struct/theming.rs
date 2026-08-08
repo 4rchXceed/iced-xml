@@ -10,10 +10,10 @@ use iced::{
 };
 
 use crate::parse_utils::{
-    parse_align_x, parse_align_y, parse_checkbox_icon, parse_color, parse_font, parse_font_family,
-    parse_font_stretch, parse_font_style, parse_font_weight, parse_length, parse_line_height,
-    parse_padding, parse_radius, parse_select_icon, parse_shaping, parse_text_wrapping,
-    parse_value, parse_value_int, parse_value_maybe, parse_vector,
+    check_anchor, parse_align_x, parse_align_y, parse_checkbox_icon, parse_color, parse_font,
+    parse_font_family, parse_font_stretch, parse_font_style, parse_font_weight, parse_length,
+    parse_line_height, parse_padding, parse_radius, parse_select_icon, parse_shaping,
+    parse_text_wrapping, parse_value, parse_value_int, parse_value_maybe, parse_vector,
 };
 
 // The theme struct
@@ -60,6 +60,7 @@ pub struct XmlTheme {
     pub grid_responsive_width: Option<f32>,
     pub grid_width: Option<f32>,
     pub pane_min_size: f32, // Minimum size for panes in a pane grid
+    pub scroll_anchor: Option<String>,
 }
 
 impl XmlTheme {
@@ -205,6 +206,9 @@ impl XmlTheme {
         if first.pane_min_size != second.pane_min_size {
             self.pane_min_size = changes.pane_min_size;
         }
+        if first.scroll_anchor != second.scroll_anchor {
+            self.scroll_anchor = changes.scroll_anchor.clone();
+        }
     }
 }
 
@@ -252,6 +256,7 @@ impl Default for XmlTheme {
             grid_responsive_width: None,
             grid_width: None,
             pane_min_size: 50.0,
+            scroll_anchor: None,
         }
     }
 }
@@ -307,6 +312,7 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         "grid-responsive-width" => theme.grid_responsive_width = parse_value(value).into(),
         "grid-width" => theme.grid_width = parse_value(value).into(),
         "pane-min-size" => theme.pane_min_size = parse_value(value),
+        "scroll-anchor" => theme.scroll_anchor = Some(check_anchor(value)),
         _ => {
             println!("Unknown theme property: {} = {}", key, value);
         }

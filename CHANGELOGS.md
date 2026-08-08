@@ -57,3 +57,11 @@
   + Added RendererEvent for the elements to modify the renderer
 
 ### Commit msg: "+ Added new element: radio ~ Structure change for radio element: + stringdb -> id to string database + Added RendererEvent for the elements to modify the renderer"
+
+## Last commit: 3784f9e5c667e85934b498c826eb1cce0cc0d8b5
++ Added new element scrollable
+~ Structure change for scrollable element:
+  + New property `scrollable_scroll_state` in EventResponse
+~ Some theming changes for the new element
+
+### Commit msg: "+ Added new element scrollable ~ Structure change for scrollable element:   + New property `scrollable_scroll_state` in EventResponse ~ Some theming changes for the new element"
