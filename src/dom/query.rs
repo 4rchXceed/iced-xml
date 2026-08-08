@@ -103,6 +103,7 @@ pub struct QueryResponse {
     pub error_message: Option<String>,
     pub data_str: Option<String>,
     pub data_bool: Option<bool>,
+    pub data_float: Option<HashableF32>,
 }
 
 impl QueryResponse {
@@ -113,6 +114,7 @@ impl QueryResponse {
             error_message: None,
             data_str: None,
             data_bool: None,
+            data_float: None,
         }
     }
 }

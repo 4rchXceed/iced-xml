@@ -6,7 +6,7 @@ use crate::{
         elements::{
             button::Button, center::Center, checkbox::Checkbox, col::Col, container::Container,
             element_base::ElementBase, float::FloatingElement, grid::Grid, label::Label,
-            radio::RadioButton, row::Row, scrollable::Scroll, select::Select,
+            progress::Progress, radio::RadioButton, row::Row, scrollable::Scroll, select::Select,
             window_system::WindowSystem,
         },
         parser::{XmlChangeEvent, XmlElement},
@@ -27,6 +27,7 @@ pub enum AnyElement {
     WindowSystem(WindowSystem),
     Radio(RadioButton),
     Scroll(Scroll),
+    Progress(Progress),
 }
 
 #[rustfmt::skip]
@@ -54,6 +55,7 @@ pub fn generate_element_from_tag(
         "Grid" => Some(AnyElement::Grid(Grid::new(xml_element, renderer, self_uid))),
         "WindowSystem" => Some(AnyElement::WindowSystem(WindowSystem::new(xml_element, renderer, self_uid))),
         "Scroll" => Some(AnyElement::Scroll(Scroll::new(xml_element, renderer, self_uid))),
+        "Progress" => Some(AnyElement::Progress(Progress::new(xml_element, renderer, self_uid))),
         _ => None,
     };
 }
@@ -83,6 +85,7 @@ pub fn render_element<'a>(
         }
         AnyElement::Radio(radio) => radio.render(renderer, datas, events, uid),
         AnyElement::Scroll(scroll) => scroll.render(renderer, datas, events, uid),
+        AnyElement::Progress(progress) => progress.render(renderer, datas, events, uid),
     };
 }
 
@@ -104,5 +107,6 @@ pub fn process_event_for_element<'a>(
         AnyElement::WindowSystem(window_system) => window_system.process_event(&event),
         AnyElement::Radio(radio) => radio.process_event(&event),
         AnyElement::Scroll(scroll) => scroll.process_event(&event),
+        AnyElement::Progress(progress) => progress.process_event(&event),
     }
 }

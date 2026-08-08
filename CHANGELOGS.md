@@ -65,3 +65,11 @@
 ~ Some theming changes for the new element
 
 ### Commit msg: "+ Added new element scrollable ~ Structure change for scrollable element:   + New property `scrollable_scroll_state` in EventResponse ~ Some theming changes for the new element"
+
+## Last commit: 6f8a27a81060575ca49d3b23eafd8bed8752f76e
++ Added new element: progress
+~ Renamed text_color to foreground_color
++ Added support for <Element /> self-closing tags
+~ Some theming changes for the new element
+
+### Commit msg: "+ Added new element: progress ~ Renamed text_color to foreground_color + Added support for <Element /> self-closing tags ~ Some theming changes for the new element"

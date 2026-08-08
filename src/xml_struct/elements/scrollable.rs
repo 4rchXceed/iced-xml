@@ -83,7 +83,7 @@ impl ElementBase for Scroll {
             .width(theme.width)
             .style(move |_, _| iced::widget::scrollable::Style {
                 container: iced::widget::container::Style {
-                    text_color: Some(theme.text_color),
+                    text_color: Some(theme.foreground_color),
                     background: Some(Background::Color(theme.background_color)),
                     border: iced::Border {
                         color: theme.border_color,
@@ -142,7 +142,7 @@ impl ElementBase for Scroll {
                         offset: autoscroll.shadow_offset,
                         blur_radius: autoscroll.shadow_blur_radius,
                     },
-                    icon: autoscroll.text_color,
+                    icon: autoscroll.foreground_color,
                 },
             });
         let me = self_uid;

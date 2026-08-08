@@ -91,7 +91,7 @@ impl ElementBase for RadioButton {
                 border_color: theme.border_color,
                 border_width: theme.border_width,
                 dot_color: theme.icon_color,
-                text_color: Some(theme.text_color),
+                text_color: Some(theme.foreground_color),
             });
         if theme.size.is_some() {
             radio = radio.size(theme.size.unwrap());

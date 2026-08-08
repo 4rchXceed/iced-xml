@@ -41,7 +41,7 @@ impl ElementBase for Label {
         let text_element = text(self.text.clone());
 
         let text_element = text_element.style(move |_| iced::widget::text::Style {
-            color: Some(theme.text_color),
+            color: Some(theme.foreground_color),
         });
 
         let mut text_element = text_element
@@ -52,7 +52,7 @@ impl ElementBase for Label {
             .wrapping(theme.text_wrapping)
             .line_height(theme.line_height)
             .style(move |_| iced::widget::text::Style {
-                color: Some(theme.text_color),
+                color: Some(theme.foreground_color),
             });
 
         if let Some(font_size) = theme.font_size {

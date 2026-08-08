@@ -153,7 +153,7 @@ impl ElementBase for Select {
                 },
                 icon: theme.icon_color,
                 placeholder: theme.input_placeholder_color,
-                value: theme.text_color,
+                value: theme.foreground_color,
                 selection: theme.selection_color,
             });
         }
@@ -167,7 +167,7 @@ impl ElementBase for Select {
                     radius: theme.border_radius,
                     width: theme.border_width,
                 },
-                text_color: theme.text_color,
+                text_color: theme.foreground_color,
                 selected_background: iced::Background::Color(theme.selected_background_color),
                 selected_text_color: theme.selected_text_color,
                 shadow: Shadow {

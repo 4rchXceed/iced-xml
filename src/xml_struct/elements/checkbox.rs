@@ -72,7 +72,7 @@ impl ElementBase for Checkbox {
                     radius: theme.border_radius,
                 },
                 icon_color: theme.icon_color,
-                text_color: Some(theme.text_color),
+                text_color: Some(theme.foreground_color),
             });
 
         if let Some(size) = theme.size {

@@ -75,7 +75,7 @@ impl ElementBase for Button {
         let mut button = button
             .style(move |_, _| iced::widget::button::Style {
                 background: Some(Background::Color(theme.background_color)),
-                text_color: theme.text_color,
+                text_color: theme.foreground_color,
                 border: Border {
                     color: theme.border_color,
                     radius: theme.border_radius,

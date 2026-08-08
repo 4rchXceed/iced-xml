@@ -7,6 +7,7 @@ pub mod element_base;
 pub mod float;
 pub mod grid;
 pub mod label;
+pub mod progress;
 pub mod radio;
 pub mod row;
 pub mod scrollable;

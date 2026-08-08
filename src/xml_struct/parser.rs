@@ -1,6 +1,9 @@
 use std::{collections::HashMap, io::Cursor};
 
-use quick_xml::{Reader, events::Event};
+use quick_xml::{
+    Reader,
+    events::{BytesStart, Event},
+};
 
 use crate::{
     css_reader::CssReader,
@@ -44,6 +47,56 @@ impl XmlElement {
     }
 }
 
+fn new_element(last_theme: &mut XmlTheme, e: BytesStart<'_>) -> XmlElement {
+    // last_theme = last_theme.clone();
+    let mut id: Option<String> = None;
+    let mut classes_string: String = String::new();
+    let mut datas: HashMap<String, String> = HashMap::new();
+
+    let attributes = e
+        .attributes()
+        .map(|a| {
+            let b = a.unwrap();
+            let k = String::from_utf8(b.key.as_ref().to_vec()).unwrap();
+            let v = String::from_utf8(b.value.to_vec()).unwrap();
+            if k.starts_with("style:") {
+                gen_styles(
+                    &k.strip_prefix("style:").unwrap().to_string(),
+                    &v,
+                    last_theme,
+                );
+            }
+            if k == "id" {
+                id = Some(v.clone());
+            }
+            if k == "classes" {
+                classes_string = v.clone();
+            }
+            if k.starts_with("data-") {
+                datas.insert(k.strip_prefix("data-").unwrap().to_string(), v.clone());
+            }
+            (k, v)
+        })
+        .collect::<Vec<_>>();
+    let attributes: HashMap<String, String> = attributes.into_iter().map(|(k, v)| (k, v)).collect();
+    let classes: Vec<String> = classes_string
+        .split(" ")
+        .collect::<Vec<&str>>()
+        .iter()
+        .map(|v| v.to_string())
+        .collect::<Vec<String>>();
+    return XmlElement {
+        tag: String::from_utf8(e.name().as_ref().to_vec()).unwrap(),
+        attributes: attributes,
+        children: Vec::new(),
+        text: String::new(),
+        theme: last_theme.clone(),
+        id: id,
+        classes: classes,
+        datas: datas,
+    };
+}
+
 pub struct XmlParser {
     pub root: XmlElement,
     pub css_parser: CssReader,
@@ -63,64 +116,21 @@ impl XmlParser {
                     panic!("Failed to read XML File");
                 }
                 Ok(Event::Eof) => break,
-                Ok(Event::Start(e)) => match e.name().as_ref() {
-                    _ => {
-                        // last_theme = last_theme.clone();
-                        let mut id: Option<String> = None;
-                        let mut classes_string: String = String::new();
-                        let mut datas: HashMap<String, String> = HashMap::new();
-
-                        let attributes = e
-                            .attributes()
-                            .map(|a| {
-                                let b = a.unwrap();
-                                let k = String::from_utf8(b.key.as_ref().to_vec()).unwrap();
-                                let v = String::from_utf8(b.value.to_vec()).unwrap();
-                                if k.starts_with("style:") {
-                                    gen_styles(
-                                        &k.strip_prefix("style:").unwrap().to_string(),
-                                        &v,
-                                        &mut last_theme,
-                                    );
-                                }
-                                if k == "id" {
-                                    id = Some(v.clone());
-                                }
-                                if k == "classes" {
-                                    classes_string = v.clone();
-                                }
-                                if k.starts_with("data-") {
-                                    datas.insert(
-                                        k.strip_prefix("data-").unwrap().to_string(),
-                                        v.clone(),
-                                    );
-                                }
-                                (k, v)
-                            })
-                            .collect::<Vec<_>>();
-                        let attributes: HashMap<String, String> =
-                            attributes.into_iter().map(|(k, v)| (k, v)).collect();
-                        let classes: Vec<String> = classes_string
-                            .split(" ")
-                            .collect::<Vec<&str>>()
-                            .iter()
-                            .map(|v| v.to_string())
-                            .collect::<Vec<String>>();
-                        stack.push(XmlElement {
-                            tag: String::from_utf8(e.name().as_ref().to_vec()).unwrap(),
-                            attributes: attributes,
-                            children: Vec::new(),
-                            text: String::new(),
-                            theme: last_theme.clone(),
-                            id: id,
-                            classes: classes,
-                            datas: datas,
-                        });
-                    }
-                },
+                Ok(Event::Start(e)) => {
+                    let new_element = new_element(&mut last_theme, e);
+                    stack.push(new_element);
+                }
                 Ok(Event::Text(e)) => {
                     if let Some(top) = stack.last_mut() {
                         top.text.push_str(e.decode().unwrap().into_owned().as_str());
+                    }
+                }
+                Ok(Event::Empty(e)) => {
+                    let new_element = new_element(&mut last_theme, e);
+                    if let Some(parent) = stack.last_mut() {
+                        parent.children.push(new_element);
+                    } else {
+                        root = Some(new_element);
                     }
                 }
                 Ok(Event::End(_)) => {

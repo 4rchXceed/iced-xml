@@ -63,7 +63,7 @@ impl ElementBase for Container {
                     width: theme.border_width,
                 },
                 snap: theme.snap,
-                text_color: Some(theme.text_color),
+                text_color: Some(theme.foreground_color),
             });
         if theme.center_all {
             container = container.center(theme.width); // FOR_DOC: This will only use the width

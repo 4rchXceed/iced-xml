@@ -20,7 +20,7 @@ use crate::parse_utils::{
 #[derive(Debug, Clone)]
 pub struct XmlTheme {
     pub background_color: Color,
-    pub text_color: Color,
+    pub foreground_color: Color,
     pub snap: bool,
     pub shadow_color: Color,
     pub shadow_blur_radius: f32,
@@ -61,6 +61,7 @@ pub struct XmlTheme {
     pub grid_width: Option<f32>,
     pub pane_min_size: f32, // Minimum size for panes in a pane grid
     pub scroll_anchor: Option<String>,
+    pub progress_height: Option<Length>,
 }
 
 impl XmlTheme {
@@ -71,8 +72,8 @@ impl XmlTheme {
         if first.background_color != second.background_color {
             self.background_color = changes.background_color;
         }
-        if first.text_color != second.text_color {
-            self.text_color = changes.text_color;
+        if first.foreground_color != second.foreground_color {
+            self.foreground_color = changes.foreground_color;
         }
         if first.snap != second.snap {
             self.snap = changes.snap;
@@ -209,6 +210,9 @@ impl XmlTheme {
         if first.scroll_anchor != second.scroll_anchor {
             self.scroll_anchor = changes.scroll_anchor.clone();
         }
+        if first.progress_height != second.progress_height {
+            self.progress_height = changes.progress_height;
+        }
     }
 }
 
@@ -216,7 +220,7 @@ impl Default for XmlTheme {
     fn default() -> Self {
         Self {
             background_color: Color::TRANSPARENT,
-            text_color: Color::BLACK,
+            foreground_color: Color::BLACK,
             snap: false,
             shadow_color: Color::TRANSPARENT,
             shadow_blur_radius: 0.0,
@@ -257,6 +261,7 @@ impl Default for XmlTheme {
             grid_width: None,
             pane_min_size: 50.0,
             scroll_anchor: None,
+            progress_height: None,
         }
     }
 }
@@ -264,7 +269,7 @@ impl Default for XmlTheme {
 pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
     match key.as_str() {
         "bg" => theme.background_color = parse_color(value),
-        "fg" => theme.text_color = parse_color(value),
+        "fg" => theme.foreground_color = parse_color(value),
         "snap" => theme.snap = value == "true",
         "shadow-color" => theme.shadow_color = parse_color(value),
         "shadow-blur" => theme.shadow_blur_radius = parse_value(value),
@@ -313,6 +318,7 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         "grid-width" => theme.grid_width = parse_value(value).into(),
         "pane-min-size" => theme.pane_min_size = parse_value(value),
         "scroll-anchor" => theme.scroll_anchor = Some(check_anchor(value)),
+        "progress-height" => theme.progress_height = Some(parse_length(value)),
         _ => {
             println!("Unknown theme property: {} = {}", key, value);
         }
