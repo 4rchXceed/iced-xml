@@ -4,6 +4,7 @@ use iced::{
     border::Radius,
     widget::{
         button::DEFAULT_PADDING,
+        slider::HandleShape,
         text::{LineHeight, Shaping, Wrapping},
         text_input::Side,
     },
@@ -13,7 +14,8 @@ use crate::parse_utils::{
     check_anchor, parse_align_x, parse_align_y, parse_checkbox_icon, parse_color, parse_font,
     parse_font_family, parse_font_stretch, parse_font_style, parse_font_weight, parse_length,
     parse_line_height, parse_padding, parse_radius, parse_select_icon, parse_shaping,
-    parse_text_wrapping, parse_value, parse_value_int, parse_value_maybe, parse_vector,
+    parse_slider_handle_theme, parse_text_wrapping, parse_value, parse_value_int,
+    parse_value_maybe, parse_vector,
 };
 
 // The theme struct
@@ -62,6 +64,9 @@ pub struct XmlTheme {
     pub pane_min_size: f32, // Minimum size for panes in a pane grid
     pub scroll_anchor: Option<String>,
     pub progress_height: Option<Length>,
+    pub slider_height: f32,     // Height for sliders, since it's not a Length
+    pub slider_rail_width: f32, // Width for slider rails
+    pub slider_handle_shape: HandleShape, // Shape for slider handles
 }
 
 impl XmlTheme {
@@ -213,6 +218,15 @@ impl XmlTheme {
         if first.progress_height != second.progress_height {
             self.progress_height = changes.progress_height;
         }
+        if first.slider_height != second.slider_height {
+            self.slider_height = changes.slider_height;
+        }
+        if first.slider_rail_width != second.slider_rail_width {
+            self.slider_rail_width = changes.slider_rail_width;
+        }
+        if first.slider_handle_shape != second.slider_handle_shape {
+            self.slider_handle_shape = changes.slider_handle_shape.clone();
+        }
     }
 }
 
@@ -262,6 +276,9 @@ impl Default for XmlTheme {
             pane_min_size: 50.0,
             scroll_anchor: None,
             progress_height: None,
+            slider_height: 16.0,
+            slider_rail_width: 4.0,
+            slider_handle_shape: HandleShape::Circle { radius: 8.0 },
         }
     }
 }
@@ -319,6 +336,11 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         "pane-min-size" => theme.pane_min_size = parse_value(value),
         "scroll-anchor" => theme.scroll_anchor = Some(check_anchor(value)),
         "progress-height" => theme.progress_height = Some(parse_length(value)),
+        "slider-height" => theme.slider_height = parse_value(value),
+        "slider-rail-width" => theme.slider_rail_width = parse_value(value),
+        "slider-handle-shape" => {
+            theme.slider_handle_shape = parse_slider_handle_theme(value, theme)
+        }
         _ => {
             println!("Unknown theme property: {} = {}", key, value);
         }

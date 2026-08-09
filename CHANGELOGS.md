@@ -79,3 +79,9 @@
 + Added new eventresponse data: VectorWH
 + Added new type: VectorWH (width, height)
 ### Commit msg: "+ Added new element: trigger + Added new eventresponse data: VectorWH + Added new type: VectorWH (width, height)"
+
+## Last commit: c77804890f61584c82217963588f508867842456
++ Added new element: slider
++ Added: slider-height, slider-rail-width and slider-handle-shape (slider-handle-shape has a parser) to the styling system
++ Added code quality disclaimer
+### Commit msg: "+ Added new element: slider + Added: slider-height, slider-rail-width and slider-handle-shape (slider-handle-shape has a parser) to the styling system + Added code quality disclaimer"

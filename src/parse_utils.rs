@@ -5,10 +5,13 @@ use iced::{
     border::Radius,
     font::{Family, Stretch, Weight},
     widget::{
+        slider::HandleShape,
         text::{LineHeight, Shaping, Wrapping},
         text_input::Side,
     },
 };
+
+use crate::xml_struct::theming::XmlTheme;
 
 pub fn safe_read_file(filename: &str) -> String {
     let content = std::fs::read_to_string(filename);
@@ -495,4 +498,48 @@ pub fn check_anchor(value: &str) -> String {
             "top".to_string()
         }
     }
+}
+
+pub fn parse_slider_handle_theme(value: &str, theme: &XmlTheme) -> HandleShape {
+    let msg = "Slider handle theme must be specified as `circle <radius>` or `rectangle <width> <border radius>`";
+    let split = value.split(" ").collect::<Vec<&str>>();
+    if split.len() < 1 {
+        println!("{}", msg);
+        return HandleShape::Circle { radius: 10.0 };
+    }
+    if split[0] == "circle" {
+        if split.len() != 2 {
+            println!("{}", msg);
+        } else {
+            let radius = split[1].parse::<f32>();
+            if radius.is_err() {
+                println!("Invalid radius: {}, must be a number", split[1]);
+                return HandleShape::Circle { radius: 10.0 };
+            }
+            return HandleShape::Circle {
+                radius: radius.unwrap(),
+            };
+        }
+    } else if split[0] == "rectangle" {
+        if split.len() != 3 {
+            println!("{}", msg);
+        } else {
+            let width = split[1].parse::<u16>();
+            let border_radius = split[2].parse::<f32>();
+            if width.is_err() || border_radius.is_err() {
+                println!(
+                    "Invalid width or border radius: {}, {}, must be numbers",
+                    split[1], split[2]
+                );
+                return HandleShape::Circle { radius: 10.0 };
+            }
+            return HandleShape::Rectangle {
+                width: width.unwrap(),
+                border_radius: theme.border_radius,
+            };
+        }
+    } else {
+        println!("{}", msg);
+    }
+    return HandleShape::Circle { radius: 10.0 };
 }

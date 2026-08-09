@@ -59,7 +59,6 @@ impl ElementBase for RadioButton {
         for event in events {
             match event.event_type.as_str() {
                 "select" => {
-                    ev_response = EventResponse::new(self_uid, String::from("select"));
                     id = event.event_uid;
                 }
                 _ => {}

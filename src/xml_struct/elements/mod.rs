@@ -12,6 +12,7 @@ pub mod radio;
 pub mod row;
 pub mod scrollable;
 pub mod select;
+pub mod slider;
 pub mod trigger;
 pub mod window_system;
 // Library
