@@ -8,6 +8,7 @@ use crate::{
         events::{DomQuery, DomQueryType},
         query::QueryResponse,
     },
+    rs_utils::get_unique_id,
     xml_engine::Message,
     xml_struct::{
         elements::{
@@ -57,7 +58,6 @@ pub struct ElementRenderer {
     classes_map: HashMap<String, Vec<i32>>,
     tags_map: HashMap<String, Vec<i32>>,
     virtual_elements: HashMap<i32, Vec<i32>>, // key: parent_uid, value: virtual children uids
-    last_uid: i32,
     hot_reload_states: Option<HotReloadState>,
     // Custom storage for elements
     radio_button_map: HashMap<String, RadioElement>,
@@ -68,7 +68,6 @@ impl ElementRenderer {
     pub fn new() -> Self {
         Self {
             elements: HashMap::new(),
-            last_uid: 0,
             id_map: HashMap::new(),
             classes_map: HashMap::new(),
             tags_map: HashMap::new(),
@@ -90,9 +89,9 @@ impl ElementRenderer {
     }
 
     pub fn register_stringdb(&mut self, str: String) -> i32 {
-        self.last_uid += 1;
-        self.string_map.insert(self.last_uid, str);
-        return self.last_uid;
+        let id = get_unique_id();
+        self.string_map.insert(id, str);
+        return id;
     }
 
     pub fn get_stringdb(&self, id: i32) -> Option<String> {
@@ -395,12 +394,11 @@ impl ElementRenderer {
 
     pub fn init_element_from_xml(&mut self, xml_element: &XmlElement) -> i32 {
         // TODO: Add "plugin" support (function provided by the user to resolve custom elements)
-        self.last_uid += 1;
-        let uid = self.last_uid; // "Backup"
-        let element = generate_element_from_tag(xml_element, self, uid);
+        let id = get_unique_id();
+        let element = generate_element_from_tag(xml_element, self, id);
         if let Some(element) = element {
-            self.init_element(element, Some(xml_element.clone()), None, uid);
-            return uid;
+            self.init_element(element, Some(xml_element.clone()), None, id);
+            return id;
         } else {
             panic!("Block: <{} /> doesn't exists", &xml_element.tag);
         }
@@ -412,8 +410,7 @@ impl ElementRenderer {
         parent_theme: Option<XmlTheme>,
         parent_uid: i32,
     ) -> i32 {
-        self.last_uid += 1;
-        let uid = self.last_uid; // "Backup"
+        let uid = get_unique_id(); // "Backup"
         self.init_element(element, None, parent_theme, uid);
         let parent_virtual_children = self.virtual_elements.get_mut(&parent_uid);
         if parent_virtual_children.is_some() {
@@ -573,9 +570,8 @@ impl ElementRenderer {
                 event_type: event_type,
                 target: target,
                 handlers: vec![handler],
-                event_uid: self.last_uid,
+                event_uid: get_unique_id(),
             });
-            self.last_uid += 1;
         }
     }
 }

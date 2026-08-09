@@ -1,24 +1,31 @@
 use std::process::exit;
 
 #[cfg(feature = "dev-mode")]
-use iced_xml::app_wrapper::CssRx;
-#[cfg(feature = "dev-mode")]
-use iced_xml::app_wrapper::CssWatcher;
-#[cfg(feature = "dev-mode")]
 use iced_xml::utils::watch_css::watch_css_file;
+use iced_xml::window_manager;
+#[cfg(feature = "dev-mode")]
+use iced_xml::window_wrapper::CssRx;
+#[cfg(feature = "dev-mode")]
+use iced_xml::window_wrapper::CssWatcher;
 
+use iced_xml::window_wrapper::WindowTemplate;
 use iced_xml::{
-    app_wrapper::{AppResult, AppTemplate, Objects, ObjectsReadOnly, run_app},
     dom::{api::Dom, query::QueryBuilder},
+    window_wrapper::{AppResult, Objects, ObjectsReadOnly},
     xml_engine::XmlEngine,
 };
+
+#[derive(Clone)]
+struct WindowParams {}
+#[derive(Clone)]
+struct AppState {}
 
 struct BenchmarkConfig {
     iterations: i32,
 }
 
-struct BenchmarkApp {
-    qb: QueryBuilder<BenchmarkApp>,
+struct BenchmarkMainWindow {
+    qb: QueryBuilder<BenchmarkMainWindow, AppState>,
     engine: XmlEngine,
     #[cfg(feature = "dev-mode")]
     css_rx: Option<CssRx>,
@@ -30,7 +37,7 @@ struct BenchmarkApp {
     benchmark_conig: BenchmarkConfig,
 }
 
-impl BenchmarkApp {
+impl BenchmarkMainWindow {
     #[cfg(feature = "dev-mode")]
     fn watch_css(&mut self) {
         let watcher = watch_css_file(self, 1000);
@@ -45,7 +52,7 @@ impl BenchmarkApp {
         );
         // First: setInterval
         self.start = std::time::Instant::now();
-        self.qb.set_interval(1).with_callback(|this, _| {
+        self.qb.set_interval(1).with_callback(|this, _, _| {
             this.i += 1;
             if this.i >= this.benchmark_conig.iterations {
                 println!("Benchmark finished after {} iterations", this.i);
@@ -55,7 +62,7 @@ impl BenchmarkApp {
                     elapsed.as_nanos()
                 );
                 this.start = std::time::Instant::now();
-                this.qb.set_interval(0).with_callback(|this, _| {
+                this.qb.set_interval(0).with_callback(|this, _, _| {
                     this.i += 1;
                     if this.i >= this.benchmark_conig.iterations {
                         println!("Benchmark finished after {}ns iterations", this.i);
@@ -102,7 +109,7 @@ impl BenchmarkApp {
         );
         self.i = 0;
         self.start = std::time::Instant::now();
-        self.qb.set_interval(0).with_callback(|this, _| {
+        self.qb.set_interval(0).with_callback(|this, _, _| {
             this.i += 1;
             this.qb
                 .b(Dom::get_element_by_id("txt").set_property("text", &this.i.to_string()));
@@ -153,7 +160,7 @@ impl BenchmarkApp {
         );
         self.i = 0;
         self.start = std::time::Instant::now();
-        self.qb.set_interval(0).with_callback(|this, _| {
+        self.qb.set_interval(0).with_callback(|this, _, _| {
             this.i += 1;
             this.qb.b(Dom::get_element_by_id("container-styling")
                 .set_style("bg", if this.i % 2 == 0 { "black" } else { "white" }));
@@ -172,7 +179,7 @@ impl BenchmarkApp {
     }
 }
 
-impl AppTemplate<BenchmarkApp> for BenchmarkApp {
+impl WindowTemplate<BenchmarkMainWindow, AppState> for BenchmarkMainWindow {
     fn new() -> Self {
         let mut xml_content = std::fs::read("src/res/main.xml")
             .unwrap_or_else(|_| panic!("Failed to read XML file: src/res/main.xml"));
@@ -241,7 +248,7 @@ impl AppTemplate<BenchmarkApp> for BenchmarkApp {
         }
     }
 
-    fn get_objects(&mut self) -> Objects<'_, Self> {
+    fn get_objects(&mut self) -> Objects<'_, Self, AppState> {
         return Objects {
             engine: &mut self.engine,
             qb: &mut self.qb,
@@ -252,7 +259,7 @@ impl AppTemplate<BenchmarkApp> for BenchmarkApp {
         };
     }
 
-    fn get_objects_read_only(&self) -> ObjectsReadOnly<'_, Self> {
+    fn get_objects_read_only(&self) -> ObjectsReadOnly<'_, Self, AppState> {
         return ObjectsReadOnly {
             engine: &self.engine,
             qb: &self.qb,
@@ -263,6 +270,12 @@ impl AppTemplate<BenchmarkApp> for BenchmarkApp {
         return self;
     }
 
+    #[cfg(feature = "dev-mode")]
+    fn set_css_watcher_rx(&mut self, rx: CssRx) {
+        self.css_rx = Some(rx);
+    }
+}
+impl BenchmarkMainWindow {
     fn post_construct(&mut self) {
         #[cfg(feature = "dev-mode")]
         self.watch_css();
@@ -307,6 +320,20 @@ impl AppTemplate<BenchmarkApp> for BenchmarkApp {
     }
 }
 
+fn create_window(_: WindowParams, _: &mut App<AppState>) -> Windows {
+    let mut window = BenchmarkMainWindow::new();
+    window.post_construct();
+    return Windows::BenchmarkMainWindow(window);
+}
+
+window_manager!(Windows {
+        BenchmarkMainWindow,
+    };
+    create_window;
+    AppState;
+    WindowParams
+);
+
 fn main() -> AppResult {
-    return run_app::<BenchmarkApp>();
+    run_app(WindowParams {}, AppState {})
 }

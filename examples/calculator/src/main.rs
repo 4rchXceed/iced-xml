@@ -1,12 +1,24 @@
 use iced_xml::{
-    app_wrapper::{AppResult, AppTemplate, CssRx, CssWatcher, Objects, ObjectsReadOnly, run_app},
     dom::{api::Dom, query::QueryBuilder},
     utils::watch_css::watch_css_file,
+    window_manager,
+    window_wrapper::{AppResult, CssRx, CssWatcher, Objects, ObjectsReadOnly, WindowTemplate},
     xml_engine::XmlEngine,
 };
 
-struct App {
-    qb: QueryBuilder<App>,
+#[derive(Clone)]
+struct AppState {}
+impl AppState {
+    fn new() -> Self {
+        Self {}
+    }
+}
+
+#[derive(Clone)]
+struct WindowParams {}
+
+struct MainWindow {
+    qb: QueryBuilder<MainWindow, AppState>,
     engine: XmlEngine,
     rx: Option<CssRx>,
     watcher: Option<CssWatcher>,
@@ -17,7 +29,7 @@ struct App {
     op: String,
 }
 
-impl App {
+impl MainWindow {
     fn add_nbr(&mut self, nbr: String) {
         if self.current == 0 {
             if self.first_nbr.is_none() {
@@ -76,8 +88,8 @@ impl App {
     }
 }
 
-impl AppTemplate<App> for App {
-    fn get_objects(&mut self) -> Objects<'_, Self> {
+impl WindowTemplate<MainWindow, AppState> for MainWindow {
+    fn get_objects(&mut self) -> Objects<'_, Self, AppState> {
         return Objects {
             engine: &mut self.engine,
             qb: &mut self.qb,
@@ -88,7 +100,7 @@ impl AppTemplate<App> for App {
     fn set_css_watcher_rx(&mut self, rx: CssRx) {
         self.rx = Some(rx);
     }
-    fn get_objects_read_only(&self) -> iced_xml::app_wrapper::ObjectsReadOnly<'_, Self> {
+    fn get_objects_read_only(&self) -> ObjectsReadOnly<'_, Self, AppState> {
         return ObjectsReadOnly {
             engine: &self.engine,
             qb: &self.qb,
@@ -110,7 +122,9 @@ impl AppTemplate<App> for App {
             op: String::from("+"),
         }
     }
+}
 
+impl MainWindow {
     fn post_construct(&mut self) {
         let watcher_result = watch_css_file(self, 100);
         if watcher_result.is_ok() {
@@ -118,7 +132,7 @@ impl AppTemplate<App> for App {
         }
         self.qb
             .b(Dom::get_elements_by_class("button-nbr").add_event_listener("click"))
-            .with_callback(|this, datas| {
+            .with_callback(|this, datas, _| {
                 if datas.target.is_some() {
                     this.qb
                         .b(Dom::from(datas.target.unwrap()).get_property("text"));
@@ -130,7 +144,7 @@ impl AppTemplate<App> for App {
             });
         self.qb
             .b(Dom::get_elements_by_class("button-op").add_event_listener("click"))
-            .with_callback(|this, datas| {
+            .with_callback(|this, datas, _| {
                 if datas.target.is_some() {
                     this.qb.b(Dom::from(datas.target.unwrap()).get_data("op"));
                     this.process();
@@ -142,12 +156,12 @@ impl AppTemplate<App> for App {
 
         self.qb
             .b(Dom::get_element_by_id("button-calculate").add_event_listener("click"))
-            .with_callback(|this, _| {
+            .with_callback(|this, _, _| {
                 this.calculate();
             });
         self.qb
             .b(Dom::get_element_by_id("button-clear").add_event_listener("click"))
-            .with_callback(|this, _| {
+            .with_callback(|this, _, _| {
                 this.first_nbr = None;
                 this.second_nbr = None;
                 this.result = 0.0;
@@ -158,6 +172,22 @@ impl AppTemplate<App> for App {
     }
 }
 
+fn create_window(_: WindowParams, _: &mut App<AppState>) -> Windows {
+    let mut window = MainWindow::new();
+    window.post_construct();
+    return Windows::MainWindow(window);
+}
+
+window_manager!(Windows {
+        MainWindow,
+    };
+    create_window;
+    AppState;
+    WindowParams
+);
+
 fn main() -> AppResult {
-    return run_app::<App>();
+    let state = AppState::new();
+    let params = WindowParams {};
+    return run_app(params, state);
 }

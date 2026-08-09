@@ -3,9 +3,9 @@ use notify::{Event, Result, Watcher};
 use std::panic;
 use std::{path::Path, sync::mpsc};
 
-use crate::app_wrapper::AppTemplate;
+use crate::window_wrapper::WindowTemplate;
 
-pub fn watch_css_file<T: AppTemplate<T> + 'static>(
+pub fn watch_css_file<T: WindowTemplate<T, AppState> + 'static, AppState: 'static>(
     me: &mut T,
     interval: i32,
 ) -> Result<RecommendedWatcher> {
@@ -27,7 +27,7 @@ pub fn watch_css_file<T: AppTemplate<T> + 'static>(
         notify::RecursiveMode::NonRecursive,
     )?;
 
-    objects.qb.set_interval(interval).with_callback(|me, _| {
+    objects.qb.set_interval(interval).with_callback(|me, _, _| {
         if me.get_objects().css_watcher_rx.is_none() {
             panic!("css_watcher_rx is None. Make sure to correctly implement set_css_watcher_rx in your AppTemplate implementation.");
         }

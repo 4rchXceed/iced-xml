@@ -4,12 +4,16 @@ use crate::dom::events::{DomInternalMessageType, DomMessage};
 use crate::dom::query::{EventResponse, QueryResponse};
 use crate::xml_struct::parser::{XmlChangeEvent, XmlParser};
 use crate::xml_struct::window::XmlWindow;
+use iced::window;
 use quick_xml::Reader;
 
 #[derive(Debug, Clone, Hash)]
 pub enum Message {
     DomEvent(i32, EventResponse),
     Void,
+    OpenWindow(i32),               // creation params ID
+    WindowOpened(window::Id, i32), // WindowID, creation params ID
+    WindowClosed(window::Id),
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -50,7 +54,7 @@ impl XmlEngine {
                 }
                 self.window.emit_event(event_uid, event_data, is_dynamic);
             }
-            Message::Void => {}
+            _ => {}
         };
         return self.window.fired_events.clone();
     }

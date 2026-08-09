@@ -1,10 +1,13 @@
-use std::{collections::HashMap, time::Duration};
+use std::{any::Any, collections::HashMap, time::Duration};
 
 use iced::{Subscription, time};
 
 use crate::{
+    app_manager::{App, WindowId},
     dom::events::{DomInternalMessageType, DomMessage, DomQuery, DomQueryResult, DomQueryType},
-    rs_utils::{HashableF32, HashableGridTarget, HashableHashMap, ScrollState, VectorWH},
+    rs_utils::{
+        HashableF32, HashableGridTarget, HashableHashMap, ScrollState, VectorWH, get_unique_id,
+    },
     xml_engine::{DynamicEvent, Message, XmlEngine},
 };
 
@@ -120,27 +123,32 @@ impl QueryResponse {
             data_float: None,
         }
     }
+
+    pub fn get_str_or(&self, default: &str) -> String {
+        if let Some(data_str) = &self.data_str {
+            return data_str.clone();
+        }
+        return default.to_string();
+    }
 }
 
-pub struct Query<T> {
+pub struct Query<WindowState, AppState> {
     pub query: DomMessage,
-    pub callback: Option<fn(&mut T, QueryResponse)>,
-    pub listener_callback: Option<Vec<fn(&mut T, EventResponse)>>,
+    pub callback: Option<fn(&mut WindowState, QueryResponse)>,
+    pub listener_callback: Option<Vec<fn(&mut WindowState, EventResponse, &mut App<AppState>)>>,
     pub listener_registered: bool,
     pub uid: i32,
 }
 
-pub struct QueryBuilder<T> {
-    queries: Vec<Query<T>>,
-    current_uid: i32,
+pub struct QueryBuilder<WindowState, AppState> {
+    queries: Vec<Query<WindowState, AppState>>,
     pub last: QueryResponse,
 }
 
-impl<T> QueryBuilder<T> {
+impl<Window, AppState> QueryBuilder<Window, AppState> {
     pub fn new() -> Self {
         Self {
             queries: Vec::new(),
-            current_uid: 0,
             last: QueryResponse::new(false),
         }
     }
@@ -148,7 +156,7 @@ impl<T> QueryBuilder<T> {
     pub fn import_css(&mut self, css: String, hot_reload: bool) -> &mut Self {
         self.build_query(&mut DomQueryResult::from_dom_message(DomMessage {
             message: DomInternalMessageType::ImportCss(css, hot_reload),
-            uid: self.current_uid,
+            uid: get_unique_id(),
             selector: DomQuery {
                 query_type: DomQueryType::Unused,
                 flag: None,
@@ -164,20 +172,40 @@ impl<T> QueryBuilder<T> {
     pub fn build_query(&mut self, query_result: &mut DomQueryResult) -> &mut Self {
         if query_result.event.is_some() {
             let ev = query_result.event.as_ref().unwrap().clone();
+            let id = get_unique_id();
             let query = Query {
                 query: DomMessage {
                     message: ev.message,
-                    uid: self.current_uid,
+                    uid: id,
                     selector: ev.selector,
                 },
                 callback: None,
                 listener_callback: None,
                 listener_registered: false,
-                uid: self.current_uid,
+                uid: id,
             };
-            self.current_uid += 1;
             self.queries.push(query);
         }
+        self
+    }
+
+    pub fn open_window(
+        &mut self,
+        window_params: Box<dyn Any>,
+        app_state: &mut App<AppState>,
+    ) -> &mut Self {
+        app_state.open_window(window_params);
+        self.set_timeout(0); // TODO: This is a hack to make sure the window is opened right away
+        self
+    }
+
+    pub fn close_window(
+        &mut self,
+        window_id: WindowId,
+        app_state: &mut App<AppState>,
+    ) -> &mut Self {
+        app_state.close_window(window_id);
+        self.set_timeout(0); // TODO: Same as above
         self
     }
 
@@ -186,7 +214,7 @@ impl<T> QueryBuilder<T> {
             message: DomInternalMessageType::SubscribeDynamicEvent(DynamicEvent::SetTimeout(
                 timeout,
             )),
-            uid: self.current_uid,
+            uid: get_unique_id(),
             selector: DomQuery {
                 query_type: DomQueryType::Unused,
                 flag: None,
@@ -201,7 +229,7 @@ impl<T> QueryBuilder<T> {
             message: DomInternalMessageType::SubscribeDynamicEvent(DynamicEvent::SetInterval(
                 interval,
             )),
-            uid: self.current_uid,
+            uid: get_unique_id(),
             selector: DomQuery {
                 query_type: DomQueryType::Unused,
                 flag: None,
@@ -211,7 +239,10 @@ impl<T> QueryBuilder<T> {
         self
     }
 
-    pub fn with_callback(&mut self, callback: fn(&mut T, EventResponse)) -> &mut Self {
+    pub fn with_callback(
+        &mut self,
+        callback: fn(&mut Window, EventResponse, &mut App<AppState>),
+    ) -> &mut Self {
         if let Some(last_query) = self.queries.last_mut() {
             if last_query.listener_callback.is_none() {
                 last_query.listener_callback = Some(Vec::new());
@@ -227,7 +258,7 @@ impl<T> QueryBuilder<T> {
         self
     }
 
-    pub fn then(&mut self, callback: fn(&mut T, QueryResponse)) -> &mut Self {
+    pub fn then(&mut self, callback: fn(&mut Window, QueryResponse)) -> &mut Self {
         if let Some(last_query) = self.queries.last_mut() {
             last_query.callback = Some(callback);
         }
@@ -267,7 +298,10 @@ impl<T> QueryBuilder<T> {
     pub fn fetch(
         &mut self,
         returned_callbacks: Vec<(i32, EventResponse)>,
-    ) -> Vec<(fn(&mut T, EventResponse), EventResponse)> {
+    ) -> Vec<(
+        fn(&mut Window, EventResponse, &mut App<AppState>),
+        EventResponse,
+    )> {
         let mut callbacks = Vec::new();
         for (uid, event_response) in returned_callbacks {
             if let Some(query) = self.queries.iter().find(|q| q.uid == uid) {
@@ -284,7 +318,7 @@ impl<T> QueryBuilder<T> {
     pub fn execute(
         &mut self,
         engine: &mut XmlEngine,
-    ) -> Vec<(fn(&mut T, QueryResponse), QueryResponse)> {
+    ) -> Vec<(fn(&mut Window, QueryResponse), QueryResponse)> {
         let mut callbacks = Vec::new();
         let mut queries_to_remove: Vec<usize> = Vec::new();
         let mut i: usize = 0;

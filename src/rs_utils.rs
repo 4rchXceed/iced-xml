@@ -1,4 +1,17 @@
-use std::collections::HashMap;
+use std::{cell::Cell, collections::HashMap};
+
+// Unique ID for all windows:
+thread_local! {
+    static CURRENT_UID: Cell<i32> = Cell::new(1);
+}
+
+pub fn get_unique_id() -> i32 {
+    CURRENT_UID.with(|id| {
+        let current_id = id.get();
+        id.set(current_id + 1);
+        current_id
+    })
+}
 
 // Hash types that aren't natively hashable
 #[derive(Debug, Clone)]

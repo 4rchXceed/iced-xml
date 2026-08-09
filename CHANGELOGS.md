@@ -85,3 +85,15 @@
 + Added: slider-height, slider-rail-width and slider-handle-shape (slider-handle-shape has a parser) to the styling system
 + Added code quality disclaimer
 ### Commit msg: "+ Added new element: slider + Added: slider-height, slider-rail-width and slider-handle-shape (slider-handle-shape has a parser) to the styling system + Added code quality disclaimer"
+
+## Last commit: 3a7e2e1db3f8813492915635483d57852f7c24b4
+Ok, big commit here.
++ Added new Windowing System: allows for multiple windows to be opened at once
++ Two new query builder function: open_window() and close_window()
++ Added the worst code I ever wrote: the window_system macro. No seriously I need to change alot of things, but I don't have the time to do it right now. So for now, this is what we have.
+~ Refactored the app_wrapper to window_wrapper
+~ Updated the example to use the new windowing system
+~ Changed to UID provider to be a global static variable
+~ Other smaller changes to follow the new windowing system
+
+### Commit msg: "+ Added new Windowing System: allows for multiple windows to be opened at once + Two new query builder function: open_window() and close_window() + Added the window_system macro: allows for way simpler usage of the windowing system. Needs some improvements ~ Refactored the app_wrapper to window_wrapper ~ Updated the example to use the new windowing system ~ Changed to UID provider to be a global static variable ~ Other smaller changes to follow the new windowing system"
