@@ -92,3 +92,9 @@ pub struct ScrollState {
     pub scroll_width: HashableF32,
     pub scroll_height: HashableF32,
 }
+
+#[derive(Debug, Clone, Hash)]
+pub struct VectorWH {
+    pub width: HashableF32,
+    pub height: HashableF32,
+}

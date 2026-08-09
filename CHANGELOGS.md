@@ -73,3 +73,9 @@
 ~ Some theming changes for the new element
 
 ### Commit msg: "+ Added new element: progress ~ Renamed text_color to foreground_color + Added support for <Element /> self-closing tags ~ Some theming changes for the new element"
+
+## Last commit: b9809a989b21daf5287ceec8670667f810c333a2
++ Added new element: trigger
++ Added new eventresponse data: VectorWH
++ Added new type: VectorWH (width, height)
+### Commit msg: "+ Added new element: trigger + Added new eventresponse data: VectorWH + Added new type: VectorWH (width, height)"

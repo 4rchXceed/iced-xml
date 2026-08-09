@@ -4,7 +4,7 @@ use iced::{Subscription, time};
 
 use crate::{
     dom::events::{DomInternalMessageType, DomMessage, DomQuery, DomQueryResult, DomQueryType},
-    rs_utils::{HashableF32, HashableGridTarget, HashableHashMap, ScrollState},
+    rs_utils::{HashableF32, HashableGridTarget, HashableHashMap, ScrollState, VectorWH},
     xml_engine::{DynamicEvent, Message, XmlEngine},
 };
 
@@ -45,6 +45,7 @@ pub struct EventResponse {
     pub data_bool: Option<bool>,
     pub data_int: Option<i32>,
     pub data_float: Option<HashableF32>,
+    pub data_vectorwh: Option<VectorWH>,
     // Element-specific properties (with non-builtin types):
     // WindowSystem
     pub window_system_data_window: Option<iced::widget::pane_grid::Pane>,
@@ -72,6 +73,7 @@ impl EventResponse {
             data_float: None,
             window_system_data_target: None,
             scrollable_scroll_state: None,
+            data_vectorwh: None,
         }
     }
 }
@@ -92,6 +94,7 @@ impl Default for EventResponse {
             data_float: None,
             window_system_data_target: None,
             scrollable_scroll_state: None,
+            data_vectorwh: None,
         }
     }
 }
