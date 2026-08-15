@@ -5,6 +5,15 @@ thread_local! {
     static CURRENT_UID: Cell<i32> = Cell::new(1);
 }
 
+pub fn safe_read_file(filename: &str) -> String {
+    let content = std::fs::read_to_string(filename);
+    if content.is_err() {
+        println!("Failed to read file: {}", filename);
+        return String::new();
+    }
+    return content.unwrap();
+}
+
 pub fn get_unique_id() -> i32 {
     CURRENT_UID.with(|id| {
         let current_id = id.get();

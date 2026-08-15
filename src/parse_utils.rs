@@ -13,14 +13,6 @@ use iced::{
 
 use crate::xml_struct::theming::XmlTheme;
 
-pub fn safe_read_file(filename: &str) -> String {
-    let content = std::fs::read_to_string(filename);
-    if content.is_err() {
-        println!("Failed to read main window file: {}", filename);
-    }
-    return content.unwrap();
-}
-
 pub fn parse_length(value: &String) -> Length {
     if value.ends_with("fp") {
         if value[..value.len() - 2].parse::<f32>().is_err() {

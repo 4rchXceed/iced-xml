@@ -177,14 +177,11 @@ impl BenchmarkMainWindow {
         });
         self.process();
     }
-}
-
-impl WindowTemplate<BenchmarkMainWindow, AppState> for BenchmarkMainWindow {
     fn new() -> Self {
         let mut xml_content = std::fs::read("src/res/main.xml")
             .unwrap_or_else(|_| panic!("Failed to read XML file: src/res/main.xml"));
         let benchmark_type = std::env::args().nth(1).unwrap_or_else(|| {
-            panic!("Please provide a benchmark type as the first argument. Options: set-timeout, change-text, style")
+            panic!("Please provide a benchmark type as the first argument. Options: set-timeout, change-text, style, lot-element")
         });
         let nbr_iterations = std::env::args().nth(2).unwrap_or_else(|| {
             panic!("Please provide the number of iterations as the second argument.")
@@ -247,7 +244,9 @@ impl WindowTemplate<BenchmarkMainWindow, AppState> for BenchmarkMainWindow {
             start: std::time::Instant::now(),
         }
     }
+}
 
+impl WindowTemplate<BenchmarkMainWindow, AppState> for BenchmarkMainWindow {
     fn get_objects(&mut self) -> Objects<'_, Self, AppState> {
         return Objects {
             engine: &mut self.engine,
@@ -313,14 +312,9 @@ impl BenchmarkMainWindow {
             _ => {}
         }
     }
-
-    #[cfg(feature = "dev-mode")]
-    fn set_css_watcher_rx(&mut self, rx: CssRx) {
-        self.css_rx = Some(rx);
-    }
 }
 
-fn create_window(_: WindowParams, _: &mut App<AppState>) -> Windows {
+fn create_window(_: WindowParams, _: &mut App<AppState>, _: WindowId) -> Windows {
     let mut window = BenchmarkMainWindow::new();
     window.post_construct();
     return Windows::BenchmarkMainWindow(window);

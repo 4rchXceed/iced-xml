@@ -109,6 +109,9 @@ impl WindowTemplate<MainWindow, AppState> for MainWindow {
     fn get_self(&mut self) -> &mut Self {
         return self;
     }
+}
+
+impl MainWindow {
     fn new() -> Self {
         Self {
             qb: QueryBuilder::new(),
@@ -122,9 +125,7 @@ impl WindowTemplate<MainWindow, AppState> for MainWindow {
             op: String::from("+"),
         }
     }
-}
 
-impl MainWindow {
     fn post_construct(&mut self) {
         let watcher_result = watch_css_file(self, 100);
         if watcher_result.is_ok() {
@@ -172,7 +173,7 @@ impl MainWindow {
     }
 }
 
-fn create_window(_: WindowParams, _: &mut App<AppState>) -> Windows {
+fn create_window(_: WindowParams, _: &mut App<AppState>, _: WindowId) -> Windows {
     let mut window = MainWindow::new();
     window.post_construct();
     return Windows::MainWindow(window);

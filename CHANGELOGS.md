@@ -97,3 +97,10 @@ Ok, big commit here.
 ~ Other smaller changes to follow the new windowing system
 
 ### Commit msg: "+ Added new Windowing System: allows for multiple windows to be opened at once + Two new query builder function: open_window() and close_window() + Added the window_system macro: allows for way simpler usage of the windowing system. Needs some improvements ~ Refactored the app_wrapper to window_wrapper ~ Updated the example to use the new windowing system ~ Changed to UID provider to be a global static variable ~ Other smaller changes to follow the new windowing system"
+
+## Last commit: 7a86da1739725a2e028b67a47d6b36424a583b77
++ New element: space (just space, nothing else)
+~ Changed text for safe_read_file
+~ Changed examples to match new structure
+
+### Commit msg: "+ New element: space (just space, nothing else) ~ Changed text for safe_read_file ~ Changed examples to match new structure"
