@@ -11,11 +11,11 @@ use iced::{
 };
 
 use crate::parse_utils::{
-    check_anchor, parse_align_x, parse_align_y, parse_checkbox_icon, parse_color, parse_font,
-    parse_font_family, parse_font_stretch, parse_font_style, parse_font_weight, parse_length,
-    parse_line_height, parse_padding, parse_radius, parse_select_icon, parse_shaping,
-    parse_slider_handle_theme, parse_text_wrapping, parse_two_f32, parse_value, parse_value_int,
-    parse_value_maybe, parse_vector,
+    check_anchor, parse_align_x, parse_align_y, parse_center_type, parse_checkbox_icon,
+    parse_color, parse_font, parse_font_family, parse_font_stretch, parse_font_style,
+    parse_font_weight, parse_length, parse_line_height, parse_padding, parse_radius,
+    parse_select_icon, parse_shaping, parse_slider_handle_theme, parse_text_wrapping,
+    parse_two_f32, parse_value, parse_value_int, parse_value_maybe, parse_vector,
 };
 
 // The theme struct
@@ -69,6 +69,7 @@ pub struct XmlTheme {
     pub slider_handle_shape: HandleShape, // Shape for slider handles
     pub table_padding: (f32, f32), // Padding for table cells (x, y)
     pub table_separator_width: (f32, f32), // Width for table separators
+    pub center_use_align: bool, // Whether to use align_x and align_y for centering instead of center_all
 }
 
 impl XmlTheme {
@@ -238,6 +239,9 @@ impl XmlTheme {
         if first.table_separator_width != second.table_separator_width {
             self.table_separator_width = changes.table_separator_width;
         }
+        if first.center_use_align != second.center_use_align {
+            self.center_use_align = changes.center_use_align;
+        }
     }
 }
 
@@ -292,6 +296,7 @@ impl Default for XmlTheme {
             slider_handle_shape: HandleShape::Circle { radius: 8.0 },
             table_padding: (0.0, 0.0),
             table_separator_width: (1.0, 1.0),
+            center_use_align: false,
         }
     }
 }
@@ -335,6 +340,7 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         "line-height" => theme.line_height = parse_line_height(value),
         "font-size" => theme.font_size = parse_value_maybe(value),
         "select-icon" => theme.select_icon = parse_select_icon(value, &theme.font),
+        "input-icon" => theme.select_icon = parse_select_icon(value, &theme.font),
         "icon-color" => theme.icon_color = parse_color(value),
         "input-placeholder-color" => theme.input_placeholder_color = parse_color(value),
         "input-selection-color" => theme.selection_color = parse_color(value),
@@ -356,6 +362,7 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         }
         "table-padding" => theme.table_padding = parse_two_f32(value),
         "table-separator" => theme.table_separator_width = parse_two_f32(value),
+        "center-type" => theme.center_use_align = parse_center_type(value),
         _ => {
             println!("Unknown theme property: {} = {}", key, value);
         }

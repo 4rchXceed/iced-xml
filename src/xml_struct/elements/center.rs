@@ -63,8 +63,6 @@ impl ElementBase for Center {
             center = iced::widget::center(iced::widget::text(self.text.clone().unwrap()));
         }
         center = center
-            .align_x(theme.align_x)
-            .align_y(theme.align_y)
             .clip(theme.clip)
             .max_height(theme.max_height)
             .max_width(theme.max_width)
@@ -85,6 +83,9 @@ impl ElementBase for Center {
                 },
                 snap: theme.snap,
             });
+        if theme.center_use_align {
+            center = center.align_y(theme.align_y).align_x(theme.align_x);
+        }
         if theme.center_x {
             center = center.center_x(theme.width);
         }

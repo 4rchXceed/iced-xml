@@ -558,3 +558,17 @@ pub fn parse_two_f32(value: &str) -> (f32, f32) {
     }
     return (first.unwrap(), second.unwrap());
 }
+
+pub fn parse_center_type(value: &str) -> bool {
+    return match value {
+        "align" => true,
+        "center" => false,
+        _ => {
+            println!(
+                "Invalid center type: {}, expected align or center. Using center as default",
+                value
+            );
+            false
+        }
+    };
+}

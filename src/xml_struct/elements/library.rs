@@ -5,9 +5,10 @@ use crate::{
         element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
         elements::{
             button::Button, center::Center, checkbox::Checkbox, col::Col, container::Container,
-            element_base::ElementBase, float::FloatingElement, grid::Grid, label::Label,
-            progress::Progress, radio::RadioButton, row::Row, scrollable::Scroll, select::Select,
-            space::Space, table::Table, trigger::Trigger, var::Var, window_system::WindowSystem,
+            element_base::ElementBase, float::FloatingElement, grid::Grid, input::Input,
+            label::Label, progress::Progress, radio::RadioButton, row::Row, scrollable::Scroll,
+            select::Select, space::Space, table::Table, trigger::Trigger, var::Var,
+            window_system::WindowSystem,
         },
         parser::{XmlChangeEvent, XmlElement},
     },
@@ -32,6 +33,7 @@ pub enum AnyElement {
     Trigger(Trigger),
     Table(Table),
     Var(Var),
+    Input(Input),
 }
 
 #[rustfmt::skip]
@@ -64,6 +66,7 @@ pub fn generate_element_from_tag(
         "Trigger" => Some(AnyElement::Trigger(Trigger::new(xml_element, renderer, self_uid))),
         "Table" => Some(AnyElement::Table(Table::new(xml_element, renderer, self_uid))),
         "Var" => Some(AnyElement::Var(Var::new(xml_element, renderer, self_uid))),
+        "Input" => Some(AnyElement::Input(Input::new(xml_element, renderer, self_uid))),
         _ => None,
     };
 }
@@ -98,6 +101,7 @@ pub fn render_element<'a>(
         AnyElement::Trigger(trigger) => trigger.render(renderer, datas, events, uid),
         AnyElement::Table(table) => table.render(renderer, datas, events, uid),
         AnyElement::Var(var) => var.render(renderer, datas, events, uid),
+        AnyElement::Input(input) => input.render(renderer, datas, events, uid),
     };
 }
 
@@ -124,5 +128,6 @@ pub fn process_event_for_element<'a>(
         AnyElement::Trigger(trigger) => trigger.process_event(&event),
         AnyElement::Table(table) => table.process_event(&event),
         AnyElement::Var(var) => var.process_event(&event),
+        AnyElement::Input(input) => input.process_event(&event),
     }
 }

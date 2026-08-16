@@ -113,3 +113,11 @@ Ok, big commit here.
 ~ Other small changes for the new table element
 
 ### Commit msg: "+ New element: table (a table that renders datas) + New element: var (a variable that can be used to render table's data) ~ Added new system to pass datas to child elements (like table and var) ~ Fixed missing styles for <Center /> element ~ Other small changes for the new table element"
+
+## Last commit: 628acfeb5e507d8d72febf37b2d211a7794ba9e7
++ New element: input
+~ Fixed bug in center + added slider to the mod.rs (was removed for some reason)
++ Added center-type styling option for <Center /> element (align/center)
++ Added (kind-of) input-icon styling option, same var as select-icon, but different name for clarity
+
+### Commit msg: "+ New element: input ~ Fixed bug in center + added slider to the mod.rs (was removed for some reason) + Added center-type styling option for <Center /> element (align/center) + Added (kind-of) input-icon styling option, same var as select-icon, but different name for clarity"
