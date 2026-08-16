@@ -25,7 +25,7 @@ impl ElementBase for Grid {
     fn render<'a>(
         &self,
         renderer: &'a ElementRenderer,
-        datas: &'a ElementExtraData,
+        datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
     ) -> iced::Element<'a, Message> {
@@ -33,7 +33,7 @@ impl ElementBase for Grid {
         let mut grid: iced::widget::grid::Grid<'a, Message> = iced::widget::grid::Grid::new();
 
         for child_uid in &self.children {
-            grid = grid.push(renderer.render_element(child_uid.clone()));
+            grid = grid.push(renderer.render_element(child_uid.clone(), datas.child_data.clone()));
         }
 
         grid = grid

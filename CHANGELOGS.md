@@ -104,3 +104,12 @@ Ok, big commit here.
 ~ Changed examples to match new structure
 
 ### Commit msg: "+ New element: space (just space, nothing else) ~ Changed text for safe_read_file ~ Changed examples to match new structure"
+
+## Last commit: 6529cbcb6460ef4b2ee8004bc59927ee276ed118
++ New element: table (a table that renders datas)
++ New element: var (a variable that can be used to render table's data)
+~ Added new system to pass datas to child elements (like table and var)
+~ Fixed missing styles for <Center /> element
+~ Other small changes for the new table element
+
+### Commit msg: "+ New element: table (a table that renders datas) + New element: var (a variable that can be used to render table's data) ~ Added new system to pass datas to child elements (like table and var) ~ Fixed missing styles for <Center /> element ~ Other small changes for the new table element"

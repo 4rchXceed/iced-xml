@@ -17,6 +17,7 @@ pub struct DomEvent {
     pub data_bool: Option<bool>,
     pub data_int: Option<i32>,
     pub data_float: Option<HashableF32>,
+    pub data_tabledata: Option<Vec<HashableHashMap<String, String>>>,
 }
 
 impl DomEvent {
@@ -26,12 +27,39 @@ impl DomEvent {
             data_bool: None,
             data_int: None,
             data_float: None,
+            data_tabledata: None,
         }
     }
+
     pub fn with(&mut self, key: &str, value: &str) -> &mut Self {
         self.datas_str
             .0
             .insert(key.to_string().clone(), value.to_string().clone());
+        self
+    }
+
+    pub fn with_bool(&mut self, value: bool) -> &mut Self {
+        self.data_bool = Some(value);
+        self
+    }
+
+    pub fn with_int(&mut self, value: i32) -> &mut Self {
+        self.data_int = Some(value);
+        self
+    }
+
+    pub fn with_float(&mut self, value: f32) -> &mut Self {
+        self.data_float = Some(HashableF32::new(value));
+        self
+    }
+
+    pub fn with_tabledata(&mut self, value: Vec<HashMap<String, String>>) -> &mut Self {
+        self.data_tabledata = Some(
+            value
+                .iter()
+                .map(|v| HashableHashMap::new(v.clone()))
+                .collect(),
+        );
         self
     }
 }

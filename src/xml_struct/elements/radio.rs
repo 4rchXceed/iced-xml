@@ -49,7 +49,7 @@ impl ElementBase for RadioButton {
     fn render<'a>(
         &self,
         renderer: &'a ElementRenderer,
-        datas: &'a ElementExtraData,
+        datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,
     ) -> iced::Element<'a, Message> {

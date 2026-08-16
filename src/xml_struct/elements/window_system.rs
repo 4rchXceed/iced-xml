@@ -303,7 +303,7 @@ impl ElementBase for WindowSystem {
     fn render<'a>(
         &'a self,
         renderer: &'a ElementRenderer,
-        datas: &'a ElementExtraData,
+        datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,
     ) -> iced::Element<'a, Message> {
@@ -333,15 +333,18 @@ impl ElementBase for WindowSystem {
                         let mut btn_max = button(iced::widget::text("Max"));
                         let mut btn_close = button(iced::widget::text("Close"));
                         if child_datas.fullscreen_btn.is_some() {
-                            btn_max = button(
-                                renderer.render_element(child_datas.fullscreen_btn.unwrap()),
-                            )
+                            btn_max = button(renderer.render_element(
+                                child_datas.fullscreen_btn.unwrap(),
+                                datas.child_data.clone(),
+                            ))
                             .style(|_, _| transparent_btn_style());
                         }
                         if child_datas.close_btn.is_some() {
-                            btn_close =
-                                button(renderer.render_element(child_datas.close_btn.unwrap()))
-                                    .style(|_, _| transparent_btn_style());
+                            btn_close = button(renderer.render_element(
+                                child_datas.close_btn.unwrap(),
+                                datas.child_data.clone(),
+                            ))
+                            .style(|_, _| transparent_btn_style());
                         }
                         let mut ev_res_max = EventResponse::new(self_uid, String::from("maximize"));
                         let ev_res_restore = EventResponse::new(self_uid, String::from("restore"));
@@ -359,8 +362,10 @@ impl ElementBase for WindowSystem {
                         let mut title_bar_content: iced::Element<'a, Message> =
                             iced::widget::text("").into();
                         if child_datas.titlebar_content_uid.is_some() {
-                            title_bar_content =
-                                renderer.render_element(child_datas.titlebar_content_uid.unwrap());
+                            title_bar_content = renderer.render_element(
+                                child_datas.titlebar_content_uid.unwrap(),
+                                datas.child_data.clone(),
+                            );
                         }
 
                         let title_bar = iced::widget::pane_grid::TitleBar::new(title_bar_content)
@@ -368,7 +373,8 @@ impl ElementBase for WindowSystem {
                                 row![btn_max, btn_close].spacing(5).width(Length::Shrink),
                             ))
                             .padding(10);
-                        let element = renderer.render_element(child_datas.content_uid);
+                        let element = renderer
+                            .render_element(child_datas.content_uid, datas.child_data.clone());
                         return iced::widget::pane_grid::Content::new(element).title_bar(title_bar);
                     }
                 }

@@ -55,13 +55,14 @@ impl ElementBase for Trigger {
     fn render<'a>(
         &self,
         renderer: &'a ElementRenderer,
-        _: &'a ElementExtraData,
+        datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,
     ) -> iced::Element<'a, Message> {
         let mut child_element = iced::widget::Column::new();
         if let Some(child_uid) = self.child {
-            child_element = child_element.push(renderer.render_element(child_uid));
+            child_element =
+                child_element.push(renderer.render_element(child_uid, datas.child_data.clone()));
         }
         let mut trigger = iced::widget::sensor::Sensor::new(child_element);
 

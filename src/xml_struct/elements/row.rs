@@ -24,7 +24,7 @@ impl ElementBase for Row {
     fn render<'a>(
         &self,
         renderer: &'a ElementRenderer,
-        datas: &'a ElementExtraData,
+        datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
     ) -> iced::Element<'a, Message> {
@@ -32,7 +32,7 @@ impl ElementBase for Row {
         let mut container: iced::widget::Row<'a, Message> = iced::widget::Row::new();
 
         for child in &self.children {
-            container = container.push(renderer.render_element(*child));
+            container = container.push(renderer.render_element(*child, datas.child_data.clone()));
         }
 
         container = container

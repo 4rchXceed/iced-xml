@@ -28,13 +28,15 @@ impl ElementBase for FloatingElement {
     fn render<'a>(
         &self,
         renderer: &'a ElementRenderer,
-        datas: &'a ElementExtraData,
+        datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
         let mut float_element: iced::widget::float::Float<'a, Message> =
-            iced::widget::float::Float::new(renderer.render_element(self.child));
+            iced::widget::float::Float::new(
+                renderer.render_element(self.child, datas.child_data.clone()),
+            );
 
         float_element =
             float_element

@@ -30,7 +30,10 @@ impl XmlWindow {
     }
 
     pub fn render(&self) -> iced::Element<'_, Message> {
-        return self.element_renderer.render_element(self.root_uid).into();
+        return self
+            .element_renderer
+            .render_element(self.root_uid, None)
+            .into();
     }
 
     pub fn emit_event(&mut self, event_uid: i32, event_data: EventResponse, is_dynamic: bool) {

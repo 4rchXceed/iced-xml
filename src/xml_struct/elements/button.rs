@@ -55,19 +55,22 @@ impl ElementBase for Button {
     fn render<'a>(
         &self,
         renderer: &'a ElementRenderer,
-        datas: &'a ElementExtraData,
+        datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,
     ) -> iced::Element<'a, Message> {
         let mut button_child: iced::widget::Column<'a, Message> = iced::widget::Column::new();
         for child in &self.children {
-            button_child = button_child.push(renderer.render_element(*child));
+            button_child =
+                button_child.push(renderer.render_element(*child, datas.child_data.clone()));
         }
 
         let mut button: iced::widget::Button<'a, Message> = iced::widget::Button::new(button_child);
 
         if self.text.is_some() {
-            button = iced::widget::Button::new(renderer.render_element(self.virtual_text));
+            button = iced::widget::Button::new(
+                renderer.render_element(self.virtual_text, datas.child_data.clone()),
+            );
         }
 
         let theme = datas.default_theme.clone();

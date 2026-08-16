@@ -39,7 +39,7 @@ impl ElementBase for Scroll {
     fn render<'a>(
         &self,
         renderer: &'a ElementRenderer,
-        datas: &'a ElementExtraData,
+        datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,
     ) -> iced::Element<'a, Message> {
@@ -61,7 +61,8 @@ impl ElementBase for Scroll {
             autoscroll = datas.flag_themes.get("autoscroll").unwrap().clone();
         }
 
-        let mut scrollable = iced::widget::scrollable(renderer.render_element(self.child));
+        let mut scrollable =
+            iced::widget::scrollable(renderer.render_element(self.child, datas.child_data.clone()));
 
         if theme.scroll_anchor.is_some() {
             scrollable = match theme.scroll_anchor.unwrap().as_str() {

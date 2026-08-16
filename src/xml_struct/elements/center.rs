@@ -1,4 +1,4 @@
-use iced::widget::center;
+use iced::Background;
 
 use crate::{
     dom::query::QueryResponse,
@@ -49,18 +49,52 @@ impl ElementBase for Center {
     fn render<'a>(
         &self,
         renderer: &'a ElementRenderer,
-        _: &'a ElementExtraData,
+        datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
     ) -> iced::Element<'a, Message> {
-        if let Some(children) = &self.children {
-            let center: iced::widget::Container<'a, Message> =
-                center(renderer.render_element(*children));
-            return center.into();
+        let theme = datas.default_theme.clone();
+        let mut center;
+        if self.children.is_some() {
+            center = iced::widget::center(
+                renderer.render_element(self.children.unwrap(), datas.child_data.clone()),
+            );
         } else {
-            let center = center(iced::widget::text(self.text.clone().unwrap()));
-            return center.into();
+            center = iced::widget::center(iced::widget::text(self.text.clone().unwrap()));
         }
+        center = center
+            .align_x(theme.align_x)
+            .align_y(theme.align_y)
+            .clip(theme.clip)
+            .max_height(theme.max_height)
+            .max_width(theme.max_width)
+            .width(theme.width)
+            .height(theme.height)
+            .style(move |_| iced::widget::container::Style {
+                text_color: Some(theme.foreground_color),
+                background: Some(Background::Color(theme.background_color)),
+                border: iced::Border {
+                    color: theme.border_color,
+                    width: theme.border_width,
+                    radius: theme.border_radius,
+                },
+                shadow: iced::Shadow {
+                    color: theme.shadow_color,
+                    offset: theme.shadow_offset,
+                    blur_radius: theme.shadow_blur_radius,
+                },
+                snap: theme.snap,
+            });
+        if theme.center_x {
+            center = center.center_x(theme.width);
+        }
+        if theme.center_y {
+            center = center.center_y(theme.height);
+        }
+        if theme.center_all {
+            center = center.center(theme.width);
+        }
+        return center.into();
     }
 
     fn process_event(

@@ -535,3 +535,26 @@ pub fn parse_slider_handle_theme(value: &str, theme: &XmlTheme) -> HandleShape {
     }
     return HandleShape::Circle { radius: 10.0 };
 }
+
+pub fn parse_two_f32(value: &str) -> (f32, f32) {
+    let msg = format!(
+        "Invalid value: {}, must be two numbers separated by a space or one number",
+        value
+    );
+    let value_f32 = value.parse::<f32>();
+    if value_f32.is_ok() {
+        return (value_f32.clone().unwrap(), value_f32.unwrap());
+    }
+    let split = value.split(" ").collect::<Vec<&str>>();
+    if split.len() != 2 {
+        println!("{}", msg);
+        return (0.0, 0.0);
+    }
+    let first = split[0].parse::<f32>();
+    let second = split[1].parse::<f32>();
+    if first.is_err() || second.is_err() {
+        println!("{}", msg);
+        return (0.0, 0.0);
+    }
+    return (first.unwrap(), second.unwrap());
+}

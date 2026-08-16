@@ -14,7 +14,7 @@ use crate::parse_utils::{
     check_anchor, parse_align_x, parse_align_y, parse_checkbox_icon, parse_color, parse_font,
     parse_font_family, parse_font_stretch, parse_font_style, parse_font_weight, parse_length,
     parse_line_height, parse_padding, parse_radius, parse_select_icon, parse_shaping,
-    parse_slider_handle_theme, parse_text_wrapping, parse_value, parse_value_int,
+    parse_slider_handle_theme, parse_text_wrapping, parse_two_f32, parse_value, parse_value_int,
     parse_value_maybe, parse_vector,
 };
 
@@ -67,6 +67,8 @@ pub struct XmlTheme {
     pub slider_height: f32,     // Height for sliders, since it's not a Length
     pub slider_rail_width: f32, // Width for slider rails
     pub slider_handle_shape: HandleShape, // Shape for slider handles
+    pub table_padding: (f32, f32), // Padding for table cells (x, y)
+    pub table_separator_width: (f32, f32), // Width for table separators
 }
 
 impl XmlTheme {
@@ -227,6 +229,15 @@ impl XmlTheme {
         if first.slider_handle_shape != second.slider_handle_shape {
             self.slider_handle_shape = changes.slider_handle_shape.clone();
         }
+        if first.table_padding != second.table_padding {
+            self.table_padding = changes.table_padding;
+        }
+        if first.table_separator_width != second.table_separator_width {
+            self.table_separator_width = changes.table_separator_width;
+        }
+        if first.table_separator_width != second.table_separator_width {
+            self.table_separator_width = changes.table_separator_width;
+        }
     }
 }
 
@@ -279,6 +290,8 @@ impl Default for XmlTheme {
             slider_height: 16.0,
             slider_rail_width: 4.0,
             slider_handle_shape: HandleShape::Circle { radius: 8.0 },
+            table_padding: (0.0, 0.0),
+            table_separator_width: (1.0, 1.0),
         }
     }
 }
@@ -341,6 +354,8 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         "slider-handle-shape" => {
             theme.slider_handle_shape = parse_slider_handle_theme(value, theme)
         }
+        "table-padding" => theme.table_padding = parse_two_f32(value),
+        "table-separator" => theme.table_separator_width = parse_two_f32(value),
         _ => {
             println!("Unknown theme property: {} = {}", key, value);
         }

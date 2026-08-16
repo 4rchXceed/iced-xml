@@ -7,7 +7,7 @@ use crate::{
             button::Button, center::Center, checkbox::Checkbox, col::Col, container::Container,
             element_base::ElementBase, float::FloatingElement, grid::Grid, label::Label,
             progress::Progress, radio::RadioButton, row::Row, scrollable::Scroll, select::Select,
-            space::Space, window_system::WindowSystem,
+            space::Space, table::Table, trigger::Trigger, var::Var, window_system::WindowSystem,
         },
         parser::{XmlChangeEvent, XmlElement},
     },
@@ -29,6 +29,9 @@ pub enum AnyElement {
     Scroll(Scroll),
     Progress(Progress),
     Space(Space),
+    Trigger(Trigger),
+    Table(Table),
+    Var(Var),
 }
 
 #[rustfmt::skip]
@@ -58,6 +61,9 @@ pub fn generate_element_from_tag(
         "Scroll" => Some(AnyElement::Scroll(Scroll::new(xml_element, renderer, self_uid))),
         "Progress" => Some(AnyElement::Progress(Progress::new(xml_element, renderer, self_uid))),
         "Space" => Some(AnyElement::Space(Space::new(xml_element, renderer, self_uid))),
+        "Trigger" => Some(AnyElement::Trigger(Trigger::new(xml_element, renderer, self_uid))),
+        "Table" => Some(AnyElement::Table(Table::new(xml_element, renderer, self_uid))),
+        "Var" => Some(AnyElement::Var(Var::new(xml_element, renderer, self_uid))),
         _ => None,
     };
 }
@@ -65,7 +71,7 @@ pub fn generate_element_from_tag(
 pub fn render_element<'a>(
     element: &'a AnyElement,
     renderer: &'a ElementRenderer,
-    datas: &'a ElementExtraData,
+    datas: ElementExtraData,
     events: Vec<&'a EventListener>,
     uid: i32,
 ) -> iced::Element<'a, Message> {
@@ -89,6 +95,9 @@ pub fn render_element<'a>(
         AnyElement::Scroll(scroll) => scroll.render(renderer, datas, events, uid),
         AnyElement::Progress(progress) => progress.render(renderer, datas, events, uid),
         AnyElement::Space(space) => space.render(renderer, datas, events, uid),
+        AnyElement::Trigger(trigger) => trigger.render(renderer, datas, events, uid),
+        AnyElement::Table(table) => table.render(renderer, datas, events, uid),
+        AnyElement::Var(var) => var.render(renderer, datas, events, uid),
     };
 }
 
@@ -112,5 +121,8 @@ pub fn process_event_for_element<'a>(
         AnyElement::Scroll(scroll) => scroll.process_event(&event),
         AnyElement::Progress(progress) => progress.process_event(&event),
         AnyElement::Space(space) => space.process_event(&event),
+        AnyElement::Trigger(trigger) => trigger.process_event(&event),
+        AnyElement::Table(table) => table.process_event(&event),
+        AnyElement::Var(var) => var.process_event(&event),
     }
 }

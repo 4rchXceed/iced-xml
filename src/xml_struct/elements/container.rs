@@ -32,14 +32,15 @@ impl ElementBase for Container {
     fn render<'a>(
         &self,
         renderer: &'a ElementRenderer,
-        datas: &'a ElementExtraData,
+        datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
 
-        let mut container: iced::widget::Container<'a, Message> =
-            iced::widget::Container::new(renderer.render_element(self.child));
+        let mut container: iced::widget::Container<'a, Message> = iced::widget::Container::new(
+            renderer.render_element(self.child, datas.child_data.clone()),
+        );
 
         container = container
             .align_x(theme.align_x)

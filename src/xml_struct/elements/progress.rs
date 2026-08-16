@@ -49,7 +49,7 @@ impl ElementBase for Progress {
     fn render<'a>(
         &self,
         _: &'a ElementRenderer,
-        datas: &'a ElementExtraData,
+        datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
     ) -> iced::Element<'a, Message> {

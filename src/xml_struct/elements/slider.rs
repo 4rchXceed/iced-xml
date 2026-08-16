@@ -81,7 +81,7 @@ impl ElementBase for Slider {
     fn render<'a>(
         &self,
         _: &'a ElementRenderer,
-        datas: &'a ElementExtraData,
+        datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,
     ) -> iced::Element<'a, Message> {

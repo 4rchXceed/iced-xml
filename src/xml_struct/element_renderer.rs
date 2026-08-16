@@ -22,6 +22,17 @@ use crate::{
     },
 };
 
+#[derive(Clone, Debug)]
+pub struct RenderChildDatas {
+    pub table_datas: Option<HashMap<String, String>>, // For table elements
+}
+
+impl Default for RenderChildDatas {
+    fn default() -> Self {
+        Self { table_datas: None }
+    }
+}
+
 pub struct EventListener {
     pub event_type: String,
     pub target: i32,
@@ -45,10 +56,12 @@ struct HotReloadState {
     pub state: HashMap<i32, HotReloadStateEntry>,
 }
 
+#[derive(Clone, Debug)]
 pub struct ElementExtraData {
     pub default_theme: XmlTheme,
     pub flag_themes: HashMap<String, XmlTheme>,
     pub xml_element: XmlElement,
+    pub child_data: Option<RenderChildDatas>,
 }
 
 pub struct ElementRenderer {
@@ -467,12 +480,17 @@ impl ElementRenderer {
                     default_theme: xml_element.theme.clone(),
                     flag_themes: HashMap::new(),
                     xml_element: xml_element,
+                    child_data: None,
                 },
             ),
         );
     }
 
-    pub fn render_element(&self, uid: i32) -> iced::Element<'_, Message> {
+    pub fn render_element(
+        &self,
+        uid: i32,
+        child_data: Option<RenderChildDatas>,
+    ) -> iced::Element<'_, Message> {
         let element = self.elements.get(&uid);
         if element.is_some() {
             let events = self
@@ -481,8 +499,10 @@ impl ElementRenderer {
                 .filter(|v| v.target == uid)
                 .collect::<Vec<&EventListener>>();
             let (element, datas) = element.unwrap();
-            let output = render_element(element, self, &datas, events, uid);
-            output
+            let mut datas = datas.clone();
+            datas.child_data = child_data;
+            let output = render_element(element, self, datas, events, uid);
+            return output;
         } else {
             return text(format!("Element with id {} not found", uid)).into();
         }
