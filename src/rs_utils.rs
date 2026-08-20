@@ -120,3 +120,7 @@ pub struct VectorWH {
     pub width: HashableF32,
     pub height: HashableF32,
 }
+
+pub fn is_alphabetic(s: &str) -> bool {
+    return s.chars().all(|c| c.is_alphabetic() || c == '-' || c == '_');
+}

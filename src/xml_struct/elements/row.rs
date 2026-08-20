@@ -13,10 +13,10 @@ pub struct Row {
 }
 
 impl ElementBase for Row {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, _: i32) -> Self {
+    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
         let mut children: Vec<i32> = Vec::new();
         for child in &xml_element.children {
-            children.push(renderer.init_element_from_xml(child));
+            children.push(renderer.init_element_from_xml(child, self_uid));
         }
         Self { children: children }
     }

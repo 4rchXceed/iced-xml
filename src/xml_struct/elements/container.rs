@@ -16,7 +16,7 @@ pub struct Container {
 }
 
 impl ElementBase for Container {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, _: i32) -> Self {
+    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
         if xml_element.children.len() != 1 {
             panic!(
                 "Container MUST have one and only one child (currently has {})",
@@ -25,7 +25,7 @@ impl ElementBase for Container {
         }
 
         Self {
-            child: renderer.init_element_from_xml(&xml_element.children[0]),
+            child: renderer.init_element_from_xml(&xml_element.children[0], self_uid),
         }
     }
 

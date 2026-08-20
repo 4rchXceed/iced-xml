@@ -101,6 +101,7 @@ fn preprocess_pane_state(
     renderer: &mut ElementRenderer,
     elements: Vec<XmlElement>,
     parent_pane: iced::widget::pane_grid::Pane,
+    self_uid: i32,
 ) -> HashMap<String, WindowChild> {
     let mut children: HashMap<String, WindowChild> = HashMap::new();
     for child in elements {
@@ -112,12 +113,13 @@ fn preprocess_pane_state(
                 panic!("Window element must have window-id and split-method attributes."); // Note: maybe I'm going to make split-method in styling instead of attribute. We'll see
             }
             let child_id = child.attributes.get("window-id").unwrap().clone();
-            let child_uid = renderer.init_element_from_xml(&content(&child));
+            let child_uid = renderer.init_element_from_xml(&content(&child), self_uid);
             let fullscreen_btn =
-                maximize_button(&child).map(|btn| renderer.init_element_from_xml(&btn));
-            let close_btn = close_button(&child).map(|btn| renderer.init_element_from_xml(&btn));
+                maximize_button(&child).map(|btn| renderer.init_element_from_xml(&btn, self_uid));
+            let close_btn =
+                close_button(&child).map(|btn| renderer.init_element_from_xml(&btn, self_uid));
             let titlebar_content_uid =
-                titlebar_content(&child).map(|btn| renderer.init_element_from_xml(&btn));
+                titlebar_content(&child).map(|btn| renderer.init_element_from_xml(&btn, self_uid));
             let child_datas = WindowChild {
                 content_uid: child_uid,
                 fullscreen_btn: fullscreen_btn,
@@ -137,6 +139,7 @@ fn preprocess_pane_state(
                         renderer,
                         window_children(&child),
                         pane.unwrap().0,
+                        self_uid,
                     );
                 }
             }
@@ -249,7 +252,7 @@ fn transparent_btn_style() -> iced::widget::button::Style {
 }
 
 impl ElementBase for WindowSystem {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, _: i32) -> Self {
+    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
         // If it supports children, initialize them here with renderer.init_element
         if xml_element.children.len() != 1 {
             panic!("WindowSystem element must have exactly one child element.");
@@ -266,7 +269,7 @@ impl ElementBase for WindowSystem {
         let first_window_content = content(&xml_element.children[0]);
         let first_window_children = window_children(&xml_element.children[0]);
 
-        let first_uid = renderer.init_element_from_xml(&first_window_content);
+        let first_uid = renderer.init_element_from_xml(&first_window_content, self_uid);
         let first_id = xml_element.children[0]
             .attributes
             .get("window-id")
@@ -275,11 +278,11 @@ impl ElementBase for WindowSystem {
         let first_child = WindowChild {
             content_uid: first_uid,
             fullscreen_btn: maximize_button(&xml_element.children[0])
-                .map(|btn| renderer.init_element_from_xml(&btn)),
+                .map(|btn| renderer.init_element_from_xml(&btn, self_uid)),
             close_btn: close_button(&xml_element.children[0])
-                .map(|btn| renderer.init_element_from_xml(&btn)),
+                .map(|btn| renderer.init_element_from_xml(&btn, self_uid)),
             titlebar_content_uid: titlebar_content(&xml_element.children[0])
-                .map(|btn| renderer.init_element_from_xml(&btn)),
+                .map(|btn| renderer.init_element_from_xml(&btn, self_uid)),
         };
 
         let mut state = iced::widget::pane_grid::State::new(InternalPane(
@@ -287,8 +290,13 @@ impl ElementBase for WindowSystem {
             first_child.clone(),
         ));
 
-        let mut children =
-            preprocess_pane_state(&mut state.0, renderer, first_window_children, state.1);
+        let mut children = preprocess_pane_state(
+            &mut state.0,
+            renderer,
+            first_window_children,
+            state.1,
+            self_uid,
+        );
 
         children.insert(first_id, first_child);
 

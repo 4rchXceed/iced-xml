@@ -19,6 +19,11 @@ impl Dom {
         return DomQueryResult::new("tag".to_string(), tag.to_string());
     }
 
+    // "," NOT SUPPORTED!
+    pub fn query_selector<'a>(query: &str) -> DomQueryResult {
+        return DomQueryResult::new("complex".to_string(), query.to_string());
+    }
+
     pub fn all() -> DomQueryResult {
         return DomQueryResult::new("all".to_string(), "".to_string());
     }

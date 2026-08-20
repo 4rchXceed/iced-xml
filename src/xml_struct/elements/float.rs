@@ -16,11 +16,11 @@ pub struct FloatingElement {
 }
 
 impl ElementBase for FloatingElement {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, _: i32) -> Self {
+    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
         if xml_element.children.len() != 1 {
             panic!("FloatingElement must have exactly one child");
         }
-        let child = renderer.init_element_from_xml(&xml_element.children[0]);
+        let child = renderer.init_element_from_xml(&xml_element.children[0], self_uid);
 
         Self { child: child }
     }

@@ -33,7 +33,7 @@ impl ElementBase for Center {
 
         if xml_element.text.trim().is_empty() {
             Self {
-                children: Some(renderer.init_element_from_xml(&xml_element.children[0])),
+                children: Some(renderer.init_element_from_xml(&xml_element.children[0], self_uid)),
                 text: None,
                 virtual_label,
             }

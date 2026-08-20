@@ -1,3 +1,60 @@
+use crate::rs_utils::is_alphabetic;
+
+// Utils
+// Vec<String> -> [("#container", None), (".button", '>'), ("div", '+')]
+// (String, Option<String>) -> String = selector, Option<String> = operator
+pub fn split_complex_selector(query: String) -> Vec<(String, Option<char>)> {
+    let mut query = query.chars();
+    let mut next_op = query.next();
+    let mut all_parts = Vec::new();
+    let mut current_part: String = String::new();
+    let mut keyword: Option<char> = None;
+    while next_op.is_some() {
+        let next = next_op.unwrap();
+        if next.is_whitespace() {
+            if !current_part.is_empty() {
+                all_parts.push((current_part.clone(), keyword));
+                current_part.clear();
+                keyword = Some(' ');
+            }
+        } else {
+            let operator = match next {
+                '>' | '+' | '~' => Some(next),
+                _ => None,
+            };
+            if operator.is_some() {
+                if keyword.is_some() && keyword.unwrap() != ' ' {
+                    println!("Wrong Complex selector: {:?}", query);
+                    return Vec::new();
+                }
+                if !current_part.is_empty() {
+                    all_parts.push((current_part.clone(), keyword));
+                    current_part.clear();
+                }
+                keyword = operator;
+            } else {
+                let is_selector_char = match next {
+                    '#' | '.' => true,
+                    _ => false,
+                };
+                if is_selector_char && !current_part.is_empty() {
+                    all_parts.push((current_part.clone(), keyword));
+                    current_part.clear();
+                    keyword = Some('=');
+                }
+                current_part.push(next);
+            }
+        }
+        next_op = query.next();
+    }
+    if keyword.is_none() | current_part.is_empty() {
+        println!("Wrong Complex selector: {:?}", query);
+    }
+    all_parts.push((current_part.clone(), keyword));
+
+    return all_parts;
+}
+
 #[derive(Clone)]
 pub struct Selector {
     pub selector_type: String,
@@ -193,10 +250,11 @@ impl CssReader {
         };
     }
 
-    fn parse_selector(&mut self) -> Selector {
+    // Fn used by complex_selector
+    pub fn parse_selector(&mut self) -> Selector {
         if self.kill_switch {
             return Selector {
-                selector_type: String::new(),
+                selector_type: String::from("none"),
                 content: String::new(),
                 flag: None,
             };
@@ -214,11 +272,9 @@ impl CssReader {
                 reading_selector = false;
             } else if current == '{' {
                 reading_selector = false;
-            } else if !current.is_whitespace() {
-                self.pos += 1;
-                selector.push(current);
             } else {
                 self.pos += 1;
+                selector.push(current);
             }
         }
         self.skip_whitespace();
@@ -227,38 +283,61 @@ impl CssReader {
             .collect::<Vec<&str>>()
             .get(1)
             .map(|s| s.to_string());
-        let selector = selector.split("::").collect::<Vec<&str>>()[0].to_string();
-        if !selector.is_empty() {
-            if selector.starts_with("#") {
-                return Selector {
-                    selector_type: "id".to_string(),
-                    content: selector.strip_prefix("#").unwrap().to_string(),
-                    flag: flag,
-                };
-            } else if selector.starts_with(".") {
-                return Selector {
-                    selector_type: "class".to_string(),
-                    content: selector.strip_prefix(".").unwrap().to_string(),
-                    flag: flag,
-                };
-            } else if selector == "*" {
-                return Selector {
-                    selector_type: "all".to_string(),
-                    content: selector,
-                    flag: flag,
-                };
-            } else {
-                return Selector {
-                    selector_type: "tag".to_string(),
-                    content: selector,
-                    flag: flag,
-                };
-            }
+        let selector = selector.split("::").collect::<Vec<&str>>()[0]
+            .trim()
+            .to_string();
+        if selector.is_empty() {
+            self.kill_switch = true;
+            self.kill_message = "Invalid selector at position ".to_string() + &self.pos.to_string();
+            return Selector {
+                selector_type: String::from("none"),
+                content: String::new(),
+                flag: None,
+            };
+        }
+        let selector_without_first_char = selector.chars().skip(1).collect::<String>();
+        let is_complex = selector.contains(' ')
+            // For Tag#id.class type selectors
+            || selector_without_first_char.contains('#')
+            || selector_without_first_char.contains('.')
+            // For > ~ combinators
+            || selector.contains('>')
+            || selector.contains('~');
+        if is_complex {
+            return Selector {
+                selector_type: String::from("complex"),
+                content: selector,
+                flag: flag,
+            };
+        } else if selector.starts_with("#") {
+            return Selector {
+                selector_type: String::from("id"),
+                content: selector.strip_prefix("#").unwrap().to_string(),
+                flag: flag,
+            };
+        } else if selector.starts_with(".") {
+            return Selector {
+                selector_type: String::from("class"),
+                content: selector.strip_prefix(".").unwrap().to_string(),
+                flag: flag,
+            };
+        } else if selector == "*" {
+            return Selector {
+                selector_type: String::from("all"),
+                content: selector,
+                flag: flag,
+            };
+        } else if is_alphabetic(&selector) {
+            return Selector {
+                selector_type: String::from("tag"),
+                content: selector,
+                flag: flag,
+            };
         } else {
             self.kill_switch = true;
             self.kill_message = "Invalid selector at position ".to_string() + &self.pos.to_string();
             return Selector {
-                selector_type: String::new(),
+                selector_type: String::from("none"),
                 content: String::new(),
                 flag: None,
             };

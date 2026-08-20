@@ -5,7 +5,7 @@ use iced::widget::text;
 use crate::{
     css_reader::{CssReader, Rule, RuleBlock, Selector},
     dom::{
-        events::{DomQuery, DomQueryType},
+        events::{ComplexQuery, ComplexQueryJoinType, DomQuery, DomQueryType},
         query::QueryResponse,
     },
     rs_utils::get_unique_id,
@@ -70,6 +70,7 @@ pub struct ElementRenderer {
     id_map: HashMap<String, i32>,
     classes_map: HashMap<String, Vec<i32>>,
     tags_map: HashMap<String, Vec<i32>>,
+    parent_map: HashMap<i32, i32>, // key: child, value: parent
     virtual_elements: HashMap<i32, Vec<i32>>, // key: parent_uid, value: virtual children uids
     hot_reload_states: Option<HotReloadState>,
     // Custom storage for elements
@@ -84,6 +85,7 @@ impl ElementRenderer {
             id_map: HashMap::new(),
             classes_map: HashMap::new(),
             tags_map: HashMap::new(),
+            parent_map: HashMap::new(),
             event_listeners: Vec::new(),
             hot_reload_states: None,
             virtual_elements: HashMap::new(),
@@ -365,8 +367,8 @@ impl ElementRenderer {
         }
     }
 
-    pub fn element_query(&self, query: &DomQuery) -> Vec<i32> {
-        let query_result = match &query.query_type {
+    pub fn raw_element_query(&self, query: &DomQueryType) -> Vec<i32> {
+        return match &query {
             DomQueryType::ById(id) => {
                 if let Some(uid) = self.id_map.get(id) {
                     vec![*uid]
@@ -397,7 +399,14 @@ impl ElementRenderer {
             }
             DomQueryType::All => self.elements.keys().cloned().collect(),
             DomQueryType::Unused => vec![],
+            DomQueryType::Complex(raw_complex_query) => {
+                return self.run_complex_query(raw_complex_query.clone());
+            }
         };
+    }
+
+    pub fn element_query(&self, query: &DomQuery) -> Vec<i32> {
+        let query_result = self.raw_element_query(&query.query_type);
         return query_result
             .iter()
             .map(|e| self.post_process_query_result(query, e.clone()))
@@ -405,9 +414,10 @@ impl ElementRenderer {
             .collect();
     }
 
-    pub fn init_element_from_xml(&mut self, xml_element: &XmlElement) -> i32 {
+    pub fn init_element_from_xml(&mut self, xml_element: &XmlElement, parent_uid: i32) -> i32 {
         // TODO: Add "plugin" support (function provided by the user to resolve custom elements)
         let id = get_unique_id();
+        self.parent_map.insert(id, parent_uid);
         let element = generate_element_from_tag(xml_element, self, id);
         if let Some(element) = element {
             self.init_element(element, Some(xml_element.clone()), None, id);
@@ -570,6 +580,77 @@ impl ElementRenderer {
             return QueryResponse::new(false);
         }
         event_response.unwrap()
+    }
+
+    pub fn run_complex_query(&self, raw_query: String) -> Vec<i32> {
+        let query = ComplexQuery::from(raw_query);
+        let firsts = self.raw_element_query(&query.query);
+        return self.next_complex(firsts, &Box::new(query));
+    }
+
+    pub fn next_complex(&self, all: Vec<i32>, current: &Box<ComplexQuery>) -> Vec<i32> {
+        if current.next.is_none() {
+            return all;
+        } else {
+            let next_query = current.next.as_ref().unwrap();
+            let link = next_query.link_next.as_ref().unwrap();
+            let mut next_results: Vec<i32> = Vec::new();
+            for element in all.clone() {
+                let next_query_results = self.raw_element_query(&next_query.query);
+                for next_element in next_query_results {
+                    let matches_link = match link {
+                        ComplexQueryJoinType::Child => {
+                            let parent = self.parent_map.get(&next_element);
+                            if parent.is_some() {
+                                parent.unwrap() == &element
+                            } else {
+                                false
+                            }
+                        }
+                        ComplexQueryJoinType::Descendant => {
+                            self.is_decendant_of(next_element, element)
+                        }
+                        ComplexQueryJoinType::Silbling => {
+                            let parent_next = self.parent_map.get(&next_element);
+                            if parent_next.is_some() {
+                                let parent = parent_next.unwrap();
+                                let parent_element = self.parent_map.get(&element);
+                                if parent_element.is_some() {
+                                    parent == parent_element.unwrap()
+                                } else {
+                                    false
+                                }
+                            } else {
+                                false
+                            }
+                        }
+                        ComplexQueryJoinType::Also => next_element == element,
+                    };
+                    if matches_link {
+                        next_results.push(next_element);
+                    }
+                }
+            }
+            let mut ids = self.next_complex(next_results, next_query);
+            match link {
+                ComplexQueryJoinType::Silbling => ids.append(&mut all.clone()), // For silblings, it's an ADDITION, not a filter, so we keep the previous results. Just like ,
+                _ => {}
+            };
+            return ids;
+        }
+    }
+
+    fn is_decendant_of(&self, child: i32, ancestor: i32) -> bool {
+        let parent = self.parent_map.get(&child);
+        if parent.is_some() {
+            if *parent.unwrap() == ancestor {
+                return true;
+            } else {
+                return self.is_decendant_of(*parent.unwrap(), ancestor);
+            }
+        } else {
+            return false;
+        }
     }
 
     pub fn register_event(&mut self, event_type: String, target: i32, handler: i32) {

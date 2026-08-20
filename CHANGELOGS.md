@@ -121,3 +121,23 @@ Ok, big commit here.
 + Added (kind-of) input-icon styling option, same var as select-icon, but different name for clarity
 
 ### Commit msg: "+ New element: input ~ Fixed bug in center + added slider to the mod.rs (was removed for some reason) + Added center-type styling option for <Center /> element (align/center) + Added (kind-of) input-icon styling option, same var as select-icon, but different name for clarity"
+
+## Last commit: d76ed823949fb12726c65d220740dc827a04a92b
+Big commit here.
++ New selector type: Complex, allows for:
+  - > (child selector)
+  - " " (descendant selector)
+  - ~ (sibling selector) [no +, all siblings are selected no matter before or after]
+  - Tag#id.class (more specific selector)
++ New enum: ComplexQueryJoinType (Descendant, Child, Silbling, Also)
++ New struct: ComplexQuery, allows for complex queries to be built, recursive
+~ Updated parse_selector to support complex queries
++ New CSS parsing function: split_complex_selector
+~ Updated: init_element_from_xml: new argument (mandatory): `parent_uid: i32`
+~ Updated elements to support `parent_uid: i32` argument
+~ Updated element renderer to support parent-child relationships, and to support complex queries
++ New utility: `is_alphabetic` (checks if a string is alphabetic)
++ New DOM element API: Dom::query_selector, allows for complex queries to be used on the DOM. DOESN'T SUPPORT `,`!!
+
+### Commit msg: "Added complex selector support"
+### Other: -m "Big commit here." -m "+ New selector type: Complex, allows for:" -m "  - > (child selector)" -m "  - " " (descendant selector)" -m "  - ~ (sibling selector) [no +, all siblings are selected no matter before or after]" -m "  - Tag#id.class (more specific selector)" -m "+ New enum: ComplexQueryJoinType (Descendant, Child, Silbling, Also)" -m "+ New struct: ComplexQuery, allows for complex queries to be built, recursive" -m "~ Updated parse_selector to support complex queries" -m "+ New CSS parsing function: split_complex_selector" -m "~ Updated: init_element_from_xml: new argument (mandatory): `parent_uid: i32`" -m "~ Updated elements to support `parent_uid: i32` argument" -m "~ Updated element renderer to support parent-child relationships, and to support complex queries" -m "+ New utility: `is_alphabetic` (checks if a string is alphabetic)" -m "+ New DOM element API: Dom::query_selector, allows for complex queries to be used on the DOM. DOESN'T SUPPORT `,`!!"

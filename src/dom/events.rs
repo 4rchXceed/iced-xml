@@ -1,7 +1,88 @@
 use crate::{
-    dom::query::DomEvent, xml_engine::DynamicEvent,
+    css_reader::{CssReader, Selector, split_complex_selector},
+    dom::query::DomEvent,
+    xml_engine::DynamicEvent,
     xml_struct::element_renderer::extract_selector_style_flag,
 };
+
+#[derive(Debug)]
+pub enum ComplexQueryJoinType {
+    Descendant, // " "
+    Child,      // ">"
+    Silbling,   // "~"
+    Also,       // Tag#id.class
+}
+
+impl ComplexQueryJoinType {
+    pub fn from(s: Option<char>) -> Option<Self> {
+        if s.is_none() {
+            return None;
+        } else {
+            return Some(match s.as_ref().unwrap() {
+                ' ' => ComplexQueryJoinType::Descendant,
+                '>' => ComplexQueryJoinType::Child,
+                '~' => ComplexQueryJoinType::Silbling,
+                '=' => ComplexQueryJoinType::Also,
+                _ => panic!(
+                    "Invalid complex query join type: {} [shouldn't happen]",
+                    s.unwrap()
+                ),
+            });
+        }
+    }
+}
+
+// a b > c
+// d ~ e
+
+#[derive(Debug)]
+pub struct ComplexQuery {
+    pub query: DomQueryType,
+    pub next: Option<Box<ComplexQuery>>,
+    pub link_next: Option<ComplexQueryJoinType>,
+}
+
+impl ComplexQuery {
+    pub fn new(mut query_part: String, link: Option<char>) -> Self {
+        query_part.push_str(",");
+        let query: Selector = CssReader::new(query_part.as_str()).parse_selector();
+        let query_type = gen_query_type(query.selector_type, query.content);
+        match query_type {
+            DomQueryType::Complex(_) => {
+                println!(
+                    "Complex query type is not supported in ComplexQuery: {:?}",
+                    query_type
+                );
+                return Self {
+                    query: DomQueryType::Unused,
+                    next: None,
+                    link_next: ComplexQueryJoinType::from(link),
+                };
+            }
+            _ => {}
+        }
+        return Self {
+            query: query_type,
+            next: None,
+            link_next: ComplexQueryJoinType::from(link),
+        };
+    }
+
+    fn next(mut full: Vec<(String, Option<char>)>) -> Self {
+        let (query_part, link_next) = full.remove(0);
+        let mut base = ComplexQuery::new(query_part, link_next);
+        if full.len() > 0 {
+            base.next = Some(Box::new(ComplexQuery::next(full)));
+        }
+        return base;
+    }
+
+    pub fn from(full_query: String) -> Self {
+        let full = split_complex_selector(full_query);
+        println!("Complex query parts: {:?}", full);
+        return ComplexQuery::next(full);
+    }
+}
 
 #[derive(Debug, Clone, Hash)]
 pub enum DomQueryType {
@@ -9,6 +90,7 @@ pub enum DomQueryType {
     ByUid(i32),
     Class(String),
     Tag(String),
+    Complex(String),
     All,
     Unused,
 }
@@ -19,18 +101,23 @@ pub struct DomQuery {
     pub flag: Option<String>,
 }
 
+pub fn gen_query_type(selector_type: String, val: String) -> DomQueryType {
+    return match selector_type.as_str() {
+        "id" => DomQueryType::ById(val),
+        "uid" => DomQueryType::ByUid(val.parse::<i32>().unwrap()),
+        "class" => DomQueryType::Class(val),
+        "tag" => DomQueryType::Tag(val),
+        "all" => DomQueryType::All,
+        "complex" => DomQueryType::Complex(val),
+        "none" => DomQueryType::Unused,
+        _ => panic!("Invalid query type: {}", selector_type),
+    };
+}
+
 impl DomQuery {
     pub fn new(selector_type: String, val: String, flag: Option<String>) -> Self {
-        let selector = match selector_type.as_str() {
-            "id" => DomQueryType::ById(val),
-            "uid" => DomQueryType::ByUid(val.parse::<i32>().unwrap()),
-            "class" => DomQueryType::Class(val),
-            "tag" => DomQueryType::Tag(val),
-            "all" => DomQueryType::All,
-            _ => panic!("Invalid query type: {}", selector_type),
-        };
         return Self {
-            query_type: selector,
+            query_type: gen_query_type(selector_type, val),
             flag: flag,
         };
     }

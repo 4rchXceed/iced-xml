@@ -18,13 +18,13 @@ pub struct Trigger {
 }
 
 impl ElementBase for Trigger {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, _: i32) -> Self {
+    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
         if xml_element.children.len() > 1 {
             panic!("Trigger element can only have zero or one child");
         }
         let mut child: Option<i32> = None;
         if xml_element.children.len() == 1 {
-            child = Some(renderer.init_element_from_xml(&xml_element.children[0]));
+            child = Some(renderer.init_element_from_xml(&xml_element.children[0], self_uid));
         }
         let mut anticipated_pixels: f32 = 0.0;
         let mut time_to_trigger: u64 = 0;

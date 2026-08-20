@@ -1,5 +1,6 @@
 use crate::{
     dom::query::EventResponse,
+    rs_utils::get_unique_id,
     xml_engine::Message,
     xml_struct::{element_renderer::ElementRenderer, parser::XmlElement},
 };
@@ -18,7 +19,7 @@ impl XmlWindow {
             panic!("Root element must be a <Window></Window>");
         }
         let mut element_renderer = ElementRenderer::new();
-        let uid = element_renderer.init_element_from_xml(&root);
+        let uid = element_renderer.init_element_from_xml(&root, get_unique_id());
 
         Self {
             // title: String::new(),
