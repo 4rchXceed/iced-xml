@@ -86,7 +86,7 @@ impl ElementBase for RadioButton {
             .text_wrapping(theme.text_wrapping)
             .width(theme.width)
             .style(move |_, _| iced::widget::radio::Style {
-                background: iced::Background::Color(theme.background_color),
+                background: theme.background,
                 border_color: theme.border_color,
                 border_width: theme.border_width,
                 dot_color: theme.icon_color,

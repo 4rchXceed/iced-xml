@@ -1,4 +1,4 @@
-use iced::{Background, widget::scrollable::AutoScroll};
+use iced::widget::scrollable::AutoScroll;
 
 // Copy-paste template
 use crate::{
@@ -85,7 +85,7 @@ impl ElementBase for Scroll {
             .style(move |_, _| iced::widget::scrollable::Style {
                 container: iced::widget::container::Style {
                     text_color: Some(theme.foreground_color),
-                    background: Some(Background::Color(theme.background_color)),
+                    background: Some(theme.background),
                     border: iced::Border {
                         color: theme.border_color,
                         width: theme.border_width,
@@ -99,14 +99,14 @@ impl ElementBase for Scroll {
                     snap: theme.snap,
                 },
                 vertical_rail: iced::widget::scrollable::Rail {
-                    background: Some(Background::Color(scrollbar.background_color)),
+                    background: Some(scrollbar.background),
                     border: iced::Border {
                         color: scrollbar.border_color,
                         width: scrollbar.border_width,
                         radius: scrollbar.border_radius,
                     },
                     scroller: iced::widget::scrollable::Scroller {
-                        background: Background::Color(scrollbar_scroller.background_color),
+                        background: scrollbar_scroller.background,
                         border: iced::Border {
                             color: scrollbar_scroller.border_color,
                             width: scrollbar_scroller.border_width,
@@ -115,14 +115,14 @@ impl ElementBase for Scroll {
                     },
                 },
                 horizontal_rail: iced::widget::scrollable::Rail {
-                    background: Some(Background::Color(scrollbar.background_color)),
+                    background: Some(scrollbar.background),
                     border: iced::Border {
                         color: scrollbar.border_color,
                         width: scrollbar.border_width,
                         radius: scrollbar.border_radius,
                     },
                     scroller: iced::widget::scrollable::Scroller {
-                        background: Background::Color(scrollbar_scroller.background_color),
+                        background: scrollbar_scroller.background,
                         border: iced::Border {
                             color: scrollbar_scroller.border_color,
                             width: scrollbar_scroller.border_width,
@@ -130,9 +130,9 @@ impl ElementBase for Scroll {
                         },
                     },
                 },
-                gap: Some(Background::Color(gap.background_color)),
+                gap: Some(gap.background),
                 auto_scroll: AutoScroll {
-                    background: Background::Color(autoscroll.background_color),
+                    background: autoscroll.background,
                     border: iced::Border {
                         color: autoscroll.border_color,
                         width: autoscroll.border_width,

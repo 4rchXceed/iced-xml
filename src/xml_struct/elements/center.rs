@@ -1,5 +1,3 @@
-use iced::Background;
-
 use crate::{
     dom::query::QueryResponse,
     xml_engine::Message,
@@ -70,7 +68,7 @@ impl ElementBase for Center {
             .height(theme.height)
             .style(move |_| iced::widget::container::Style {
                 text_color: Some(theme.foreground_color),
-                background: Some(Background::Color(theme.background_color)),
+                background: Some(theme.background),
                 border: iced::Border {
                     color: theme.border_color,
                     width: theme.border_width,

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use iced::{
-    Background, Border, Color, Length,
+    Border, Color, Length,
     widget::{self, button, row},
 };
 
@@ -395,7 +395,7 @@ impl ElementBase for WindowSystem {
             .spacing(theme.spacing)
             .style(move |_| iced::widget::pane_grid::Style {
                 hovered_region: widget::pane_grid::Highlight {
-                    background: Background::Color(hover_region.background_color),
+                    background: hover_region.background,
                     border: Border {
                         color: hover_region.border_color,
                         width: hover_region.border_width,

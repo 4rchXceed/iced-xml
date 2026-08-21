@@ -65,7 +65,7 @@ impl ElementBase for Checkbox {
             .text_wrapping(theme.text_wrapping)
             .width(theme.width)
             .style(move |_, _| iced::widget::checkbox::Style {
-                background: iced::Background::Color(theme.background_color),
+                background: theme.background,
                 border: iced::Border {
                     color: theme.border_color,
                     width: theme.border_width,

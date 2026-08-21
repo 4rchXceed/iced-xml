@@ -1,7 +1,5 @@
 use std::ops::RangeInclusive;
 
-use iced::Background;
-
 // Copy-paste template
 use crate::{
     dom::query::{EventResponse, QueryResponse},
@@ -117,10 +115,7 @@ impl ElementBase for Slider {
             .step(self.step)
             .style(move |_, _| iced::widget::slider::Style {
                 rail: iced::widget::slider::Rail {
-                    backgrounds: (
-                        Background::Color(theme.background_color),
-                        Background::Color(theme.foreground_color),
-                    ),
+                    backgrounds: (theme.background, theme.foreground_element),
                     width: theme.slider_rail_width,
                     border: iced::Border {
                         color: theme.border_color,
@@ -130,7 +125,7 @@ impl ElementBase for Slider {
                 },
                 handle: iced::widget::slider::Handle {
                     shape: handle_theme.slider_handle_shape.clone(),
-                    background: Background::Color(handle_theme.background_color),
+                    background: handle_theme.background,
                     border_width: handle_theme.border_width,
                     border_color: handle_theme.border_color,
                 },

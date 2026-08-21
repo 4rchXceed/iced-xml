@@ -1,9 +1,10 @@
 use hex_rgb_converter::HexColor;
 use iced::{
-    Color, Font, Length, Padding, Pixels, Vector,
+    Background, Color, Font, Length, Padding, Pixels, Vector,
     alignment::{Horizontal, Vertical},
     border::Radius,
     font::{Family, Stretch, Weight},
+    gradient::ColorStop,
     widget::{
         slider::HandleShape,
         text::{LineHeight, Shaping, Wrapping},
@@ -11,7 +12,7 @@ use iced::{
     },
 };
 
-use crate::xml_struct::theming::XmlTheme;
+use crate::{rs_utils::to_rad, xml_struct::theming::XmlTheme};
 
 pub fn parse_length(value: &String) -> Length {
     if value.ends_with("fp") {
@@ -34,6 +35,13 @@ pub fn parse_length(value: &String) -> Length {
         println!("Invalid length: {}", value);
         return Length::Fixed(0.0);
     }
+}
+
+pub fn parse_color_op(color: &String) -> Option<Color> {
+    if color.trim() == "none" || color.trim().is_empty() {
+        return None;
+    }
+    return Some(parse_color(color));
 }
 
 pub fn parse_color(color: &String) -> Color {
@@ -571,4 +579,74 @@ pub fn parse_center_type(value: &str) -> bool {
             false
         }
     };
+}
+
+pub fn parse_background(value: &str) -> Background {
+    let err_msg = format!(
+        "Linear gradiant must be in this format: linear-gradient(Ndeg, <color>,...) (max 8 colors). Currently: {}",
+        value
+    );
+    let fallback = Background::Color(Color::TRANSPARENT);
+    let value = value.trim();
+    if value.starts_with("linear-gradient(") && value.ends_with(")") {
+        let value = value
+            .strip_prefix("linear-gradient(")
+            .unwrap()
+            .strip_suffix(")")
+            .unwrap();
+        let parts: Vec<&str> = value.split("deg").collect();
+        if parts.len() > 0 {
+            let rotation_unparsed = parts[0].trim();
+            let rotation = rotation_unparsed.parse::<f32>();
+            if rotation.is_err() {
+                println!("{}", err_msg);
+                return fallback;
+            }
+            let rotation_rad = to_rad(rotation.unwrap());
+            let value = value.split_once("deg").unwrap().1.trim().strip_prefix(",");
+            if value.is_none() {
+                println!("{}", err_msg);
+                return fallback;
+            }
+            let gradiant_stops: Vec<&str> = value
+                .unwrap()
+                .split("%")
+                .map(|s| s.trim().strip_prefix(",").unwrap_or(s).trim_start())
+                .filter(|s| !s.is_empty())
+                .collect();
+            let mut colors: [Option<ColorStop>; 8] = [None; 8];
+            if gradiant_stops.len() > 8 {
+                println!("{}", err_msg);
+                return fallback;
+            }
+            for (i, grandiant_stop) in gradiant_stops.iter().enumerate() {
+                let grandiant_stop_parts = grandiant_stop.trim().rsplit_once(char::is_whitespace); //FIX
+                if grandiant_stop_parts.is_none() {
+                    println!("{}", err_msg);
+                    return fallback;
+                }
+                let grandiant_stop_parts = grandiant_stop_parts.unwrap();
+                let color = parse_color(&String::from(grandiant_stop_parts.0));
+
+                let position = grandiant_stop_parts.1.parse::<f32>();
+                if position.is_err() {
+                    println!("{}", err_msg);
+                    return fallback;
+                }
+                colors[i] = Some(ColorStop {
+                    color: color,
+                    offset: position.unwrap() / 100.0,
+                });
+            }
+            return Background::Gradient(iced::Gradient::Linear(iced::gradient::Linear {
+                angle: iced::Radians(rotation_rad),
+                stops: colors,
+            }));
+        } else {
+            println!("{}", err_msg);
+            return fallback;
+        }
+    } else {
+        return Background::Color(parse_color(&String::from(value)));
+    }
 }

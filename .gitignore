@@ -5,3 +5,4 @@ examples/benchmark/target/
 tmp/
 examples/tests
 .zed
+devenv-scripts/

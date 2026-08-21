@@ -1,6 +1,6 @@
 use std::panic;
 
-use iced::{Background, Border, Shadow};
+use iced::{Border, Shadow};
 
 use crate::{
     dom::query::{EventResponse, QueryResponse},
@@ -77,7 +77,7 @@ impl ElementBase for Button {
 
         let mut button = button
             .style(move |_, _| iced::widget::button::Style {
-                background: Some(Background::Color(theme.background_color)),
+                background: Some(theme.background),
                 text_color: theme.foreground_color,
                 border: Border {
                     color: theme.border_color,

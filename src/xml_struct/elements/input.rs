@@ -56,7 +56,7 @@ impl ElementBase for Input {
             .padding(theme.padding)
             .width(theme.width)
             .style(move |_, _| iced::widget::text_input::Style {
-                background: iced::Background::Color(theme.background_color),
+                background: theme.background,
                 border: iced::Border {
                     color: theme.border_color,
                     width: theme.border_width,

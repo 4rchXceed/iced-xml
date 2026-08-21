@@ -1,5 +1,5 @@
 use iced::{
-    Color, Font, Length, Padding, Vector,
+    Background, Color, Font, Length, Padding, Vector,
     alignment::{Horizontal, Vertical},
     border::Radius,
     widget::{
@@ -11,18 +11,21 @@ use iced::{
 };
 
 use crate::parse_utils::{
-    check_anchor, parse_align_x, parse_align_y, parse_center_type, parse_checkbox_icon,
-    parse_color, parse_font, parse_font_family, parse_font_stretch, parse_font_style,
-    parse_font_weight, parse_length, parse_line_height, parse_padding, parse_radius,
-    parse_select_icon, parse_shaping, parse_slider_handle_theme, parse_text_wrapping,
-    parse_two_f32, parse_value, parse_value_int, parse_value_maybe, parse_vector,
+    check_anchor, parse_align_x, parse_align_y, parse_background, parse_center_type,
+    parse_checkbox_icon, parse_color, parse_color_op, parse_font, parse_font_family,
+    parse_font_stretch, parse_font_style, parse_font_weight, parse_length, parse_line_height,
+    parse_padding, parse_radius, parse_select_icon, parse_shaping, parse_slider_handle_theme,
+    parse_text_wrapping, parse_two_f32, parse_value, parse_value_int, parse_value_maybe,
+    parse_vector,
 };
 
 // The theme struct
 #[derive(Debug, Clone)]
 pub struct XmlTheme {
-    pub background_color: Color,
+    pub background: Background,
+    pub background_color: Option<Color>,
     pub foreground_color: Color,
+    pub foreground_element: Background,
     pub snap: bool,
     pub shadow_color: Color,
     pub shadow_blur_radius: f32,
@@ -52,7 +55,7 @@ pub struct XmlTheme {
     pub input_placeholder_color: Color,
     pub selection_color: Color,
     pub select_menu_height: Length,
-    pub selected_background_color: Color,
+    pub selected_background: Background,
     pub selected_text_color: Color,
     pub center_x: bool,
     pub center_y: bool,
@@ -77,8 +80,8 @@ impl XmlTheme {
      * Changes the values of the current theme to match the values of `changes` only on the properties that are different between `first` and `second`.
      */
     pub fn apply_only_changes(&mut self, first: &XmlTheme, second: &XmlTheme, changes: &XmlTheme) {
-        if first.background_color != second.background_color {
-            self.background_color = changes.background_color;
+        if first.background != second.background {
+            self.background = changes.background;
         }
         if first.foreground_color != second.foreground_color {
             self.foreground_color = changes.foreground_color;
@@ -185,8 +188,8 @@ impl XmlTheme {
         if first.select_menu_height != second.select_menu_height {
             self.select_menu_height = changes.select_menu_height;
         }
-        if first.selected_background_color != second.selected_background_color {
-            self.selected_background_color = changes.selected_background_color;
+        if first.selected_background != second.selected_background {
+            self.selected_background = changes.selected_background;
         }
         if first.selected_text_color != second.selected_text_color {
             self.selected_text_color = changes.selected_text_color;
@@ -242,14 +245,19 @@ impl XmlTheme {
         if first.center_use_align != second.center_use_align {
             self.center_use_align = changes.center_use_align;
         }
+        if first.foreground_element != second.foreground_element {
+            self.foreground_element = changes.foreground_element;
+        }
     }
 }
 
 impl Default for XmlTheme {
     fn default() -> Self {
         Self {
-            background_color: Color::TRANSPARENT,
+            background_color: None,
+            background: Background::Color(Color::TRANSPARENT),
             foreground_color: Color::BLACK,
+            foreground_element: Background::Color(Color::TRANSPARENT),
             snap: false,
             shadow_color: Color::TRANSPARENT,
             shadow_blur_radius: 0.0,
@@ -279,7 +287,7 @@ impl Default for XmlTheme {
             input_placeholder_color: Color::BLACK,
             selection_color: Color::BLACK,
             select_menu_height: Length::Shrink,
-            selected_background_color: Color::from_rgb(0.8, 0.8, 0.8),
+            selected_background: Background::Color(Color::from_rgb(0.8, 0.8, 0.8)),
             selected_text_color: Color::BLACK,
             center_x: false,
             center_y: false,
@@ -303,7 +311,9 @@ impl Default for XmlTheme {
 
 pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
     match key.as_str() {
-        "bg" => theme.background_color = parse_color(value),
+        "bg" => theme.background = parse_background(value),
+        "fg-elem" => theme.foreground_element = parse_background(value),
+        "bg-color" => theme.background_color = parse_color_op(value),
         "fg" => theme.foreground_color = parse_color(value),
         "snap" => theme.snap = value == "true",
         "shadow-color" => theme.shadow_color = parse_color(value),
@@ -345,7 +355,7 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         "input-placeholder-color" => theme.input_placeholder_color = parse_color(value),
         "input-selection-color" => theme.selection_color = parse_color(value),
         "select-menu-height" => theme.select_menu_height = parse_length(value),
-        "current-item-bg" => theme.selected_background_color = parse_color(value),
+        "current-item-bg" => theme.selected_background = parse_background(value),
         "current-item-fg" => theme.selected_text_color = parse_color(value),
         "max-height" => theme.max_height = parse_value(value),
         "scale" => theme.scale = parse_value(value),

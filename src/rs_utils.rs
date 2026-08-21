@@ -1,4 +1,4 @@
-use std::{cell::Cell, collections::HashMap};
+use std::{cell::Cell, collections::HashMap, f32::consts::PI};
 
 // Unique ID for all windows:
 thread_local! {
@@ -123,4 +123,8 @@ pub struct VectorWH {
 
 pub fn is_alphabetic(s: &str) -> bool {
     return s.chars().all(|c| c.is_alphabetic() || c == '-' || c == '_');
+}
+
+pub fn to_rad(degrees: f32) -> f32 {
+    return degrees * PI / 180.0;
 }

@@ -1,4 +1,4 @@
-use iced::{Background, Border, Shadow};
+use iced::{Border, Shadow};
 
 // Copy-paste template
 use crate::{
@@ -52,7 +52,7 @@ impl ElementBase for Container {
             .padding(theme.padding)
             .width(theme.width)
             .style(move |_| iced::widget::container::Style {
-                background: Some(Background::Color(theme.background_color)),
+                background: Some(theme.background),
                 shadow: Shadow {
                     color: theme.shadow_color,
                     offset: theme.shadow_offset,

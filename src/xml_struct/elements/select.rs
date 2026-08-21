@@ -145,7 +145,7 @@ impl ElementBase for Select {
         if datas.flag_themes.get("input").is_some() {
             let theme = datas.flag_themes.get("input").cloned().unwrap();
             combo_box = combo_box.input_style(move |_, _| iced::widget::text_input::Style {
-                background: iced::Background::Color(theme.background_color), // TODO: Add support for gradient backgrounds
+                background: theme.background, // TODO: Add support for gradient backgrounds
                 border: Border {
                     color: theme.border_color,
                     radius: theme.border_radius,
@@ -161,14 +161,14 @@ impl ElementBase for Select {
         if datas.flag_themes.get("select-menu").is_some() {
             let theme = datas.flag_themes.get("select-menu").cloned().unwrap();
             combo_box = combo_box.menu_style(move |_| iced::overlay::menu::Style {
-                background: iced::Background::Color(theme.background_color), // TODO: Add support for gradient backgrounds
+                background: theme.background, // TODO: Add support for gradient backgrounds
                 border: Border {
                     color: theme.border_color,
                     radius: theme.border_radius,
                     width: theme.border_width,
                 },
                 text_color: theme.foreground_color,
-                selected_background: iced::Background::Color(theme.selected_background_color),
+                selected_background: theme.selected_background,
                 selected_text_color: theme.selected_text_color,
                 shadow: Shadow {
                     color: theme.shadow_color,

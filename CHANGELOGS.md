@@ -141,3 +141,15 @@ Big commit here.
 
 ### Commit msg: "Added complex selector support"
 ### Other: -m "Big commit here." -m "+ New selector type: Complex, allows for:" -m "  - > (child selector)" -m "  - " " (descendant selector)" -m "  - ~ (sibling selector) [no +, all siblings are selected no matter before or after]" -m "  - Tag#id.class (more specific selector)" -m "+ New enum: ComplexQueryJoinType (Descendant, Child, Silbling, Also)" -m "+ New struct: ComplexQuery, allows for complex queries to be built, recursive" -m "~ Updated parse_selector to support complex queries" -m "+ New CSS parsing function: split_complex_selector" -m "~ Updated: init_element_from_xml: new argument (mandatory): `parent_uid: i32`" -m "~ Updated elements to support `parent_uid: i32` argument" -m "~ Updated element renderer to support parent-child relationships, and to support complex queries" -m "+ New utility: `is_alphabetic` (checks if a string is alphabetic)" -m "+ New DOM element API: Dom::query_selector, allows for complex queries to be used on the DOM. DOESN'T SUPPORT `,`!!"
+
+## Last commit: 0fad054e6ba01de0c263f9fc3fbe80f0041edd36
++ Renamed background_color to background
++ Added background parser with gradient support
++ Retyped background from Color to Background
+~ Updated the elements to use the new background system
++ Added to_rad util
++ Added fg-elem styling option
++ Added parse_color_op parser
+
+### Commit msg: "Gradient background support"
+### Other: -m "+ Renamed background_color to background" -m "Added background parser with gradient support" -m "Retyped background from Color to Background" -m "Updated the elements to use the new background system" -m "Added to_rad util" -m "Added fg-elem styling option" -m "Added parse_color_op parser"

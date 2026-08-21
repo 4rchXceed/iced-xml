@@ -60,8 +60,8 @@ impl ElementBase for Progress {
         progress = progress
             .length(theme.width)
             .style(move |_| iced::widget::progress_bar::Style {
-                background: iced::Background::Color(theme.background_color),
-                bar: iced::Background::Color(theme.foreground_color),
+                background: theme.background,
+                bar: theme.foreground_element,
                 border: Border {
                     radius: theme.border_radius,
                     width: theme.border_width,
