@@ -121,10 +121,58 @@ pub struct VectorWH {
     pub height: HashableF32,
 }
 
+#[derive(Debug, Clone, Hash)]
+pub struct VectorXY {
+    pub x: HashableF32,
+    pub y: HashableF32,
+}
+
 pub fn is_alphabetic(s: &str) -> bool {
     return s.chars().all(|c| c.is_alphabetic() || c == '-' || c == '_');
 }
 
 pub fn to_rad(degrees: f32) -> f32 {
     return degrees * PI / 180.0;
+}
+
+#[derive(Debug, Clone)]
+pub struct HashableTextareaEdit(iced::widget::text_editor::Edit);
+
+impl HashableTextareaEdit {
+    pub fn new(value: iced::widget::text_editor::Edit) -> Self {
+        HashableTextareaEdit(value)
+    }
+    pub fn value(&self) -> &iced::widget::text_editor::Edit {
+        return &self.0;
+    }
+}
+
+impl std::hash::Hash for HashableTextareaEdit {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match &self.0 {
+            iced::widget::text_editor::Edit::Backspace => {
+                0.hash(state);
+            }
+            iced::widget::text_editor::Edit::Delete => {
+                1.hash(state);
+            }
+            iced::widget::text_editor::Edit::Enter => {
+                2.hash(state);
+            }
+            iced::widget::text_editor::Edit::Indent => {
+                3.hash(state);
+            }
+            iced::widget::text_editor::Edit::Insert(ch) => {
+                4.hash(state);
+                ch.hash(state);
+            }
+            iced::widget::text_editor::Edit::Unindent => {
+                5.hash(state);
+            }
+            iced::widget::text_editor::Edit::Paste(text) => {
+                6.hash(state);
+                text.hash(state);
+            }
+        }
+    }
 }

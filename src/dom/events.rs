@@ -79,7 +79,6 @@ impl ComplexQuery {
 
     pub fn from(full_query: String) -> Self {
         let full = split_complex_selector(full_query);
-        println!("Complex query parts: {:?}", full);
         return ComplexQuery::next(full);
     }
 }

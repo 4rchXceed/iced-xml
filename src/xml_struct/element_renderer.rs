@@ -509,10 +509,14 @@ impl ElementRenderer {
                 .filter(|v| v.target == uid)
                 .collect::<Vec<&EventListener>>();
             let (element, datas) = element.unwrap();
-            let mut datas = datas.clone();
-            datas.child_data = child_data;
-            let output = render_element(element, self, datas, events, uid);
-            return output;
+            if datas.default_theme.enable {
+                let mut datas = datas.clone();
+                datas.child_data = child_data;
+                let output = render_element(element, self, datas, events, uid);
+                return output;
+            } else {
+                return iced::widget::Space::new().height(0).width(0).into(); // Best thing I found so far to "hide" an element.
+            }
         } else {
             return text(format!("Element with id {} not found", uid)).into();
         }

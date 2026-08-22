@@ -37,8 +37,9 @@ impl XmlWindow {
             .into();
     }
 
-    pub fn emit_event(&mut self, event_uid: i32, event_data: EventResponse, is_dynamic: bool) {
+    pub fn emit_event(&mut self, event_uid: i32, mut event_data: EventResponse, is_dynamic: bool) {
         if is_dynamic {
+            event_data.timer_id = Some(event_uid);
             self.fired_events.push((event_uid, event_data.clone()));
         } else {
             if event_uid != -1 {

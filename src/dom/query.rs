@@ -6,9 +6,11 @@ use crate::{
     app_manager::{App, WindowId},
     dom::events::{DomInternalMessageType, DomMessage, DomQuery, DomQueryResult, DomQueryType},
     rs_utils::{
-        HashableF32, HashableGridTarget, HashableHashMap, ScrollState, VectorWH, get_unique_id,
+        HashableF32, HashableGridTarget, HashableHashMap, ScrollState, VectorWH, VectorXY,
+        get_unique_id,
     },
     xml_engine::{DynamicEvent, Message, XmlEngine},
+    xml_struct::elements::textarea::TextareaEvent,
 };
 
 #[derive(Debug, Clone, Hash)]
@@ -18,6 +20,8 @@ pub struct DomEvent {
     pub data_int: Option<i32>,
     pub data_float: Option<HashableF32>,
     pub data_tabledata: Option<Vec<HashableHashMap<String, String>>>,
+    pub data_textarea_event: Option<TextareaEvent>,
+    pub data_vector: Option<VectorXY>,
 }
 
 impl DomEvent {
@@ -28,6 +32,8 @@ impl DomEvent {
             data_int: None,
             data_float: None,
             data_tabledata: None,
+            data_textarea_event: None,
+            data_vector: None,
         }
     }
 
@@ -62,6 +68,11 @@ impl DomEvent {
         );
         self
     }
+
+    pub fn with_textarea_event(&mut self, value: TextareaEvent) -> &mut Self {
+        self.data_textarea_event = Some(value);
+        self
+    }
 }
 
 #[derive(Debug, Clone, Hash)]
@@ -69,6 +80,7 @@ pub struct EventResponse {
     // HERE: All properties in Option<> for every event response, so that we can return None if the event is not applicable to the element
     pub next_timeout: Option<u64>,
     pub is_timeout: bool,
+    pub timer_id: Option<i32>, // useful for clear_timer
     pub target_uid: i32,
     pub event_type: String,
     pub target: Option<DomQuery>,
@@ -83,28 +95,19 @@ pub struct EventResponse {
     pub window_system_data_split: Option<iced::widget::pane_grid::Split>,
     pub window_system_data_target: Option<HashableGridTarget>,
     pub scrollable_scroll_state: Option<ScrollState>,
+    pub textarea_event: Option<TextareaEvent>,
 }
 
 impl EventResponse {
     pub fn new(uid: i32, event_type: String) -> Self {
         Self {
-            next_timeout: None,
-            is_timeout: false,
             target: Some(DomQuery {
                 query_type: DomQueryType::ByUid(uid),
                 flag: None,
             }),
             target_uid: uid,
-            data_str: None,
-            data_bool: None,
-            data_int: None,
             event_type: event_type,
-            window_system_data_window: None,
-            window_system_data_split: None,
-            data_float: None,
-            window_system_data_target: None,
-            scrollable_scroll_state: None,
-            data_vectorwh: None,
+            ..Default::default()
         }
     }
 }
@@ -117,6 +120,7 @@ impl Default for EventResponse {
             target: None,
             data_str: None,
             event_type: String::new(),
+            timer_id: None,
             target_uid: -1,
             data_bool: None,
             data_int: None,
@@ -126,6 +130,7 @@ impl Default for EventResponse {
             window_system_data_target: None,
             scrollable_scroll_state: None,
             data_vectorwh: None,
+            textarea_event: None,
         }
     }
 }
@@ -138,6 +143,7 @@ pub struct QueryResponse {
     pub data_str: Option<String>,
     pub data_bool: Option<bool>,
     pub data_float: Option<HashableF32>,
+    pub data_vector: Option<VectorXY>,
 }
 
 impl QueryResponse {
@@ -149,6 +155,7 @@ impl QueryResponse {
             data_str: None,
             data_bool: None,
             data_float: None,
+            data_vector: None,
         }
     }
 
@@ -171,6 +178,8 @@ pub struct Query<WindowState, AppState> {
 pub struct QueryBuilder<WindowState, AppState> {
     queries: Vec<Query<WindowState, AppState>>,
     pub last: QueryResponse,
+    last_timer_id: Option<i32>,
+    ignore_timer: Vec<i32>,
 }
 
 impl<Window, AppState> QueryBuilder<Window, AppState> {
@@ -178,6 +187,8 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
         Self {
             queries: Vec::new(),
             last: QueryResponse::new(false),
+            last_timer_id: None,
+            ignore_timer: Vec::new(),
         }
     }
 
@@ -238,11 +249,12 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
     }
 
     pub fn set_timeout(&mut self, timeout: i32) -> &mut Self {
+        self.last_timer_id = Some(get_unique_id());
         let dom_message = DomMessage {
             message: DomInternalMessageType::SubscribeDynamicEvent(DynamicEvent::SetTimeout(
                 timeout,
             )),
-            uid: get_unique_id(),
+            uid: self.last_timer_id.unwrap(),
             selector: DomQuery {
                 query_type: DomQueryType::Unused,
                 flag: None,
@@ -253,17 +265,28 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
     }
 
     pub fn set_interval(&mut self, interval: i32) -> &mut Self {
+        self.last_timer_id = Some(get_unique_id());
         let dom_message = DomMessage {
             message: DomInternalMessageType::SubscribeDynamicEvent(DynamicEvent::SetInterval(
                 interval,
             )),
-            uid: get_unique_id(),
+            uid: self.last_timer_id.unwrap(),
             selector: DomQuery {
                 query_type: DomQueryType::Unused,
                 flag: None,
             },
         };
         self.build_query(&mut DomQueryResult::from_dom_message(dom_message));
+        self
+    }
+
+    pub fn get_timer_id(&mut self, id: &mut Option<i32>) -> &mut Self {
+        *id = self.last_timer_id;
+        self
+    }
+
+    pub fn clear_timer(&mut self, timer_id: i32) -> &mut Self {
+        self.ignore_timer.push(timer_id);
         self
     }
 
@@ -297,27 +320,29 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
         let mut subscriptions = Vec::new();
         for dynamic_event in engine.dyn_events.iter() {
             let (uid, event) = dynamic_event;
-            let every: i32;
-            let mut ev_data = EventResponse::default();
-            match event {
-                DynamicEvent::SetInterval(interval) => {
-                    every = *interval;
-                    ev_data.next_timeout = Some(*interval as u64);
+            if !self.ignore_timer.contains(uid) {
+                let every: i32;
+                let mut ev_data = EventResponse::default();
+                match event {
+                    DynamicEvent::SetInterval(interval) => {
+                        every = *interval;
+                        ev_data.next_timeout = Some(*interval as u64);
+                    }
+                    DynamicEvent::SetTimeout(timeout) => {
+                        every = *timeout;
+                        ev_data.is_timeout = true;
+                    }
+                };
+                if every >= 0 {
+                    let ev_uid = uid.clone();
+                    subscriptions.push(
+                        time::every(Duration::from_millis(every.clone() as u64))
+                            .with(Message::DomEvent(ev_uid, ev_data.clone()))
+                            .map(|a| a.0),
+                    );
+                } else {
+                    println!("! set_interval or set_timeout event less than 0 interval/timeout");
                 }
-                DynamicEvent::SetTimeout(timeout) => {
-                    every = *timeout;
-                    ev_data.is_timeout = true;
-                }
-            };
-            if every >= 0 {
-                let ev_uid = uid.clone();
-                subscriptions.push(
-                    time::every(Duration::from_millis(every.clone() as u64))
-                        .with(Message::DomEvent(ev_uid, ev_data.clone()))
-                        .map(|a| a.0),
-                );
-            } else {
-                println!("! set_interval or set_timeout event less than 0 interval/timeout");
             }
         }
         return Subscription::batch(subscriptions);

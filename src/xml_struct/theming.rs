@@ -11,7 +11,7 @@ use iced::{
 };
 
 use crate::parse_utils::{
-    check_anchor, parse_align_x, parse_align_y, parse_background, parse_center_type,
+    check_anchor, parse_align_x, parse_align_y, parse_background, parse_bool, parse_center_type,
     parse_checkbox_icon, parse_color, parse_color_op, parse_font, parse_font_family,
     parse_font_stretch, parse_font_style, parse_font_weight, parse_length, parse_line_height,
     parse_padding, parse_radius, parse_select_icon, parse_shaping, parse_slider_handle_theme,
@@ -22,6 +22,7 @@ use crate::parse_utils::{
 // The theme struct
 #[derive(Debug, Clone)]
 pub struct XmlTheme {
+    pub enable: bool,
     pub background: Background,
     pub background_color: Option<Color>,
     pub foreground_color: Color,
@@ -73,6 +74,18 @@ pub struct XmlTheme {
     pub table_padding: (f32, f32), // Padding for table cells (x, y)
     pub table_separator_width: (f32, f32), // Width for table separators
     pub center_use_align: bool, // Whether to use align_x and align_y for centering instead of center_all
+    pub textarea_min_height: f32, // Minimum height some elements (text editor)
+    pub textarea_width: Option<f32>, // Width for text editors, since it's not a Length
+}
+
+macro_rules! check {
+    ($first: expr, $second: expr, $changes: expr, $self: expr,  { $($name:ident),* $(,)? }) => {
+        $(
+            if $first.$name != $second.$name {
+                $self.$name = $changes.$name;
+            }
+        )*
+    };
 }
 
 impl XmlTheme {
@@ -80,84 +93,6 @@ impl XmlTheme {
      * Changes the values of the current theme to match the values of `changes` only on the properties that are different between `first` and `second`.
      */
     pub fn apply_only_changes(&mut self, first: &XmlTheme, second: &XmlTheme, changes: &XmlTheme) {
-        if first.background != second.background {
-            self.background = changes.background;
-        }
-        if first.foreground_color != second.foreground_color {
-            self.foreground_color = changes.foreground_color;
-        }
-        if first.snap != second.snap {
-            self.snap = changes.snap;
-        }
-        if first.shadow_color != second.shadow_color {
-            self.shadow_color = changes.shadow_color;
-        }
-        if first.shadow_blur_radius != second.shadow_blur_radius {
-            self.shadow_blur_radius = changes.shadow_blur_radius;
-        }
-        if first.shadow_offset != second.shadow_offset {
-            self.shadow_offset = changes.shadow_offset;
-        }
-        if first.border_color != second.border_color {
-            self.border_color = changes.border_color;
-        }
-        if first.border_radius != second.border_radius {
-            self.border_radius = changes.border_radius;
-        }
-        if first.border_width != second.border_width {
-            self.border_width = changes.border_width;
-        }
-        if first.clip != second.clip {
-            self.clip = changes.clip;
-        }
-        if first.height != second.height {
-            self.height = changes.height;
-        }
-        if first.width != second.width {
-            self.width = changes.width;
-        }
-        if first.padding != second.padding {
-            self.padding = changes.padding;
-        }
-        if first.spacing != second.spacing {
-            self.spacing = changes.spacing;
-        }
-        if first.max_width != second.max_width {
-            self.max_width = changes.max_width;
-        }
-        if first.align_x != second.align_x {
-            self.align_x = changes.align_x;
-        }
-        if first.align_y != second.align_y {
-            self.align_y = changes.align_y;
-        }
-        if first.wrap != second.wrap {
-            self.wrap = changes.wrap;
-        }
-        if first.center_all != second.center_all {
-            self.center_all = changes.center_all;
-        }
-        if first.font != second.font {
-            self.font = changes.font;
-        }
-        if first.shaping != second.shaping {
-            self.shaping = changes.shaping;
-        }
-        if first.size != second.size {
-            self.size = changes.size;
-        }
-        if first.font_size != second.font_size {
-            self.font_size = changes.font_size;
-        }
-        if first.text_wrapping != second.text_wrapping {
-            self.text_wrapping = changes.text_wrapping;
-        }
-        if first.checkbox_icon != second.checkbox_icon {
-            self.checkbox_icon = changes.checkbox_icon.clone();
-        }
-        if first.line_height != second.line_height {
-            self.line_height = changes.line_height;
-        }
         if first.select_icon.is_some() && second.select_icon.is_some() {
             let a = first.select_icon.clone().unwrap();
             let b = second.select_icon.clone().unwrap();
@@ -176,84 +111,76 @@ impl XmlTheme {
                 && side_a == side_b
             {}
         }
-        if first.icon_color != second.icon_color {
-            self.icon_color = changes.icon_color;
-        }
-        if first.input_placeholder_color != second.input_placeholder_color {
-            self.input_placeholder_color = changes.input_placeholder_color;
-        }
-        if first.selection_color != second.selection_color {
-            self.selection_color = changes.selection_color;
-        }
-        if first.select_menu_height != second.select_menu_height {
-            self.select_menu_height = changes.select_menu_height;
-        }
-        if first.selected_background != second.selected_background {
-            self.selected_background = changes.selected_background;
-        }
-        if first.selected_text_color != second.selected_text_color {
-            self.selected_text_color = changes.selected_text_color;
-        }
-        if first.center_x != second.center_x {
-            self.center_x = changes.center_x;
-        }
-        if first.center_y != second.center_y {
-            self.center_y = changes.center_y;
-        }
-        if first.max_height != second.max_height {
-            self.max_height = changes.max_height;
-        }
-        if first.scale != second.scale {
-            self.scale = changes.scale;
-        }
-        if first.grid_columns != second.grid_columns {
-            self.grid_columns = changes.grid_columns;
-        }
-        if first.grid_responsive_width != second.grid_responsive_width {
-            self.grid_responsive_width = changes.grid_responsive_width;
-        }
-        if first.grid_width != second.grid_width {
-            self.grid_width = changes.grid_width;
-        }
-        if first.pane_min_size != second.pane_min_size {
-            self.pane_min_size = changes.pane_min_size;
-        }
         if first.scroll_anchor != second.scroll_anchor {
             self.scroll_anchor = changes.scroll_anchor.clone();
-        }
-        if first.progress_height != second.progress_height {
-            self.progress_height = changes.progress_height;
-        }
-        if first.slider_height != second.slider_height {
-            self.slider_height = changes.slider_height;
-        }
-        if first.slider_rail_width != second.slider_rail_width {
-            self.slider_rail_width = changes.slider_rail_width;
         }
         if first.slider_handle_shape != second.slider_handle_shape {
             self.slider_handle_shape = changes.slider_handle_shape.clone();
         }
-        if first.table_padding != second.table_padding {
-            self.table_padding = changes.table_padding;
+        if first.checkbox_icon != second.checkbox_icon {
+            self.checkbox_icon = changes.checkbox_icon.clone();
         }
-        if first.table_separator_width != second.table_separator_width {
-            self.table_separator_width = changes.table_separator_width;
-        }
-        if first.table_separator_width != second.table_separator_width {
-            self.table_separator_width = changes.table_separator_width;
-        }
-        if first.center_use_align != second.center_use_align {
-            self.center_use_align = changes.center_use_align;
-        }
-        if first.foreground_element != second.foreground_element {
-            self.foreground_element = changes.foreground_element;
-        }
+        check!(first, second, changes, self, {
+            enable,
+            background,
+            foreground_color,
+            snap,
+            shadow_color,
+            shadow_blur_radius,
+            shadow_offset,
+            border_color,
+            border_radius,
+            border_width,
+            clip,
+            height,
+            width,
+            padding,
+            spacing,
+            max_width,
+            align_x,
+            align_y,
+            wrap,
+            center_all,
+            font,
+            shaping,
+            size,
+            font_size,
+            text_wrapping,
+            line_height,
+            icon_color,
+            input_placeholder_color,
+            selection_color,
+            select_menu_height,
+            selected_background,
+            selected_text_color,
+            center_x,
+            center_y,
+            max_height,
+            scale,
+            grid_columns,
+            grid_responsive_width,
+            grid_width,
+            pane_min_size,
+            progress_height,
+            slider_height,
+            slider_rail_width,
+            table_padding,
+            table_separator_width,
+            table_separator_width,
+            center_use_align,
+            foreground_element,
+            enable,
+            background_color,
+            textarea_min_height,
+            textarea_width,
+        });
     }
 }
 
 impl Default for XmlTheme {
     fn default() -> Self {
         Self {
+            enable: true,
             background_color: None,
             background: Background::Color(Color::TRANSPARENT),
             foreground_color: Color::BLACK,
@@ -305,24 +232,27 @@ impl Default for XmlTheme {
             table_padding: (0.0, 0.0),
             table_separator_width: (1.0, 1.0),
             center_use_align: false,
+            textarea_min_height: 0.0,
+            textarea_width: None,
         }
     }
 }
 
 pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
     match key.as_str() {
+        "enable" => theme.enable = parse_bool(value),
         "bg" => theme.background = parse_background(value),
         "fg-elem" => theme.foreground_element = parse_background(value),
         "bg-color" => theme.background_color = parse_color_op(value),
         "fg" => theme.foreground_color = parse_color(value),
-        "snap" => theme.snap = value == "true",
+        "snap" => theme.snap = parse_bool(value),
         "shadow-color" => theme.shadow_color = parse_color(value),
         "shadow-blur" => theme.shadow_blur_radius = parse_value(value),
         "shadow-offset" => theme.shadow_offset = parse_vector(value),
         "border-color" => theme.border_color = parse_color(value),
         "border-radius" => theme.border_radius = parse_radius(value),
         "border-width" => theme.border_width = parse_value(value),
-        "clip" => theme.clip = value == "true",
+        "clip" => theme.clip = parse_bool(value),
         "height" => theme.height = parse_length(value),
         "width" => theme.width = parse_length(value),
         "padding" => theme.padding = parse_padding(value),
@@ -330,7 +260,7 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         "align-x" => theme.align_x = parse_align_x(value),
         "spacing" => theme.spacing = parse_value(value),
         "align-y" => theme.align_y = parse_align_y(value),
-        "wrap" => theme.wrap = value == "true",
+        "wrap" => theme.wrap = parse_bool(value),
         "center" => {
             theme.center_all = value == "all";
             theme.center_x = value == "x";
@@ -352,8 +282,8 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         "select-icon" => theme.select_icon = parse_select_icon(value, &theme.font),
         "input-icon" => theme.select_icon = parse_select_icon(value, &theme.font),
         "icon-color" => theme.icon_color = parse_color(value),
-        "input-placeholder-color" => theme.input_placeholder_color = parse_color(value),
-        "input-selection-color" => theme.selection_color = parse_color(value),
+        "placeholder-color" => theme.input_placeholder_color = parse_color(value),
+        "selection-color" => theme.selection_color = parse_color(value),
         "select-menu-height" => theme.select_menu_height = parse_length(value),
         "current-item-bg" => theme.selected_background = parse_background(value),
         "current-item-fg" => theme.selected_text_color = parse_color(value),
@@ -373,6 +303,8 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         "table-padding" => theme.table_padding = parse_two_f32(value),
         "table-separator" => theme.table_separator_width = parse_two_f32(value),
         "center-type" => theme.center_use_align = parse_center_type(value),
+        "min-height" => theme.textarea_min_height = parse_value(value),
+        "editor-width" => theme.textarea_width = parse_value(value).into(),
         _ => {
             println!("Unknown theme property: {} = {}", key, value);
         }

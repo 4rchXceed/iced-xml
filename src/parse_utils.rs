@@ -650,3 +650,17 @@ pub fn parse_background(value: &str) -> Background {
         return Background::Color(parse_color(&String::from(value)));
     }
 }
+
+pub fn parse_bool(value: &str) -> bool {
+    return match value {
+        "true" => true,
+        "false" => false,
+        _ => {
+            println!(
+                "Invalid boolean value: {}, expected true or false. Using false as default",
+                value
+            );
+            false
+        }
+    };
+}

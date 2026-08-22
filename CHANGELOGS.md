@@ -140,7 +140,7 @@ Big commit here.
 + New DOM element API: Dom::query_selector, allows for complex queries to be used on the DOM. DOESN'T SUPPORT `,`!!
 
 ### Commit msg: "Added complex selector support"
-### Other: -m "Big commit here." -m "+ New selector type: Complex, allows for:" -m "  - > (child selector)" -m "  - " " (descendant selector)" -m "  - ~ (sibling selector) [no +, all siblings are selected no matter before or after]" -m "  - Tag#id.class (more specific selector)" -m "+ New enum: ComplexQueryJoinType (Descendant, Child, Silbling, Also)" -m "+ New struct: ComplexQuery, allows for complex queries to be built, recursive" -m "~ Updated parse_selector to support complex queries" -m "+ New CSS parsing function: split_complex_selector" -m "~ Updated: init_element_from_xml: new argument (mandatory): `parent_uid: i32`" -m "~ Updated elements to support `parent_uid: i32` argument" -m "~ Updated element renderer to support parent-child relationships, and to support complex queries" -m "+ New utility: `is_alphabetic` (checks if a string is alphabetic)" -m "+ New DOM element API: Dom::query_selector, allows for complex queries to be used on the DOM. DOESN'T SUPPORT `,`!!"
+### Other: -m "Big commit here." -m "+ New selector type: Complex, allows for:" -m "  - > (child selector)" -m "  - ' ' (descendant selector)" -m "  - ~ (sibling selector) [no +, all siblings are selected no matter before or after]" -m "  - Tag#id.class (more specific selector)" -m "+ New enum: ComplexQueryJoinType (Descendant, Child, Silbling, Also)" -m "+ New struct: ComplexQuery, allows for complex queries to be built, recursive" -m "~ Updated parse_selector to support complex queries" -m "+ New CSS parsing function: split_complex_selector" -m "~ Updated: init_element_from_xml: new argument (mandatory): parent_uid: i32" -m "~ Updated elements to support parent_uid: i32 argument" -m "~ Updated element renderer to support parent-child relationships, and to support complex queries" -m "+ New utility: is_alphabetic (checks if a string is alphabetic)" -m "+ New DOM element API: Dom::query_selector, allows for complex queries to be used on the DOM. DOESN'T SUPPORT ,!!"
 
 ## Last commit: 0fad054e6ba01de0c263f9fc3fbe80f0041edd36
 + Renamed background_color to background
@@ -153,3 +153,15 @@ Big commit here.
 
 ### Commit msg: "Gradient background support"
 ### Other: -m "+ Renamed background_color to background" -m "Added background parser with gradient support" -m "Retyped background from Color to Background" -m "Updated the elements to use the new background system" -m "Added to_rad util" -m "Added fg-elem styling option" -m "Added parse_color_op parser"
+
+## Last commit a48f58ce2001aa13209a6630006e2ec0a498fcd9
++ Added enable css property to the styling system (allows for disabling elements)
++ Added parse_bool parser to the styling system
++ Added new element: <Textarea /> for multi-line text input
++ Added textarea_event for textarea: user can listen to these events and also emit them
++ Added a way to cancel set_interval and set_timeout events (via query builder's function cancel_interval, and an ID)
++ Fixed the 2000 ifs in the theming system, it's now a macro
++ Added HashableTextareaEdit element
+
+### Commit msg: "Added textarea element, enable property, and ability to cancel interval/timeout events"
+### Other: -m "+ Added enable css property to the styling system (allows for disabling elements)" -m "+ Added parse_bool parser to the styling system" -m "+ Added new element: <Textarea /> for multi-line text input" -m "+ Added textarea_event for textarea: user can listen to these events and also emit them" -m "+ Added a way to cancel set_interval and set_timeout events (via query builder's function cancel_interval, and an ID)" -m "+ Fixed the 2000 ifs in the theming system, it's now a macro" -m "+ Added HashableTextareaEdit element"
