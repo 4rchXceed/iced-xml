@@ -1,5 +1,7 @@
 use std::{cell::Cell, collections::HashMap, f32::consts::PI};
 
+use crate::xml_struct::parser::XmlElement;
+
 // Unique ID for all windows:
 thread_local! {
     static CURRENT_UID: Cell<i32> = Cell::new(1);
@@ -174,5 +176,31 @@ impl std::hash::Hash for HashableTextareaEdit {
                 text.hash(state);
             }
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct HashableXmlElement(XmlElement);
+
+impl HashableXmlElement {
+    pub fn new(value: XmlElement) -> Self {
+        HashableXmlElement(value)
+    }
+    pub fn value(&self) -> &XmlElement {
+        return &self.0;
+    }
+}
+
+impl std::hash::Hash for HashableXmlElement {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.tag.hash(state);
+        HashableHashMap::new(self.0.attributes.clone()).hash(state);
+        self.0.text.hash(state);
+        for child in &self.0.children {
+            HashableXmlElement::new(child.clone()).hash(state);
+        }
+        self.0.id.hash(state);
+        self.0.classes.hash(state);
+        HashableHashMap::new(self.0.datas.clone()).hash(state);
     }
 }

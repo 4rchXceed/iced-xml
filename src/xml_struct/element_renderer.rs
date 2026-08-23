@@ -696,6 +696,24 @@ impl ElementRenderer {
         }
     }
 
+    pub fn get_source(&self, uid: i32) -> Option<XmlElement> {
+        return self.sources_map.get(&uid).cloned();
+    }
+
+    pub fn replace_element(&mut self, element_uid: i32, new_element: XmlElement) -> DomQuery {
+        self.remove_cascade(element_uid, false);
+        let element = generate_element_from_tag(&new_element, self, element_uid);
+        if element.is_some() {
+            self.init_element(element.unwrap(), Some(new_element), None, element_uid);
+        } else {
+            panic!("Block: <{} /> doesn't exists", &new_element.tag);
+        }
+        return DomQuery {
+            query_type: DomQueryType::ByUid(element_uid),
+            flag: None,
+        };
+    }
+
     pub fn remove_cascade(&mut self, element_uid: i32, is_parent: bool) -> Option<XmlElement> {
         let mut children = self
             .parent_map
@@ -717,6 +735,11 @@ impl ElementRenderer {
         self.id_map.retain(|_, &mut v| v != element_uid);
         self.classes_map.retain(|_, v| !v.contains(&element_uid));
         self.tags_map.retain(|_, v| !v.contains(&element_uid));
+        for event_listener in self.event_listeners.iter_mut() {
+            if event_listener.target == element_uid {
+                event_listener.handlers.clear();
+            }
+        }
         let mut source = None;
         if is_parent {
             source = self.sources_map.get(&element_uid).cloned();

@@ -1,8 +1,9 @@
 use crate::{
     css_reader::{CssReader, Selector, split_complex_selector},
     dom::query::DomEvent,
+    rs_utils::HashableXmlElement,
     xml_engine::DynamicEvent,
-    xml_struct::element_renderer::extract_selector_style_flag,
+    xml_struct::{element_renderer::extract_selector_style_flag, parser::XmlElement},
 };
 
 #[derive(Debug)]
@@ -140,6 +141,8 @@ pub enum DomInternalMessageType {
     GetData(String),                     // key
     FireEvent(String, DomEvent),         // event name, event data
     Remove,                              // remove element
+    Replace(HashableXmlElement),         // replace element with new one
+    GetElement,                          // get the element's source
 }
 
 #[derive(Debug, Clone)]
@@ -258,6 +261,26 @@ impl DomQueryResult {
     pub fn remove(&mut self) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::Remove,
+            uid: -1,
+            selector: self.query_event.clone(),
+        };
+        self.event = Some(event);
+        return self;
+    }
+
+    pub fn replace(&mut self, new_element: XmlElement) -> &mut Self {
+        let event = DomMessage {
+            message: DomInternalMessageType::Replace(HashableXmlElement::new(new_element.clone())),
+            uid: -1,
+            selector: self.query_event.clone(),
+        };
+        self.event = Some(event);
+        return self;
+    }
+
+    pub fn get_element(&mut self) -> &mut Self {
+        let event = DomMessage {
+            message: DomInternalMessageType::GetElement,
             uid: -1,
             selector: self.query_event.clone(),
         };

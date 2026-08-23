@@ -145,6 +145,7 @@ pub struct QueryResponse {
     pub data_float: Option<HashableF32>,
     pub data_vector: Option<VectorXY>,
     pub data_element: Option<XmlElement>,
+    pub data_selector: Option<DomQuery>,
 }
 
 impl QueryResponse {
@@ -158,6 +159,7 @@ impl QueryResponse {
             data_float: None,
             data_vector: None,
             data_element: None,
+            data_selector: None,
         }
     }
 

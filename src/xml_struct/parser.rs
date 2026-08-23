@@ -57,11 +57,62 @@ impl XmlElement {
             datas: HashMap::new(),
         }
     }
+    pub fn set_tag(&mut self, tag: &str) {
+        self.tag = String::from(tag);
+    }
+    pub fn set_text(&mut self, text: &str) {
+        self.text = String::from(text);
+    }
+    pub fn set_attributes(&mut self, attributes: HashMap<String, String>) {
+        self.attributes = attributes;
+    }
+    pub fn set_children(&mut self, children: Vec<XmlElement>) {
+        self.children = children;
+    }
+    pub fn apply_css(&mut self, key: &str, value: &str) {
+        gen_styles(
+            &String::from(key),
+            &String::from(value),
+            &mut self.theme,
+            &Fonts::default(),
+        );
+    }
+    pub fn append_child(&mut self, child: XmlElement) {
+        self.children.push(child);
+    }
+    pub fn remove_child(&mut self, index: usize) {
+        if index < self.children.len() {
+            self.children.remove(index);
+        }
+    }
+    pub fn children_count(&self) -> usize {
+        self.children.len()
+    }
+    pub fn set_id(&mut self, id: &str) {
+        self.id = Some(String::from(id));
+    }
+    pub fn clear_id(&mut self) {
+        self.id = None;
+    }
+    pub fn add_class(&mut self, class: &str) {
+        if !self.classes.contains(&String::from(class)) {
+            self.classes.push(String::from(class));
+        }
+    }
+    pub fn remove_class(&mut self, class: &str) {
+        self.classes.retain(|c| c != class);
+    }
+    pub fn add_data(&mut self, key: &str, value: &str) {
+        self.datas.insert(String::from(key), String::from(value));
+    }
+    pub fn remove_data(&mut self, key: &str) {
+        self.datas.remove(key);
+    }
 }
 
 impl std::fmt::Display for XmlElement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut attributes_string = self
+        let attributes_string = self
             .attributes
             .iter()
             .map(|(k, v)| format!("{}=\"{}\"", k, v))
@@ -73,12 +124,6 @@ impl std::fmt::Display for XmlElement {
             .map(|child| format!("{}", child))
             .collect::<Vec<String>>()
             .join("");
-        if self.id.is_some() {
-            attributes_string.push_str(&format!(" id=\"{}\"", self.id.as_ref().unwrap()));
-        }
-        if !self.classes.is_empty() {
-            attributes_string.push_str(&format!(" classes=\"{}\"", self.classes.join(" ")));
-        }
         write!(
             f,
             "<{} {}>{}{}</{}>",

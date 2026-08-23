@@ -157,6 +157,20 @@ impl XmlEngine {
                     qr.data_element = source;
                     qr
                 }
+                DomInternalMessageType::Replace(ref replacing_element) => {
+                    let selector = self
+                        .window
+                        .element_renderer
+                        .replace_element(element, replacing_element.value().clone());
+                    let mut qr = QueryResponse::new(true);
+                    qr.data_selector = Some(selector);
+                    qr
+                }
+                DomInternalMessageType::GetElement => {
+                    let mut qr = QueryResponse::new(true);
+                    qr.data_element = self.window.element_renderer.get_source(element);
+                    qr
+                }
                 DomInternalMessageType::GetData(ref key) => {
                     let data = self.window.element_renderer.get_data(element, &key.clone());
                     if data.is_some() {

@@ -6,7 +6,7 @@ use crate::{
 
 pub type AppResult = iced::Result;
 
-pub fn render(engine: &XmlEngine) -> iced::Element<'_, Message> {
+pub fn render<'a>(engine: &'a XmlEngine) -> iced::Element<'a, Message> {
     return engine.view();
 }
 #[cfg(feature = "css-watcher")]

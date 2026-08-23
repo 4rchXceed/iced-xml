@@ -202,3 +202,11 @@ Finished all non-features elements for iced-xml, I can now focus on the missing 
 
 ### Commit msg: "Added new element: <Void />, and new Dom element API: .remove(), and new utils functions for parsing XmlElement from string"
 ### Other: -m "+ Added new element: <Void />, does nothing." -m "+ Added new Dom element API: .remove(). The query response will contain the removed element's source." -m "+ Added a way to display an XmlElement as a string (for debugging purposes)" -m "+ Added 4 'utils' functions:" -m "  - xml() -> parses a string into an XmlElement" -m "  - try_xml() -> tries to parse a string into an XmlElement, returns Result<XmlElement, String>" -m "  - xml_fonts() and try_xml_fonts() -> same as above, but with custom fonts support"
+
+## Last commit: 24b67b86584cef3008ee43b618d48e74e00eb73e
++ Added XMLElement modification methods
++ Added .replace() method to the Dom element API, allows for replacing an element with another element
++ Added .get_element() method to the Dom element API, allows for getting an xml element from it's uid
+
+### Commit msg: "Added XMLElement modification methods, and new Dom element API methods: .replace() and .get_element()"
+### Other: -m "+ Added XMLElement modification methods" -m "+ Added .replace() method to the Dom element API, allows for replacing an element with another element" -m "+ Added .get_element() method to the Dom element API, allows for getting an xml element from it's uid"
