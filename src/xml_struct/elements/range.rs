@@ -9,6 +9,7 @@ use crate::{
         element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
         elements::element_base::ElementBase,
         parser::{XmlChangeEvent, XmlElement},
+        theming::XmlTheme,
     },
 };
 
@@ -20,16 +21,85 @@ pub fn parse_property(val: String) -> (QueryResponse, Option<f32>) {
     return (QueryResponse::new(true), Some(new_value.unwrap()));
 }
 
-pub struct Slider {
+pub struct Range {
     min: f32,
     max: f32,
     value: f32,
     default: Option<f32>,
     step: f32,
     second_step: Option<f32>,
+    vertical: bool,
 }
 
-impl ElementBase for Slider {
+impl Range {
+    fn horizontal<'a>(
+        &self,
+        theme: XmlTheme,
+        on_input: impl Fn(f32) -> Message + 'a,
+        on_release: Option<Message>,
+        style: iced::widget::slider::Style,
+    ) -> iced::Element<'a, Message> {
+        let mut slider = iced::widget::Slider::new(
+            RangeInclusive::new(self.min, self.max),
+            self.value,
+            on_input,
+        );
+        slider = slider
+            .height(theme.slider_height)
+            .width(theme.width)
+            .step(self.step)
+            .style(move |_, _| style);
+
+        if on_release.is_some() {
+            slider = slider.on_release(on_release.unwrap());
+        }
+
+        if self.second_step.is_some() {
+            slider = slider.shift_step(self.second_step.unwrap());
+        }
+
+        if self.default.is_some() {
+            slider = slider.default(self.default.unwrap());
+        }
+
+        return slider.into();
+    }
+
+    fn vertical<'a>(
+        &self,
+        theme: XmlTheme,
+        on_input: impl Fn(f32) -> Message + 'a,
+        on_release: Option<Message>,
+        style: iced::widget::slider::Style,
+    ) -> iced::Element<'a, Message> {
+        let mut slider = iced::widget::VerticalSlider::new(
+            RangeInclusive::new(self.min, self.max),
+            self.value,
+            on_input,
+        );
+        slider = slider
+            .height(theme.height)
+            .width(theme.vertical_slider_width)
+            .step(self.step)
+            .style(move |_, _| style);
+
+        if on_release.is_some() {
+            slider = slider.on_release(on_release.unwrap());
+        }
+
+        if self.second_step.is_some() {
+            slider = slider.shift_step(self.second_step.unwrap());
+        }
+
+        if self.default.is_some() {
+            slider = slider.default(self.default.unwrap());
+        }
+
+        return slider.into();
+    }
+}
+
+impl ElementBase for Range {
     fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
         let mut min = 0.0;
         let mut max = 1.0;
@@ -73,6 +143,7 @@ impl ElementBase for Slider {
             default: default,
             step: step,
             second_step: shift_step,
+            vertical: xml_element.attributes.contains_key("vertical"),
         }
     }
 
@@ -98,43 +169,18 @@ impl ElementBase for Slider {
                 _ => (),
             }
         }
+        let on_input = move |v| {
+            let mut event_response = EventResponse::new(self_uid, String::from("input"));
+            event_response.data_float = Some(HashableF32::new(v));
+            return Message::DomEvent(id, event_response);
+        };
 
-        let mut slider = iced::widget::Slider::new(
-            RangeInclusive::new(self.min, self.max),
-            self.value,
-            move |v| {
-                let mut event_response = EventResponse::new(self_uid, String::from("input"));
-                event_response.data_float = Some(HashableF32::new(v));
-                return Message::DomEvent(id, event_response);
-            },
-        );
-
-        slider = slider
-            .height(theme.slider_height)
-            .width(theme.width)
-            .step(self.step)
-            .style(move |_, _| iced::widget::slider::Style {
-                rail: iced::widget::slider::Rail {
-                    backgrounds: (theme.background, theme.foreground_element),
-                    width: theme.slider_rail_width,
-                    border: iced::Border {
-                        color: theme.border_color,
-                        width: theme.border_width,
-                        radius: theme.border_radius,
-                    },
-                },
-                handle: iced::widget::slider::Handle {
-                    shape: handle_theme.slider_handle_shape.clone(),
-                    background: handle_theme.background,
-                    border_width: handle_theme.border_width,
-                    border_color: handle_theme.border_color,
-                },
-            });
+        let mut on_release_message = None;
 
         for event in events {
             match event.event_type.as_str() {
                 "release" => {
-                    slider = slider.on_release(Message::DomEvent(
+                    on_release_message = Some(Message::DomEvent(
                         event.event_uid,
                         EventResponse::new(self_uid, String::from("release")),
                     ));
@@ -142,16 +188,28 @@ impl ElementBase for Slider {
                 _ => (),
             }
         }
-
-        if self.second_step.is_some() {
-            slider = slider.shift_step(self.second_step.unwrap());
+        let style = iced::widget::slider::Style {
+            rail: iced::widget::slider::Rail {
+                backgrounds: (theme.background, theme.foreground_element),
+                width: theme.slider_rail_width,
+                border: iced::Border {
+                    color: theme.border_color,
+                    width: theme.border_width,
+                    radius: theme.border_radius,
+                },
+            },
+            handle: iced::widget::slider::Handle {
+                shape: handle_theme.slider_handle_shape.clone(),
+                background: handle_theme.background,
+                border_width: handle_theme.border_width,
+                border_color: handle_theme.border_color,
+            },
+        };
+        if self.vertical {
+            return self.vertical(theme, on_input, on_release_message, style);
+        } else {
+            return self.horizontal(theme, on_input, on_release_message, style);
         }
-
-        if self.default.is_some() {
-            slider = slider.default(self.default.unwrap());
-        }
-
-        return slider.into();
     }
 
     fn process_event(
@@ -202,6 +260,10 @@ impl ElementBase for Slider {
                         self.second_step = r.1;
                         return Some((r.0, Vec::new(), Vec::new()));
                     }
+                    "vertical" => {
+                        self.vertical = value == "true";
+                        return Some((QueryResponse::new(true), Vec::new(), Vec::new()));
+                    }
                     _ => None,
                 };
             }
@@ -234,6 +296,10 @@ impl ElementBase for Slider {
                         if self.second_step.is_some() {
                             result.data_float = Some(HashableF32::new(self.second_step.unwrap()));
                         }
+                        return Some((result, Vec::new(), Vec::new()));
+                    }
+                    "vertical" => {
+                        result.data_bool = Some(self.vertical);
                         return Some((result, Vec::new(), Vec::new()));
                     }
                     _ => None,

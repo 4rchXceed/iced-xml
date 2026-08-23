@@ -180,3 +180,13 @@ Big commit here.
 
 ### Commit msg: "Added new element: Tooltip, and new styling options for Tooltip"
 ### Other: -m "+ Added new element: Tooltip, allows for displaying a tooltip when hovering over an element" -m "+ Added new styling options for Tooltip: tooltip-delay, tooltip-gap, tooltip-padding, tooltip-no-overflow"
+
+## Last commit: 15d3eaabe348d442a400e372e55a70dbb802ea14
++ Added vertical slider element (as part of <Range />, with the vertical xml option)
++ Added new styling option for vertical slider: vertical-slider-width
+Finished all non-features elements for iced-xml, I can now focus on the missing features with big priority for V0.1.0:
+  - User elements/style plugin
+  - XML Dom modification
+
+### Commit msg: "Added vertical slider element, and new styling option for vertical slider"
+### Other: -m "+ Added vertical slider element (as part of <Range />, with the vertical xml option)" -m "+ Added new styling option for vertical slider: vertical-slider-width"

@@ -6,37 +6,39 @@ use crate::{
         elements::{
             button::Button, center::Center, checkbox::Checkbox, col::Col, container::Container,
             element_base::ElementBase, float::FloatingElement, grid::Grid, input::Input,
-            label::Label, progress::Progress, radio::RadioButton, row::Row, scrollable::Scroll,
-            select::Select, space::Space, table::Table, textarea::Textarea, toggle::Toggle,
-            tooltip::Tooltip, trigger::Trigger, var::Var, window_system::WindowSystem,
+            label::Label, progress::Progress, radio::RadioButton, range::Range, row::Row,
+            scrollable::Scroll, select::Select, space::Space, table::Table, textarea::Textarea,
+            toggle::Toggle, tooltip::Tooltip, trigger::Trigger, var::Var,
+            window_system::WindowSystem,
         },
         parser::{XmlChangeEvent, XmlElement},
     },
 };
 
 pub enum AnyElement {
-    Label(Label),
-    Col(Col),
     Button(Button),
-    Row(Row),
     Center(Center),
     Checkbox(Checkbox),
-    Select(Select),
+    Col(Col),
     Container(Container),
     FloatingElement(FloatingElement),
     Grid(Grid),
-    WindowSystem(WindowSystem),
-    Radio(RadioButton),
-    Scroll(Scroll),
-    Progress(Progress),
-    Space(Space),
-    Trigger(Trigger),
-    Table(Table),
-    Var(Var),
     Input(Input),
+    Label(Label),
+    Progress(Progress),
+    Radio(RadioButton),
+    Row(Row),
+    Range(Range),
+    Scroll(Scroll),
+    Select(Select),
+    WindowSystem(WindowSystem),
+    Table(Table),
     Textarea(Textarea),
     Toggle(Toggle),
     Tooltip(Tooltip),
+    Trigger(Trigger),
+    Var(Var),
+    Space(Space),
 }
 
 #[rustfmt::skip]
@@ -73,6 +75,7 @@ pub fn generate_element_from_tag(
         "Textarea" => Some(AnyElement::Textarea(Textarea::new(xml_element, renderer, self_uid))),
         "Toggle" => Some(AnyElement::Toggle(Toggle::new(xml_element, renderer, self_uid))),
         "Tooltip" => Some(AnyElement::Tooltip(Tooltip::new(xml_element, renderer, self_uid))),
+        "Range" => Some(AnyElement::Range(Range::new(xml_element, renderer, self_uid))),
         _ => None,
     };
 }
@@ -111,6 +114,7 @@ pub fn render_element<'a>(
         AnyElement::Textarea(textarea) => textarea.render(renderer, datas, events, uid),
         AnyElement::Toggle(toggle) => toggle.render(renderer, datas, events, uid),
         AnyElement::Tooltip(tooltip) => tooltip.render(renderer, datas, events, uid),
+        AnyElement::Range(range) => range.render(renderer, datas, events, uid),
     };
 }
 
@@ -141,5 +145,6 @@ pub fn process_event_for_element<'a>(
         AnyElement::Textarea(textarea) => textarea.process_event(&event),
         AnyElement::Toggle(toggle) => toggle.process_event(&event),
         AnyElement::Tooltip(tooltip) => tooltip.process_event(&event),
+        AnyElement::Range(range) => range.process_event(&event),
     }
 }

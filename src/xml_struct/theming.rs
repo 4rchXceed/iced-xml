@@ -72,7 +72,8 @@ pub struct XmlTheme {
     pub pane_min_size: f32, // Minimum size for panes in a pane grid
     pub scroll_anchor: Option<String>,
     pub progress_height: Option<Length>,
-    pub slider_height: f32,     // Height for sliders, since it's not a Length
+    pub slider_height: f32, // Height for sliders, since it's not a Length
+    pub vertical_slider_width: f32, // Width for vertical sliders, since it's not a Length
     pub slider_rail_width: f32, // Width for slider rails
     pub slider_handle_shape: HandleShape, // Shape for slider handles
     pub table_padding: (f32, f32), // Padding for table cells (x, y)
@@ -189,6 +190,7 @@ impl XmlTheme {
             tooltip_gap,
             tooltip_padding,
             tooltip_no_overflow,
+            vertical_slider_width,
         });
     }
 }
@@ -256,6 +258,7 @@ impl Default for XmlTheme {
             tooltip_gap: 0.0,
             tooltip_padding: 5.0,
             tooltip_no_overflow: false,
+            vertical_slider_width: 16.0,
         }
     }
 }
@@ -333,6 +336,7 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme, fonts: &Fo
         "tooltip-gap" => theme.tooltip_gap = parse_value(value),
         "tooltip-padding" => theme.tooltip_padding = parse_value(value),
         "tooltip-no-overflow" => theme.tooltip_no_overflow = parse_bool(value),
+        "vertical-slider-width" => theme.vertical_slider_width = parse_value(value),
         _ => {
             println!("Unknown theme property: {} = {}", key, value);
         }
