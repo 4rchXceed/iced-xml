@@ -2,7 +2,7 @@ use crate::{
     dom::query::EventResponse,
     rs_utils::get_unique_id,
     xml_engine::Message,
-    xml_struct::{element_renderer::ElementRenderer, parser::XmlElement},
+    xml_struct::{element_renderer::ElementRenderer, parser::XmlElement, theming::Fonts},
 };
 
 pub struct XmlWindow {
@@ -14,11 +14,11 @@ pub struct XmlWindow {
 }
 
 impl XmlWindow {
-    pub fn new(root: XmlElement) -> Self {
+    pub fn new(root: XmlElement, fonts: Fonts) -> Self {
         if root.tag != "Window" {
             panic!("Root element must be a <Window></Window>");
         }
-        let mut element_renderer = ElementRenderer::new();
+        let mut element_renderer = ElementRenderer::new(fonts);
         let uid = element_renderer.init_element_from_xml(&root, get_unique_id());
 
         Self {

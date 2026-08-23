@@ -8,7 +8,7 @@ use quick_xml::{
 use crate::{
     css_reader::CssReader,
     dom::query::{DomEvent, EventResponse},
-    xml_struct::theming::{XmlTheme, gen_styles},
+    xml_struct::theming::{Fonts, XmlTheme, gen_styles},
 };
 
 #[derive(Debug, Clone)]
@@ -47,7 +47,7 @@ impl XmlElement {
     }
 }
 
-fn new_element(last_theme: &mut XmlTheme, e: BytesStart<'_>) -> XmlElement {
+fn new_element(last_theme: &mut XmlTheme, e: BytesStart<'_>, fonts: &Fonts) -> XmlElement {
     // last_theme = last_theme.clone();
     let mut id: Option<String> = None;
     let mut classes_string: String = String::new();
@@ -64,6 +64,7 @@ fn new_element(last_theme: &mut XmlTheme, e: BytesStart<'_>) -> XmlElement {
                     &k.strip_prefix("style:").unwrap().to_string(),
                     &v,
                     last_theme,
+                    fonts,
                 );
             }
             if k == "id" {
@@ -103,7 +104,7 @@ pub struct XmlParser {
 }
 
 impl XmlParser {
-    pub fn new(reader: &mut Reader<Cursor<Vec<u8>>>) -> Self {
+    pub fn new(reader: &mut Reader<Cursor<Vec<u8>>>, fonts: &Fonts) -> Self {
         reader.config_mut().trim_text(true);
         let mut buf = Vec::new();
         let mut stack: Vec<XmlElement> = Vec::new();
@@ -117,7 +118,7 @@ impl XmlParser {
                 }
                 Ok(Event::Eof) => break,
                 Ok(Event::Start(e)) => {
-                    let new_element = new_element(&mut last_theme, e);
+                    let new_element = new_element(&mut last_theme, e, fonts);
                     stack.push(new_element);
                 }
                 Ok(Event::Text(e)) => {
@@ -126,7 +127,7 @@ impl XmlParser {
                     }
                 }
                 Ok(Event::Empty(e)) => {
-                    let new_element = new_element(&mut last_theme, e);
+                    let new_element = new_element(&mut last_theme, e, fonts);
                     if let Some(parent) = stack.last_mut() {
                         parent.children.push(new_element);
                     } else {

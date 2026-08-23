@@ -17,6 +17,7 @@ pub mod slider;
 pub mod space;
 pub mod table;
 pub mod textarea;
+pub mod toggle;
 pub mod trigger;
 pub mod var;
 pub mod window_system;

@@ -7,8 +7,8 @@ use crate::{
             button::Button, center::Center, checkbox::Checkbox, col::Col, container::Container,
             element_base::ElementBase, float::FloatingElement, grid::Grid, input::Input,
             label::Label, progress::Progress, radio::RadioButton, row::Row, scrollable::Scroll,
-            select::Select, space::Space, table::Table, textarea::Textarea, trigger::Trigger,
-            var::Var, window_system::WindowSystem,
+            select::Select, space::Space, table::Table, textarea::Textarea, toggle::Toggle,
+            trigger::Trigger, var::Var, window_system::WindowSystem,
         },
         parser::{XmlChangeEvent, XmlElement},
     },
@@ -35,6 +35,7 @@ pub enum AnyElement {
     Var(Var),
     Input(Input),
     Textarea(Textarea),
+    Toggle(Toggle),
 }
 
 #[rustfmt::skip]
@@ -69,6 +70,7 @@ pub fn generate_element_from_tag(
         "Var" => Some(AnyElement::Var(Var::new(xml_element, renderer, self_uid))),
         "Input" => Some(AnyElement::Input(Input::new(xml_element, renderer, self_uid))),
         "Textarea" => Some(AnyElement::Textarea(Textarea::new(xml_element, renderer, self_uid))),
+        "Toggle" => Some(AnyElement::Toggle(Toggle::new(xml_element, renderer, self_uid))),
         _ => None,
     };
 }
@@ -105,6 +107,7 @@ pub fn render_element<'a>(
         AnyElement::Var(var) => var.render(renderer, datas, events, uid),
         AnyElement::Input(input) => input.render(renderer, datas, events, uid),
         AnyElement::Textarea(textarea) => textarea.render(renderer, datas, events, uid),
+        AnyElement::Toggle(toggle) => toggle.render(renderer, datas, events, uid),
     };
 }
 
@@ -133,5 +136,6 @@ pub fn process_event_for_element<'a>(
         AnyElement::Var(var) => var.process_event(&event),
         AnyElement::Input(input) => input.process_event(&event),
         AnyElement::Textarea(textarea) => textarea.process_event(&event),
+        AnyElement::Toggle(toggle) => toggle.process_event(&event),
     }
 }

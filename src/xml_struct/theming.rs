@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use iced::{
     Background, Color, Font, Length, Padding, Vector,
     alignment::{Horizontal, Vertical},
@@ -15,9 +17,11 @@ use crate::parse_utils::{
     parse_checkbox_icon, parse_color, parse_color_op, parse_font, parse_font_family,
     parse_font_stretch, parse_font_style, parse_font_weight, parse_length, parse_line_height,
     parse_padding, parse_radius, parse_select_icon, parse_shaping, parse_slider_handle_theme,
-    parse_text_wrapping, parse_two_f32, parse_value, parse_value_int, parse_value_maybe,
-    parse_vector,
+    parse_text_alignment, parse_text_wrapping, parse_two_f32, parse_value, parse_value_int,
+    parse_value_maybe, parse_vector,
 };
+
+pub type Fonts = HashMap<String, &'static str>;
 
 // The theme struct
 #[derive(Debug, Clone)]
@@ -76,6 +80,8 @@ pub struct XmlTheme {
     pub center_use_align: bool, // Whether to use align_x and align_y for centering instead of center_all
     pub textarea_min_height: f32, // Minimum height some elements (text editor)
     pub textarea_width: Option<f32>, // Width for text editors, since it's not a Length
+    pub toggle_text_alignment: iced::widget::text::Alignment,
+    pub toggle_padding_ratio: f32,
 }
 
 macro_rules! check {
@@ -173,6 +179,8 @@ impl XmlTheme {
             background_color,
             textarea_min_height,
             textarea_width,
+            toggle_text_alignment,
+            toggle_padding_ratio,
         });
     }
 }
@@ -234,11 +242,13 @@ impl Default for XmlTheme {
             center_use_align: false,
             textarea_min_height: 0.0,
             textarea_width: None,
+            toggle_text_alignment: iced::widget::text::Alignment::Default,
+            toggle_padding_ratio: 0.1,
         }
     }
 }
 
-pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
+pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme, fonts: &Fonts) {
     match key.as_str() {
         "enable" => theme.enable = parse_bool(value),
         "bg" => theme.background = parse_background(value),
@@ -266,11 +276,11 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
             theme.center_x = value == "x";
             theme.center_y = value == "y";
         }
-        "font-family" => parse_font_family(&mut theme.font.family, value),
+        "font-family" => parse_font_family(&mut theme.font.family, value, fonts),
         "font-weight" => parse_font_weight(&mut theme.font.weight, value),
         "font-stretch" => parse_font_stretch(&mut theme.font.stretch, value),
         "font-style" => parse_font_style(&mut theme.font.style, value),
-        "font" => theme.font = parse_font(value),
+        "font" => theme.font = parse_font(value, fonts),
         "shaping" => theme.shaping = parse_shaping(value),
         "element-size" => theme.size = parse_value_maybe(value),
         "text-wrapping" => theme.text_wrapping = parse_text_wrapping(value),
@@ -305,6 +315,8 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme) {
         "center-type" => theme.center_use_align = parse_center_type(value),
         "min-height" => theme.textarea_min_height = parse_value(value),
         "editor-width" => theme.textarea_width = parse_value(value).into(),
+        "toggle-text-alignment" => theme.toggle_text_alignment = parse_text_alignment(value),
+        "toggle-padding-ratio" => theme.toggle_padding_ratio = parse_value(value),
         _ => {
             println!("Unknown theme property: {} = {}", key, value);
         }

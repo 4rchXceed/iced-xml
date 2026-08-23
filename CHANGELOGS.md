@@ -165,3 +165,11 @@ Big commit here.
 
 ### Commit msg: "Added textarea element, enable property, and ability to cancel interval/timeout events"
 ### Other: -m "+ Added enable css property to the styling system (allows for disabling elements)" -m "+ Added parse_bool parser to the styling system" -m "+ Added new element: <Textarea /> for multi-line text input" -m "+ Added textarea_event for textarea: user can listen to these events and also emit them" -m "+ Added a way to cancel set_interval and set_timeout events (via query builder's function cancel_interval, and an ID)" -m "+ Fixed the 2000 ifs in the theming system, it's now a macro" -m "+ Added HashableTextareaEdit element"
+
+## Last commit: 543c043ae32f602d6dfc389bc5da5b5df33ddf3d
++ Added new "config": Fonts, allows for custom fonts to be used in the styling system (instead of ::new, use XmlEngine::with_fonts(...))
++ Added new element: <Toggle />, allows for toggling between two states (on/off) (Same as checkbox, but with a different design)
++ 2 new styling options for toggle: toggle-text-alignment and toggle-padding-ratio
+
+### Commit msg: "Added new config: Fonts, and new element: Toggle"
+### Other: -m "+ Added new 'config': Fonts, allows for custom fonts to be used in the styling system (instead of ::new, use XmlEngine::with_fonts(...))" -m "+ Added new element: <Toggle />, allows for toggling between two states (on/off) (Same as checkbox, but with a different design)" -m "+ 2 new styling options for toggle: toggle-text-alignment and toggle-padding-ratio"

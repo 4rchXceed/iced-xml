@@ -3,6 +3,7 @@ use std::io::Cursor;
 use crate::dom::events::{DomInternalMessageType, DomMessage};
 use crate::dom::query::{EventResponse, QueryResponse};
 use crate::xml_struct::parser::{XmlChangeEvent, XmlParser};
+use crate::xml_struct::theming::Fonts;
 use crate::xml_struct::window::XmlWindow;
 use iced::window;
 use quick_xml::Reader;
@@ -31,8 +32,20 @@ impl XmlEngine {
     pub fn new(xml: Vec<u8>) -> Self {
         let content: String = String::from_utf8(xml).expect("Failed to parse XML content as UTF-8");
         let reader = Reader::from_reader(Cursor::new(content.into_bytes()));
-        let window_parser = XmlParser::new(&mut reader.clone());
-        let window = XmlWindow::new(window_parser.root);
+        let window_parser = XmlParser::new(&mut reader.clone(), &Fonts::new());
+        let window = XmlWindow::new(window_parser.root, Fonts::new());
+
+        Self {
+            window: window,
+            dyn_events: Vec::new(),
+        }
+    }
+
+    pub fn with_fonts(xml: Vec<u8>, fonts: Fonts) -> Self {
+        let content: String = String::from_utf8(xml).expect("Failed to parse XML content as UTF-8");
+        let reader = Reader::from_reader(Cursor::new(content.into_bytes()));
+        let window_parser = XmlParser::new(&mut reader.clone(), &fonts);
+        let window = XmlWindow::new(window_parser.root, fonts);
 
         Self {
             window: window,

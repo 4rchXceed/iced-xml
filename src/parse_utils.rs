@@ -12,7 +12,10 @@ use iced::{
     },
 };
 
-use crate::{rs_utils::to_rad, xml_struct::theming::XmlTheme};
+use crate::{
+    rs_utils::to_rad,
+    xml_struct::theming::{Fonts, XmlTheme},
+};
 
 pub fn parse_length(value: &String) -> Length {
     if value.ends_with("fp") {
@@ -246,7 +249,7 @@ pub fn parse_value_maybe(value: &String) -> Option<f32> {
     value.parse().ok()
 }
 
-pub fn parse_font(value: &String) -> Font {
+pub fn parse_font(value: &String, fonts: &Fonts) -> Font {
     let mut family = Family::Serif;
     let mut weight = Weight::Normal;
     let mut stretch = Stretch::Normal;
@@ -262,7 +265,7 @@ pub fn parse_font(value: &String) -> Font {
         let value = parts[1];
         match key {
             "family" => {
-                parse_font_family(&mut family, value);
+                parse_font_family(&mut family, value, fonts);
             }
             "weight" => {
                 parse_font_weight(&mut weight, value);
@@ -323,14 +326,22 @@ pub fn parse_font_weight(weight: &mut Weight, value: &str) {
     }
 }
 
-pub fn parse_font_family(family: &mut Family, value: &str) {
+pub fn parse_font_family(family: &mut Family, value: &str, fonts: &Fonts) {
     *family = match value {
         "serif" => Family::Serif,
         "fantasy" => Family::Fantasy,
         "cursive" => Family::Cursive,
         "monospace" => Family::Monospace,
         "sans-serif" => Family::SansSerif,
-        _ => Family::Serif,
+        _ => {
+            let font = fonts.get(&String::from(value));
+            if font.is_some() {
+                Family::Name(font.unwrap())
+            } else {
+                println!("Invalid font family: {}, using serif as default", value);
+                Family::Serif
+            }
+        }
     }
 }
 
@@ -663,4 +674,21 @@ pub fn parse_bool(value: &str) -> bool {
             false
         }
     };
+}
+
+pub fn parse_text_alignment(value: &str) -> iced::widget::text::Alignment {
+    match value {
+        "left" => iced::widget::text::Alignment::Center,
+        "center" => iced::widget::text::Alignment::Center,
+        "right" => iced::widget::text::Alignment::Right,
+        "justified" => iced::widget::text::Alignment::Justified,
+        "default" => iced::widget::text::Alignment::Default,
+        _ => {
+            println!(
+                "Invalid text alignment: {}, expected left, center, right, justified or default. Using default as",
+                value
+            );
+            iced::widget::text::Alignment::Default
+        }
+    }
 }

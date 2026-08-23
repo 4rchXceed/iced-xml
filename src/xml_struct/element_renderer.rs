@@ -18,7 +18,7 @@ use crate::{
             radio::RadioElement,
         },
         parser::{XmlChangeEvent, XmlElement},
-        theming::{XmlTheme, gen_styles},
+        theming::{Fonts, XmlTheme, gen_styles},
     },
 };
 
@@ -76,10 +76,11 @@ pub struct ElementRenderer {
     // Custom storage for elements
     radio_button_map: HashMap<String, RadioElement>,
     string_map: HashMap<i32, String>,
+    fonts: Fonts,
 }
 
 impl ElementRenderer {
-    pub fn new() -> Self {
+    pub fn new(fonts: Fonts) -> Self {
         Self {
             elements: HashMap::new(),
             id_map: HashMap::new(),
@@ -92,6 +93,7 @@ impl ElementRenderer {
             // Specific elements for radiobuttons comm
             radio_button_map: HashMap::new(),
             string_map: HashMap::new(),
+            fonts: fonts,
         }
     }
 
@@ -205,7 +207,12 @@ impl ElementRenderer {
                                     let real_element = self.elements.get_mut(&element);
                                     if real_element.is_some() {
                                         let rule_to_change = old_flag_theme.clone();
-                                        gen_styles(&rule.name, &rule.value, &mut old_flag_theme);
+                                        gen_styles(
+                                            &rule.name,
+                                            &rule.value,
+                                            &mut old_flag_theme,
+                                            &self.fonts,
+                                        );
                                         let (_, datas) = real_element.unwrap();
                                         let mut flag_theme = datas
                                             .flag_themes
@@ -229,7 +236,12 @@ impl ElementRenderer {
                                     // Then we clone the old theme, remove the style change from a "virtual" theme
                                     let mut rule_to_change =
                                         old_theme.unwrap().default_theme.clone();
-                                    gen_styles(&rule.name, &rule.value, &mut rule_to_change);
+                                    gen_styles(
+                                        &rule.name,
+                                        &rule.value,
+                                        &mut rule_to_change,
+                                        &self.fonts,
+                                    );
                                     if real_element.is_some() {
                                         let (_, datas) = real_element.unwrap();
                                         // And revert the style change by applying only the changes from the old theme to the new theme
@@ -547,9 +559,10 @@ impl ElementRenderer {
                                         .flag_themes
                                         .entry(custom_flag.clone().unwrap())
                                         .or_insert(old_theme.default_theme.clone()),
+                                    &self.fonts,
                                 );
                             } else {
-                                gen_styles(&key, &value, &mut old_theme.default_theme);
+                                gen_styles(&key, &value, &mut old_theme.default_theme, &self.fonts);
                             }
                         }
                     }
@@ -561,7 +574,7 @@ impl ElementRenderer {
                             .entry(flag.clone())
                             .or_insert(datas.default_theme.clone());
                     }
-                    gen_styles(&key, &value, flag_theme);
+                    gen_styles(&key, &value, flag_theme, &self.fonts);
                     None
                 }
                 _ => process_event_for_element(element, event.clone()),

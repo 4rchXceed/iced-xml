@@ -282,7 +282,7 @@ impl CssReader {
             .split("::")
             .collect::<Vec<&str>>()
             .get(1)
-            .map(|s| s.to_string());
+            .map(|s| s.trim().to_string());
         let selector = selector.split("::").collect::<Vec<&str>>()[0]
             .trim()
             .to_string();
