@@ -1,5 +1,6 @@
 use std::io::Cursor;
 
+use crate::app_manager::ComponentFunctions;
 use crate::dom::events::{DomInternalMessageType, DomMessage};
 use crate::dom::query::{EventResponse, QueryResponse};
 use crate::xml_struct::parser::{XmlChangeEvent, XmlParser};
@@ -23,35 +24,30 @@ pub enum DynamicEvent {
     SetInterval(i32), // time in milliseconds
 }
 
+#[derive(Debug, Clone)]
+pub struct EngineSettings {
+    pub fonts: Fonts,
+    pub functions: ComponentFunctions,
+}
+
 pub struct XmlEngine {
     pub window: XmlWindow,
     pub dyn_events: Vec<(i32, DynamicEvent)>, // (Callback UID, DynamicEvent)
 }
 
 impl XmlEngine {
-    pub fn new(xml: Vec<u8>) -> Self {
+    pub fn new(xml: Vec<u8>, settings: EngineSettings) -> Self {
         let content: String = String::from_utf8(xml).expect("Failed to parse XML content as UTF-8");
         let reader = Reader::from_reader(Cursor::new(content.into_bytes()));
         let window_parser = XmlParser::new(&mut reader.clone(), &Fonts::new());
         if window_parser.is_err() {
             panic!("Failed to parse XML content: {:?}", window_parser.err());
         }
-        let window = XmlWindow::new(window_parser.unwrap().root, Fonts::new());
-
-        Self {
-            window: window,
-            dyn_events: Vec::new(),
-        }
-    }
-
-    pub fn with_fonts(xml: Vec<u8>, fonts: Fonts) -> Self {
-        let content: String = String::from_utf8(xml).expect("Failed to parse XML content as UTF-8");
-        let reader = Reader::from_reader(Cursor::new(content.into_bytes()));
-        let window_parser = XmlParser::new(&mut reader.clone(), &fonts);
-        if window_parser.is_err() {
-            panic!("Failed to parse XML content: {:?}", window_parser.err());
-        }
-        let window = XmlWindow::new(window_parser.unwrap().root, fonts);
+        let window = XmlWindow::new(
+            window_parser.unwrap().root,
+            settings.fonts,
+            settings.functions,
+        );
 
         Self {
             window: window,
@@ -61,7 +57,7 @@ impl XmlEngine {
 
     pub fn update(&mut self, message: Message) -> Vec<(i32, EventResponse)> {
         self.window.fired_events.clear();
-        match message {
+        match message.clone() {
             Message::DomEvent(event_uid, event_data) => {
                 let mut is_dynamic = event_data.is_timeout;
                 if event_data.next_timeout.is_some() {
@@ -75,6 +71,7 @@ impl XmlEngine {
             }
             _ => {}
         };
+
         return self.window.fired_events.clone();
     }
 

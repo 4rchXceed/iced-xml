@@ -334,9 +334,9 @@ pub fn parse_font_family(family: &mut Family, value: &str, fonts: &Fonts) {
         "monospace" => Family::Monospace,
         "sans-serif" => Family::SansSerif,
         _ => {
-            let font = fonts.get(&String::from(value));
+            let font = fonts.iter().find(|f| f.0 == String::from(value));
             if font.is_some() {
-                Family::Name(font.unwrap())
+                Family::Name(font.unwrap().1)
             } else {
                 println!("Invalid font family: {}, using serif as default", value);
                 Family::Serif

@@ -109,13 +109,19 @@ impl WindowTemplate<MainWindow, AppState> for MainWindow {
     fn get_self(&mut self) -> &mut Self {
         return self;
     }
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        return self;
+    }
 }
 
 impl MainWindow {
     fn new() -> Self {
         Self {
             qb: QueryBuilder::new(),
-            engine: XmlEngine::new(include_bytes!("main.xml").to_vec()),
+            engine: XmlEngine::new(
+                include_bytes!("main.xml").to_vec(),
+                DEFAULT_ENGINE_SETTINGS.clone(),
+            ),
             rx: None,
             watcher: None,
             first_nbr: None,

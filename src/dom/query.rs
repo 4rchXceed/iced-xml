@@ -320,7 +320,7 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
         self
     }
 
-    pub fn subscribe(&self, engine: &XmlEngine) -> Subscription<Message> {
+    pub fn subscribe(&self, engine: &XmlEngine) -> Vec<Subscription<Message>> {
         let mut subscriptions = Vec::new();
         for dynamic_event in engine.dyn_events.iter() {
             let (uid, event) = dynamic_event;
@@ -349,7 +349,8 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
                 }
             }
         }
-        return Subscription::batch(subscriptions);
+        subscriptions.append(&mut engine.window.element_renderer.subscribe_components());
+        return subscriptions;
     }
 
     pub fn fetch(

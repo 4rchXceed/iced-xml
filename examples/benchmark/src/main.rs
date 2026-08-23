@@ -234,7 +234,7 @@ impl BenchmarkMainWindow {
         }
         Self {
             qb: QueryBuilder::new(),
-            engine: XmlEngine::new(xml_content),
+            engine: XmlEngine::new(xml_content, DEFAULT_ENGINE_SETTINGS.clone()),
             #[cfg(feature = "dev-mode")]
             css_rx: None,
             #[cfg(feature = "dev-mode")]
@@ -272,6 +272,10 @@ impl WindowTemplate<BenchmarkMainWindow, AppState> for BenchmarkMainWindow {
     #[cfg(feature = "dev-mode")]
     fn set_css_watcher_rx(&mut self, rx: CssRx) {
         self.css_rx = Some(rx);
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        return self;
     }
 }
 impl BenchmarkMainWindow {

@@ -27,6 +27,14 @@ pub fn close_window(id: WindowId) -> Task<Message> {
     return window::close(id);
 }
 
+#[derive(Debug, Clone)]
+pub struct ComponentFunctions {
+    pub render: fn(&Box<dyn Any>) -> IcedElement<'_>,
+    pub update: fn(&mut Box<dyn Any>, Message, &mut dyn Any),
+    pub subscribe: fn(&Box<dyn Any>) -> Vec<Subscription<Message>>,
+    pub on_close: fn(&mut Box<dyn Any>, &mut dyn Any),
+}
+
 pub fn run_app_internal<State: 'static>(
     boot: impl application::BootFn<State, Message> + 'static,
     update: impl application::UpdateFn<State, Message> + 'static,
@@ -80,6 +88,10 @@ impl<State> App<State> {
         }
         return window_closure_queue;
     }
+
+    pub fn into_any<'a>(&'a mut self) -> Box<dyn Any + 'a> {
+        return Box::new(self);
+    }
 }
 
 #[macro_export]
@@ -90,6 +102,7 @@ macro_rules! window_manager {
             $state:ty;
             $window_creation_params:ty
         ) => {
+        use iced_xml::dom::query::EventResponse;
         use iced_xml::app_manager::{
             IcedSubscription,
             IcedElement,
@@ -103,6 +116,7 @@ macro_rules! window_manager {
             close_event_messages,
             exit_iced,
             close_window,
+            ComponentFunctions
         };
 
 
@@ -116,6 +130,73 @@ macro_rules! window_manager {
         pub enum $windows {
             $( $variant($variant) ),*
         }
+
+        pub fn render_component(window: &Box<dyn Any>) -> IcedElement<'_> {
+            if !window.is::<$windows>() {
+                panic!("Invalid window type. When you call add_component(i32, Box<dyn Any>) set the second argument to the Windows *ENUM* variant, not the struct itself. Example: add_component(1, Windows::MyWindow(...))");
+            }
+            let window = window.downcast_ref::<$windows>().unwrap();
+            return match window {
+                $(
+                    $windows::$variant(w) => w.render(),
+                )*
+            };
+        }
+
+        pub fn update_component(window: &mut Box<dyn Any>, message: Message, state: &mut dyn Any) {
+            if !window.is::<$windows>() {
+                panic!("Invalid window type");
+            }
+            if !state.is::<App<$state>>() {
+                panic!("Invalid state type");
+            }
+
+            let window = window.downcast_mut::<$windows>().unwrap();
+            let state = state.downcast_mut::<App<$state>>().unwrap();
+            match window {
+                $(
+                    $windows::$variant(w) => w.update(message, state),
+                )*
+            };
+        }
+
+        pub fn subscribe_component(window: &Box<dyn Any>) -> Vec<IcedSubscription> {
+            if !window.is::<$windows>() {
+                panic!("Invalid window type");
+            }
+            let window = window.downcast_ref::<$windows>().unwrap();
+            return match window {
+                $(
+                    $windows::$variant(w) => w.subscription(),
+                )*
+            };
+        }
+
+        pub fn on_close_component(window: &mut Box<dyn Any>, state: &mut dyn Any) {
+            if !window.is::<$windows>() {
+                panic!("Invalid window type");
+            }
+            if !state.is::<App<$state>>() {
+                panic!("Invalid state type");
+            }
+            let window = window.downcast_mut::<$windows>().unwrap();
+            let state = state.downcast_mut::<App<$state>>().unwrap();
+            match window {
+                $(
+                    $windows::$variant(w) => w.on_close(state),
+                )*
+            };
+        }
+
+        pub static DEFAULT_ENGINE_SETTINGS: iced_xml::xml_engine::EngineSettings = iced_xml::xml_engine::EngineSettings {
+            fonts: iced_xml::xml_struct::theming::Fonts::new(),
+            functions: ComponentFunctions {
+                render: render_component,
+                update: update_component,
+                subscribe: subscribe_component,
+                on_close: on_close_component,
+            }
+        };
 
         struct WindowManager {
             windows: BTreeMap<WindowId, $windows>,
@@ -193,7 +274,7 @@ macro_rules! window_manager {
                                 $(
                                     $windows::$variant(w) => w.update(message.clone(), &mut self.app_state),
                                 )*
-                            }
+                            };
                         }
                         IcedTask::none()
                     }
@@ -222,7 +303,7 @@ macro_rules! window_manager {
                     match window {
                         $(
                             $windows::$variant(w) => {
-                                subs.push(w.subscription());
+                                subs.append(&mut w.subscription());
                             },
                         )*
                     }
@@ -231,10 +312,10 @@ macro_rules! window_manager {
             }
         }
 
-        pub fn run_app(main_window_params: $window_creation_params, state: $state) -> AppResult {
+        pub fn run_app(main_window_params: $window_creation_params, gen_state: impl Fn() -> $state + 'static) -> AppResult {
             return run_app_internal(
                 move || {
-                    let app = WindowManager::new(main_window_params.clone(), state.clone());
+                    let app = WindowManager::new(main_window_params.clone(), gen_state());
                     return app;
                 },
                 WindowManager::update,

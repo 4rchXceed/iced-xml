@@ -159,6 +159,10 @@ impl DomQueryResult {
         }
     }
 
+    pub(crate) fn get_query(&self) -> &DomQuery {
+        return &self.query_event;
+    }
+
     pub fn with_flag(&mut self, flag: String) -> &mut Self {
         let style_flag = extract_selector_style_flag(&flag);
         if style_flag.is_some() {

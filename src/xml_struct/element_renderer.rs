@@ -1,8 +1,9 @@
-use std::collections::HashMap;
+use std::{any::Any, collections::HashMap};
 
-use iced::widget::text;
+use iced::{Subscription, widget::text};
 
 use crate::{
+    app_manager::ComponentFunctions,
     css_reader::{CssReader, Rule, RuleBlock, Selector},
     dom::{
         events::{ComplexQuery, ComplexQueryJoinType, DomQuery, DomQueryType},
@@ -64,6 +65,9 @@ pub struct ElementExtraData {
     pub child_data: Option<RenderChildDatas>,
 }
 
+pub type RenderComponentFn = fn(&Box<dyn Any>) -> iced::Element<'_, Message>;
+pub type UpdateComponentFn = fn(&Box<dyn Any>, Message) -> iced::Task<Message>;
+
 pub struct ElementRenderer {
     pub event_listeners: Vec<EventListener>,
     elements: HashMap<i32, (AnyElement, ElementExtraData)>,
@@ -74,6 +78,9 @@ pub struct ElementRenderer {
     virtual_elements: HashMap<i32, Vec<i32>>, // key: parent_uid, value: virtual children uids
     hot_reload_states: Option<HotReloadState>,
     sources_map: HashMap<i32, XmlElement>, // key: source name, value: XmlElement
+    pub components: HashMap<i32, Box<dyn Any>>, // Stores the components as unknown types, to be downcasted later when needed, else I need to type (<T>) the whole elementrenderer, with all sub-elements, queries etc.
+    // I know it's not the best solution, but it's way better than having everything typed
+    pub functions: ComponentFunctions,
     // Custom storage for elements
     radio_button_map: HashMap<String, RadioElement>,
     string_map: HashMap<i32, String>,
@@ -81,7 +88,7 @@ pub struct ElementRenderer {
 }
 
 impl ElementRenderer {
-    pub fn new(fonts: Fonts) -> Self {
+    pub fn new(fonts: Fonts, functions: ComponentFunctions) -> Self {
         Self {
             elements: HashMap::new(),
             id_map: HashMap::new(),
@@ -92,6 +99,8 @@ impl ElementRenderer {
             hot_reload_states: None,
             virtual_elements: HashMap::new(),
             sources_map: HashMap::new(),
+            components: HashMap::new(),
+            functions: functions,
             // Specific elements for radiobuttons comm
             radio_button_map: HashMap::new(),
             string_map: HashMap::new(),
@@ -511,11 +520,28 @@ impl ElementRenderer {
         );
     }
 
-    pub fn render_element(
+    pub fn register_component(&mut self, uid: i32, component: Box<dyn Any>) {
+        self.remove_cascade(uid, false);
+        self.components.insert(uid, component);
+    }
+
+    pub fn subscribe_components(&self) -> Vec<Subscription<Message>> {
+        let mut subscriptions = Vec::new();
+        for (_, component) in self.components.iter() {
+            subscriptions.append(&mut (self.functions.subscribe)(component));
+        }
+        return subscriptions;
+    }
+
+    pub fn render_element<'a>(
         &self,
         uid: i32,
         child_data: Option<RenderChildDatas>,
     ) -> iced::Element<'_, Message> {
+        if self.components.contains_key(&uid) {
+            let component = self.components.get(&uid).unwrap();
+            return (self.functions.render)(component);
+        }
         let element = self.elements.get(&uid);
         if element.is_some() {
             let events = self

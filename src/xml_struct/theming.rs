@@ -1,4 +1,4 @@
-use std::{collections::HashMap, time::Duration};
+use std::time::Duration;
 
 use iced::{
     Background, Color, Font, Length, Padding, Vector,
@@ -21,7 +21,7 @@ use crate::parse_utils::{
     parse_value_int, parse_value_maybe, parse_vector,
 };
 
-pub type Fonts = HashMap<String, &'static str>;
+pub type Fonts = Vec<(String, &'static str)>;
 
 // The theme struct
 #[derive(Debug, Clone)]
