@@ -21,6 +21,7 @@ pub mod toggle;
 pub mod tooltip;
 pub mod trigger;
 pub mod var;
+pub mod void;
 pub mod window_system;
 // Library
 pub mod library;

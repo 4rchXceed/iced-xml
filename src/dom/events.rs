@@ -139,6 +139,7 @@ pub enum DomInternalMessageType {
     SubscribeDynamicEvent(DynamicEvent), // dynamic events (like set_timeout, set_interval, etc.)
     GetData(String),                     // key
     FireEvent(String, DomEvent),         // event name, event data
+    Remove,                              // remove element
 }
 
 #[derive(Debug, Clone)]
@@ -247,6 +248,16 @@ impl DomQueryResult {
     pub fn fire_event(&mut self, name: &str, data: &mut DomEvent) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::FireEvent(name.to_string(), data.clone()),
+            uid: -1,
+            selector: self.query_event.clone(),
+        };
+        self.event = Some(event);
+        return self;
+    }
+
+    pub fn remove(&mut self) -> &mut Self {
+        let event = DomMessage {
+            message: DomInternalMessageType::Remove,
             uid: -1,
             selector: self.query_event.clone(),
         };

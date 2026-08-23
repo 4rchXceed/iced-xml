@@ -8,7 +8,7 @@ use crate::{
             element_base::ElementBase, float::FloatingElement, grid::Grid, input::Input,
             label::Label, progress::Progress, radio::RadioButton, range::Range, row::Row,
             scrollable::Scroll, select::Select, space::Space, table::Table, textarea::Textarea,
-            toggle::Toggle, tooltip::Tooltip, trigger::Trigger, var::Var,
+            toggle::Toggle, tooltip::Tooltip, trigger::Trigger, var::Var, void::Void,
             window_system::WindowSystem,
         },
         parser::{XmlChangeEvent, XmlElement},
@@ -39,6 +39,7 @@ pub enum AnyElement {
     Trigger(Trigger),
     Var(Var),
     Space(Space),
+    Void(Void),
 }
 
 #[rustfmt::skip]
@@ -76,6 +77,7 @@ pub fn generate_element_from_tag(
         "Toggle" => Some(AnyElement::Toggle(Toggle::new(xml_element, renderer, self_uid))),
         "Tooltip" => Some(AnyElement::Tooltip(Tooltip::new(xml_element, renderer, self_uid))),
         "Range" => Some(AnyElement::Range(Range::new(xml_element, renderer, self_uid))),
+        "Void" => Some(AnyElement::Void(Void::new(xml_element, renderer, self_uid))),
         _ => None,
     };
 }
@@ -115,6 +117,7 @@ pub fn render_element<'a>(
         AnyElement::Toggle(toggle) => toggle.render(renderer, datas, events, uid),
         AnyElement::Tooltip(tooltip) => tooltip.render(renderer, datas, events, uid),
         AnyElement::Range(range) => range.render(renderer, datas, events, uid),
+        AnyElement::Void(void) => void.render(renderer, datas, events, uid),
     };
 }
 
@@ -146,5 +149,6 @@ pub fn process_event_for_element<'a>(
         AnyElement::Toggle(toggle) => toggle.process_event(&event),
         AnyElement::Tooltip(tooltip) => tooltip.process_event(&event),
         AnyElement::Range(range) => range.process_event(&event),
+        AnyElement::Void(void) => void.process_event(&event),
     }
 }

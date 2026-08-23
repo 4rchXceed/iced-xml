@@ -33,7 +33,10 @@ impl XmlEngine {
         let content: String = String::from_utf8(xml).expect("Failed to parse XML content as UTF-8");
         let reader = Reader::from_reader(Cursor::new(content.into_bytes()));
         let window_parser = XmlParser::new(&mut reader.clone(), &Fonts::new());
-        let window = XmlWindow::new(window_parser.root, Fonts::new());
+        if window_parser.is_err() {
+            panic!("Failed to parse XML content: {:?}", window_parser.err());
+        }
+        let window = XmlWindow::new(window_parser.unwrap().root, Fonts::new());
 
         Self {
             window: window,
@@ -45,7 +48,10 @@ impl XmlEngine {
         let content: String = String::from_utf8(xml).expect("Failed to parse XML content as UTF-8");
         let reader = Reader::from_reader(Cursor::new(content.into_bytes()));
         let window_parser = XmlParser::new(&mut reader.clone(), &fonts);
-        let window = XmlWindow::new(window_parser.root, fonts);
+        if window_parser.is_err() {
+            panic!("Failed to parse XML content: {:?}", window_parser.err());
+        }
+        let window = XmlWindow::new(window_parser.unwrap().root, fonts);
 
         Self {
             window: window,
@@ -144,6 +150,12 @@ impl XmlEngine {
                         query.uid,
                     );
                     QueryResponse::new(true)
+                }
+                DomInternalMessageType::Remove => {
+                    let source = self.window.element_renderer.remove_cascade(element, true);
+                    let mut qr = QueryResponse::new(true);
+                    qr.data_element = source;
+                    qr
                 }
                 DomInternalMessageType::GetData(ref key) => {
                     let data = self.window.element_renderer.get_data(element, &key.clone());

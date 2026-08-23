@@ -1,7 +1,7 @@
 use std::{collections::HashMap, io::Cursor};
 
 use quick_xml::{
-    Reader,
+    Error, Reader,
     events::{BytesStart, Event},
 };
 
@@ -44,6 +44,46 @@ impl XmlElement {
             classes: Vec::new(),
             datas: HashMap::new(),
         }
+    }
+    pub fn void() -> Self {
+        Self {
+            tag: String::from("Void"), // Use the void element
+            attributes: HashMap::new(),
+            text: String::new(),
+            children: Vec::new(),
+            theme: XmlTheme::default(),
+            id: None,
+            classes: Vec::new(),
+            datas: HashMap::new(),
+        }
+    }
+}
+
+impl std::fmt::Display for XmlElement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut attributes_string = self
+            .attributes
+            .iter()
+            .map(|(k, v)| format!("{}=\"{}\"", k, v))
+            .collect::<Vec<String>>()
+            .join(" ");
+        let children_string = self
+            .children
+            .iter()
+            .map(|child| format!("{}", child))
+            .collect::<Vec<String>>()
+            .join("");
+        if self.id.is_some() {
+            attributes_string.push_str(&format!(" id=\"{}\"", self.id.as_ref().unwrap()));
+        }
+        if !self.classes.is_empty() {
+            attributes_string.push_str(&format!(" classes=\"{}\"", self.classes.join(" ")));
+        }
+        write!(
+            f,
+            "<{} {}>{}{}</{}>",
+            self.tag, attributes_string, self.text, children_string, self.tag
+        )
     }
 }
 
@@ -104,7 +144,7 @@ pub struct XmlParser {
 }
 
 impl XmlParser {
-    pub fn new(reader: &mut Reader<Cursor<Vec<u8>>>, fonts: &Fonts) -> Self {
+    pub fn new(reader: &mut Reader<Cursor<Vec<u8>>>, fonts: &Fonts) -> Result<Self, Error> {
         reader.config_mut().trim_text(true);
         let mut buf = Vec::new();
         let mut stack: Vec<XmlElement> = Vec::new();
@@ -113,8 +153,8 @@ impl XmlParser {
 
         loop {
             match reader.read_event_into(&mut buf) {
-                Err(_) => {
-                    panic!("Failed to read XML File");
+                Err(e) => {
+                    return Err(e);
                 }
                 Ok(Event::Eof) => break,
                 Ok(Event::Start(e)) => {
@@ -149,9 +189,41 @@ impl XmlParser {
                 _ => {}
             }
         }
-        return Self {
+        return Ok(Self {
             root: root.unwrap().clone(),
             css_parser: CssReader::new(""),
-        };
+        });
     }
+}
+
+pub fn xml_fonts(xml_string: &str, fonts: Fonts) -> XmlElement {
+    let mut reader = Reader::from_reader(Cursor::new(xml_string.as_bytes().to_vec()));
+    let parser = XmlParser::new(&mut reader, &fonts);
+    if parser.is_err() {
+        panic!(
+            "Failed to parse XML content: {:?}. Please use try_xml if you want to handle errors gracefully.",
+            parser.err()
+        );
+    }
+    return parser.unwrap().root;
+}
+
+pub fn try_xml_fonts(xml_string: &str, fonts: Fonts) -> Result<XmlElement, String> {
+    let mut reader = Reader::from_reader(Cursor::new(xml_string.as_bytes().to_vec()));
+    let parser = XmlParser::new(&mut reader, &fonts);
+    if parser.is_err() {
+        return Err(format!("Failed to parse XML content: {:?}", parser.err()));
+    } else {
+        return Ok(parser.unwrap().root);
+    }
+}
+
+pub fn xml(xml_string: &str) -> XmlElement {
+    let fonts = Fonts::default();
+    return xml_fonts(xml_string, fonts);
+}
+
+pub fn try_xml(xml_string: &str) -> Result<XmlElement, String> {
+    let fonts = Fonts::default();
+    return try_xml_fonts(xml_string, fonts);
 }

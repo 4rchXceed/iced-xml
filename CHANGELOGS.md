@@ -190,3 +190,15 @@ Finished all non-features elements for iced-xml, I can now focus on the missing 
 
 ### Commit msg: "Added vertical slider element, and new styling option for vertical slider"
 ### Other: -m "+ Added vertical slider element (as part of <Range />, with the vertical xml option)" -m "+ Added new styling option for vertical slider: vertical-slider-width"
+
+## Last commit: 68aa5fcf3ac3cef1f9d7efda2ca0e06009a46fb2
++ Added new element: <Void />, does nothing.
++ Added new Dom element API: .remove(). The query response will contain the removed element's source.
++ Added a way to display an XmlElement as a string (for debugging purposes)
++ Added 4 "utils" functions:
+  - xml() -> parses a string into an XmlElement
+  - try_xml() -> tries to parse a string into an XmlElement, returns Result<XmlElement, String>
+  - xml_fonts() and try_xml_fonts() -> same as above, but with custom fonts support
+
+### Commit msg: "Added new element: <Void />, and new Dom element API: .remove(), and new utils functions for parsing XmlElement from string"
+### Other: -m "+ Added new element: <Void />, does nothing." -m "+ Added new Dom element API: .remove(). The query response will contain the removed element's source." -m "+ Added a way to display an XmlElement as a string (for debugging purposes)" -m "+ Added 4 'utils' functions:" -m "  - xml() -> parses a string into an XmlElement" -m "  - try_xml() -> tries to parse a string into an XmlElement, returns Result<XmlElement, String>" -m "  - xml_fonts() and try_xml_fonts() -> same as above, but with custom fonts support"

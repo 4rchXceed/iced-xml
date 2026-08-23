@@ -73,6 +73,7 @@ pub struct ElementRenderer {
     parent_map: HashMap<i32, i32>, // key: child, value: parent
     virtual_elements: HashMap<i32, Vec<i32>>, // key: parent_uid, value: virtual children uids
     hot_reload_states: Option<HotReloadState>,
+    sources_map: HashMap<i32, XmlElement>, // key: source name, value: XmlElement
     // Custom storage for elements
     radio_button_map: HashMap<String, RadioElement>,
     string_map: HashMap<i32, String>,
@@ -90,6 +91,7 @@ impl ElementRenderer {
             event_listeners: Vec::new(),
             hot_reload_states: None,
             virtual_elements: HashMap::new(),
+            sources_map: HashMap::new(),
             // Specific elements for radiobuttons comm
             radio_button_map: HashMap::new(),
             string_map: HashMap::new(),
@@ -431,8 +433,8 @@ impl ElementRenderer {
         let id = get_unique_id();
         self.parent_map.insert(id, parent_uid);
         let element = generate_element_from_tag(xml_element, self, id);
-        if let Some(element) = element {
-            self.init_element(element, Some(xml_element.clone()), None, id);
+        if element.is_some() {
+            self.init_element(element.unwrap(), Some(xml_element.clone()), None, id);
             return id;
         } else {
             panic!("Block: <{} /> doesn't exists", &xml_element.tag);
@@ -494,6 +496,7 @@ impl ElementRenderer {
         } else {
             self.tags_map.insert(xml_element.tag.clone(), vec![uid]);
         }
+        self.sources_map.insert(uid, xml_element.clone());
         self.elements.insert(
             uid,
             (
@@ -691,6 +694,44 @@ impl ElementRenderer {
                 event_uid: get_unique_id(),
             });
         }
+    }
+
+    pub fn remove_cascade(&mut self, element_uid: i32, is_parent: bool) -> Option<XmlElement> {
+        let mut children = self
+            .parent_map
+            .iter()
+            .filter(|(_, v)| **v == element_uid)
+            .map(|(&k, _)| k)
+            .collect::<Vec<i32>>();
+        if self.virtual_elements.contains_key(&element_uid) {
+            let virtual_children = self.virtual_elements.get(&element_uid).unwrap().clone();
+            children.append(&mut virtual_children.clone());
+        }
+        for child in children {
+            self.remove_cascade(child, false);
+        }
+        let old_parent = self.parent_map.get(&element_uid).cloned();
+        self.elements.remove(&element_uid);
+        self.parent_map.remove(&element_uid);
+        self.virtual_elements.remove(&element_uid);
+        self.id_map.retain(|_, &mut v| v != element_uid);
+        self.classes_map.retain(|_, v| !v.contains(&element_uid));
+        self.tags_map.retain(|_, v| !v.contains(&element_uid));
+        let mut source = None;
+        if is_parent {
+            source = self.sources_map.get(&element_uid).cloned();
+        }
+        // If the element is a parent, we need to re-add a <Void /> element to the parent, so that the parent can still render correctly
+        if is_parent && old_parent.is_some() {
+            let xml_element = XmlElement::void();
+            let element = generate_element_from_tag(&xml_element, self, element_uid);
+            if element.is_some() {
+                self.init_element(element.unwrap(), Some(xml_element), None, element_uid);
+            } else {
+                panic!("Block: <Void /> doesn't exists");
+            }
+        }
+        return source;
     }
 }
 

@@ -10,7 +10,7 @@ use crate::{
         get_unique_id,
     },
     xml_engine::{DynamicEvent, Message, XmlEngine},
-    xml_struct::elements::textarea::TextareaEvent,
+    xml_struct::{elements::textarea::TextareaEvent, parser::XmlElement},
 };
 
 #[derive(Debug, Clone, Hash)]
@@ -144,6 +144,7 @@ pub struct QueryResponse {
     pub data_bool: Option<bool>,
     pub data_float: Option<HashableF32>,
     pub data_vector: Option<VectorXY>,
+    pub data_element: Option<XmlElement>,
 }
 
 impl QueryResponse {
@@ -156,6 +157,7 @@ impl QueryResponse {
             data_bool: None,
             data_float: None,
             data_vector: None,
+            data_element: None,
         }
     }
 
