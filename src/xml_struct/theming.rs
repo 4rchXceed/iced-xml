@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 use iced::{
     Background, Color, Font, Length, Padding, Vector,
@@ -17,8 +17,8 @@ use crate::parse_utils::{
     parse_checkbox_icon, parse_color, parse_color_op, parse_font, parse_font_family,
     parse_font_stretch, parse_font_style, parse_font_weight, parse_length, parse_line_height,
     parse_padding, parse_radius, parse_select_icon, parse_shaping, parse_slider_handle_theme,
-    parse_text_alignment, parse_text_wrapping, parse_two_f32, parse_value, parse_value_int,
-    parse_value_maybe, parse_vector,
+    parse_text_alignment, parse_text_wrapping, parse_time, parse_two_f32, parse_value,
+    parse_value_int, parse_value_maybe, parse_vector,
 };
 
 pub type Fonts = HashMap<String, &'static str>;
@@ -82,6 +82,10 @@ pub struct XmlTheme {
     pub textarea_width: Option<f32>, // Width for text editors, since it's not a Length
     pub toggle_text_alignment: iced::widget::text::Alignment,
     pub toggle_padding_ratio: f32,
+    pub tooltip_delay: Duration,
+    pub tooltip_gap: f32,
+    pub tooltip_padding: f32,
+    pub tooltip_no_overflow: bool, // Whether to allow tooltips to overflow the window bounds
 }
 
 macro_rules! check {
@@ -181,6 +185,10 @@ impl XmlTheme {
             textarea_width,
             toggle_text_alignment,
             toggle_padding_ratio,
+            tooltip_delay,
+            tooltip_gap,
+            tooltip_padding,
+            tooltip_no_overflow,
         });
     }
 }
@@ -244,6 +252,10 @@ impl Default for XmlTheme {
             textarea_width: None,
             toggle_text_alignment: iced::widget::text::Alignment::Default,
             toggle_padding_ratio: 0.1,
+            tooltip_delay: Duration::from_millis(100),
+            tooltip_gap: 0.0,
+            tooltip_padding: 5.0,
+            tooltip_no_overflow: false,
         }
     }
 }
@@ -317,6 +329,10 @@ pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme, fonts: &Fo
         "editor-width" => theme.textarea_width = parse_value(value).into(),
         "toggle-text-alignment" => theme.toggle_text_alignment = parse_text_alignment(value),
         "toggle-padding-ratio" => theme.toggle_padding_ratio = parse_value(value),
+        "tooltip-delay" => theme.tooltip_delay = Duration::from_secs_f32(parse_time(value)),
+        "tooltip-gap" => theme.tooltip_gap = parse_value(value),
+        "tooltip-padding" => theme.tooltip_padding = parse_value(value),
+        "tooltip-no-overflow" => theme.tooltip_no_overflow = parse_bool(value),
         _ => {
             println!("Unknown theme property: {} = {}", key, value);
         }

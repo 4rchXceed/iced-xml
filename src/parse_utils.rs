@@ -692,3 +692,11 @@ pub fn parse_text_alignment(value: &str) -> iced::widget::text::Alignment {
         }
     }
 }
+
+pub fn parse_time(value: &str) -> f32 {
+    if value.ends_with("ms") {
+        let value = value.strip_suffix("ms").unwrap();
+        return parse_value(&String::from(value)) / 1000.0;
+    }
+    return parse_value(&String::from(value));
+}

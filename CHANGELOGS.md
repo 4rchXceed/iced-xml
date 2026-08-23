@@ -173,3 +173,10 @@ Big commit here.
 
 ### Commit msg: "Added new config: Fonts, and new element: Toggle"
 ### Other: -m "+ Added new 'config': Fonts, allows for custom fonts to be used in the styling system (instead of ::new, use XmlEngine::with_fonts(...))" -m "+ Added new element: <Toggle />, allows for toggling between two states (on/off) (Same as checkbox, but with a different design)" -m "+ 2 new styling options for toggle: toggle-text-alignment and toggle-padding-ratio"
+
+## Last commit: 7876e5e12edc9ac4f24152cb71b4d788be80c6b6
++ Added new element: Tooltip, allows for displaying a tooltip when hovering over an element
++ Added new styling options for Tooltip: tooltip-delay, tooltip-gap, tooltip-padding, tooltip-no-overflow
+
+### Commit msg: "Added new element: Tooltip, and new styling options for Tooltip"
+### Other: -m "+ Added new element: Tooltip, allows for displaying a tooltip when hovering over an element" -m "+ Added new styling options for Tooltip: tooltip-delay, tooltip-gap, tooltip-padding, tooltip-no-overflow"
