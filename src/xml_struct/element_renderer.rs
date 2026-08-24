@@ -6,7 +6,9 @@ use crate::{
     app_manager::ComponentFunctions,
     css_reader::{CssReader, Rule, RuleBlock, Selector},
     dom::{
-        events::{ComplexQuery, ComplexQueryJoinType, DomQuery, DomQueryType},
+        events::{
+            ComplexQuery, ComplexQueryJoinType, DomInternalMessageType, DomQuery, DomQueryType,
+        },
         query::QueryResponse,
     },
     rs_utils::get_unique_id,
@@ -18,7 +20,7 @@ use crate::{
             },
             radio::RadioElement,
         },
-        parser::{XmlChangeEvent, XmlElement},
+        parser::XmlElement,
         theming::{Fonts, XmlTheme, gen_styles},
     },
 };
@@ -26,6 +28,13 @@ use crate::{
 #[derive(Clone, Debug)]
 pub struct RenderChildDatas {
     pub table_datas: Option<HashMap<String, String>>, // For table elements
+}
+
+#[derive(Debug, Clone, Hash)]
+pub struct StyleChangeEvent {
+    pub key: String,
+    pub value: String,
+    pub custom_flag: Option<String>,
 }
 
 impl Default for RenderChildDatas {
@@ -63,6 +72,40 @@ pub struct ElementExtraData {
     pub flag_themes: HashMap<String, XmlTheme>,
     pub xml_element: XmlElement,
     pub child_data: Option<RenderChildDatas>,
+}
+
+pub struct ElementEventResponse {
+    pub response: QueryResponse,
+    pub forward_to: Vec<i32>, // List of elements to forward the event to
+    pub renderer_events: Vec<RendererEvent>, // List of events to forward to the renderer
+}
+
+impl ElementEventResponse {
+    pub fn new(response: QueryResponse) -> Self {
+        Self {
+            response: response,
+            forward_to: Vec::new(),
+            renderer_events: Vec::new(),
+        }
+    }
+
+    pub fn success() -> Self {
+        Self {
+            response: QueryResponse::success(),
+            forward_to: Vec::new(),
+            renderer_events: Vec::new(),
+        }
+    }
+
+    pub fn with_forward_to(mut self, forward_to: Vec<i32>) -> Self {
+        self.forward_to = forward_to;
+        self
+    }
+
+    pub fn with_renderer_events(mut self, renderer_events: Vec<RendererEvent>) -> Self {
+        self.renderer_events = renderer_events;
+        self
+    }
 }
 
 pub type RenderComponentFn = fn(&Box<dyn Any>) -> iced::Element<'_, Message>;
@@ -342,11 +385,11 @@ impl ElementRenderer {
             for rule in rules.iter() {
                 self.emit_internal_event(
                     element,
-                    XmlChangeEvent::StyleChange(
-                        rule.name.clone(),
-                        rule.value.clone(),
-                        custom_style_for_flag.clone(),
-                    ),
+                    DomInternalMessageType::StyleChange(StyleChangeEvent {
+                        key: rule.name.clone(),
+                        value: rule.value.clone(),
+                        custom_flag: custom_style_for_flag.clone(),
+                    }),
                     comes_from_hot_reload,
                 );
             }
@@ -563,69 +606,122 @@ impl ElementRenderer {
         }
     }
 
+    pub fn register_hot_reload_change(&mut self, uid: i32, event: &StyleChangeEvent) {
+        let hot_reload_state = self.hot_reload_states.as_mut().unwrap();
+        let old_theme_op = hot_reload_state.state.get(&uid);
+        if old_theme_op.is_some() {
+            let mut old_theme = old_theme_op.unwrap().clone();
+            if event.custom_flag.is_some() {
+                gen_styles(
+                    &event.key,
+                    &event.value,
+                    &mut old_theme
+                        .flag_themes
+                        .entry(event.custom_flag.clone().unwrap())
+                        .or_insert(old_theme.default_theme.clone()),
+                    &self.fonts,
+                );
+            } else {
+                gen_styles(
+                    &event.key,
+                    &event.value,
+                    &mut old_theme.default_theme,
+                    &self.fonts,
+                );
+            }
+        }
+    }
+
+    pub fn update_style_for(
+        &mut self,
+        uid: i32,
+        event: StyleChangeEvent,
+        comes_from_hot_reload: bool,
+    ) {
+        // Update the hot reload state if it exists
+        if self.hot_reload_states.is_some() && !comes_from_hot_reload {
+            self.register_hot_reload_change(uid, &event);
+        }
+        let element_op = self.elements.get_mut(&uid);
+        if element_op.is_some() {
+            let (_, datas) = element_op.unwrap();
+            let mut flag_theme = &mut datas.default_theme;
+            if event.custom_flag.is_some() {
+                let flag = event.custom_flag.unwrap();
+                flag_theme = datas
+                    .flag_themes
+                    .entry(flag.clone())
+                    .or_insert(datas.default_theme.clone());
+            }
+            gen_styles(&event.key, &event.value, flag_theme, &self.fonts);
+        }
+    }
+
     pub fn emit_internal_event(
         &mut self,
         uid: i32,
-        event: XmlChangeEvent,
+        event: DomInternalMessageType,
         comes_from_hot_reload: bool,
     ) -> QueryResponse {
         let mut event_response: Option<QueryResponse> = None;
         let element = self.elements.get_mut(&uid);
         if element.is_some() {
-            let (element, datas) = element.unwrap();
-            let ev_with_forward = match event.clone() {
-                XmlChangeEvent::StyleChange(key, value, custom_flag) => {
-                    // Update the hot reload state if it exists
-                    if let Some(hot_reload_state) = self.hot_reload_states.as_mut()
-                        && !comes_from_hot_reload
-                    {
-                        if let Some(old_theme) = hot_reload_state.state.get_mut(&uid) {
-                            if custom_flag.is_some() {
-                                gen_styles(
-                                    &key,
-                                    &value,
-                                    &mut old_theme
-                                        .flag_themes
-                                        .entry(custom_flag.clone().unwrap())
-                                        .or_insert(old_theme.default_theme.clone()),
-                                    &self.fonts,
-                                );
-                            } else {
-                                gen_styles(&key, &value, &mut old_theme.default_theme, &self.fonts);
-                            }
-                        }
-                    }
-                    let mut flag_theme = &mut datas.default_theme;
-                    if custom_flag.is_some() {
-                        let flag = custom_flag.unwrap();
-                        flag_theme = datas
-                            .flag_themes
-                            .entry(flag.clone())
-                            .or_insert(datas.default_theme.clone());
-                    }
-                    gen_styles(&key, &value, flag_theme, &self.fonts);
+            let (element, _) = element.unwrap();
+            // If the event is a style change, we update the style for the element and don't forward the event to the element itself
+            let element_response_op = match event.clone() {
+                DomInternalMessageType::StyleChange(event) => {
+                    self.update_style_for(uid, event.clone(), comes_from_hot_reload);
                     None
                 }
                 _ => process_event_for_element(element, event.clone()),
             };
-            if let Some(ev_with_forward) = ev_with_forward {
-                for renderer_event in ev_with_forward.2 {
-                    match renderer_event {
-                        RendererEvent::RadioSelectionChange(id, value) => {
-                            self.set_radio_selection(id, value);
-                        }
-                    }
-                }
-                for target in ev_with_forward.1 {
-                    self.emit_internal_event(target, event.clone(), comes_from_hot_reload);
-                }
-                event_response = Some(ev_with_forward.0);
+            // Post process the event response, if any, and forward it to the renderer or other elements
+            if element_response_op.is_some() {
+                // Post-process the event response
+                event_response = self.process_element_response(
+                    element_response_op.unwrap(),
+                    event.clone(),
+                    comes_from_hot_reload,
+                    event_response,
+                );
             }
         }
         if event_response.is_none() {
-            return QueryResponse::new(false);
+            return QueryResponse::fail(
+                format!(
+                    "Element with uid {} not found, or no response from element",
+                    uid
+                )
+                .as_str(),
+            );
         }
-        event_response.unwrap()
+        return event_response.unwrap();
+    }
+
+    pub fn process_element_response(
+        &mut self,
+        element_response: ElementEventResponse,
+        event: DomInternalMessageType,
+        comes_from_hot_reload: bool,
+        mut event_response: Option<QueryResponse>,
+    ) -> Option<QueryResponse> {
+        for renderer_event in element_response.renderer_events {
+            match renderer_event {
+                RendererEvent::RadioSelectionChange(id, value) => {
+                    self.set_radio_selection(id, value);
+                }
+            }
+        }
+        for target in element_response.forward_to {
+            let new_response =
+                self.emit_internal_event(target, event.clone(), comes_from_hot_reload);
+            if event_response.is_some() {
+                event_response.as_mut().unwrap().concat(new_response);
+            } else {
+                event_response = Some(new_response);
+            }
+        }
+        return event_response;
     }
 
     pub fn run_complex_query(&self, raw_query: String) -> Vec<i32> {

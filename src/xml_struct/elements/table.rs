@@ -2,14 +2,15 @@ use std::collections::HashMap;
 
 // Copy-paste template
 use crate::{
-    dom::query::QueryResponse,
+    dom::{events::DomInternalMessageType, query::CustomElementEvent::SetTableData},
     xml_engine::Message,
     xml_struct::{
         element_renderer::{
-            ElementExtraData, ElementRenderer, EventListener, RenderChildDatas, RendererEvent,
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+            RenderChildDatas,
         },
         elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        parser::XmlElement,
     },
 };
 
@@ -114,25 +115,12 @@ impl ElementBase for Table {
         return table.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::EmittedEvent(event_name, datas) => match event_name.as_str() {
-                "set-data" => {
-                    if datas.data_tabledata.is_some() {
-                        self.datas = datas
-                            .data_tabledata
-                            .as_ref()
-                            .unwrap()
-                            .iter()
-                            .map(|v| v.value().clone())
-                            .collect();
-                        return Some((QueryResponse::new(true), vec![], vec![]));
-                    } else {
-                        return None;
-                    }
+            DomInternalMessageType::FireEvent(event) => match event {
+                SetTableData(datas) => {
+                    self.datas = datas.iter().map(|v| v.value().clone()).collect();
+                    return Some(ElementEventResponse::success());
                 }
                 _ => None,
             },

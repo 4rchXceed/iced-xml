@@ -7,16 +7,28 @@ use iced::{
 
 // Copy-paste template
 use crate::{
-    dom::query::{EventResponse, QueryResponse},
+    dom::{
+        events::DomInternalMessageType,
+        query::{CustomElementEvent, EventResponse, QueryResponse},
+    },
     parse_utils::parse_pane_axis,
     rs_utils::{HashableF32, HashableGridTarget},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
         elements::{element_base::ElementBase, window_system::PaneType::InternalPane},
-        parser::{XmlChangeEvent, XmlElement},
+        parser::XmlElement,
     },
 };
+
+#[derive(Debug, Clone, Hash)]
+pub struct TWMWindowOpenParams {
+    pub window_id: String,
+    pub parent_window_id: String,
+    pub split_method: String,
+}
 
 #[derive(Debug, Clone)]
 struct WindowChild {
@@ -359,13 +371,13 @@ impl ElementBase for WindowSystem {
                         let mut ev_res_close = EventResponse::new(self_uid, String::from("close"));
                         ev_res_max.window_system_data_window = Some(pane);
                         ev_res_close.window_system_data_window = Some(pane);
-                        btn_max = btn_max.on_press(Message::DomEvent(-1, ev_res_max.clone()));
+                        btn_max = btn_max.on_press(Message::DomEvent(None, ev_res_max.clone()));
                         if is_fullscreen {
                             btn_max =
-                                btn_max.on_press(Message::DomEvent(-1, ev_res_restore.clone()));
+                                btn_max.on_press(Message::DomEvent(None, ev_res_restore.clone()));
                         } else {
                             btn_close =
-                                btn_close.on_press(Message::DomEvent(-1, ev_res_close.clone()));
+                                btn_close.on_press(Message::DomEvent(None, ev_res_close.clone()));
                         }
                         let mut title_bar_content: iced::Element<'a, Message> =
                             iced::widget::text("").into();
@@ -413,36 +425,36 @@ impl ElementBase for WindowSystem {
             })
             .width(theme.width)
             .on_click(move |p| {
-                let mut res = EventResponse::new(me, String::from("click"));
+                let mut res = EventResponse::new(me, String::from("focus"));
                 res.window_system_data_window = Some(p);
-                Message::DomEvent(-1, res)
+                Message::DomEvent(None, res)
             })
-            .on_drag(move |ev| Message::DomEvent(-1, self.preprocess_pane_drag(ev, me)))
+            .on_drag(move |ev| Message::DomEvent(None, self.preprocess_pane_drag(ev, me)))
             .on_resize(self.drag_border_size, move |ev| {
                 let mut res = EventResponse::new(me, String::from("resize"));
                 res.window_system_data_split = Some(ev.split);
                 res.data_float = Some(HashableF32::new(ev.ratio));
-                Message::DomEvent(-1, res)
+                Message::DomEvent(None, res)
             });
 
         // Register any events here
         for event in events {
             match event.event_type.as_str() {
-                "click" => {
+                "focus" => {
                     pane_grid = pane_grid.on_click(move |pane| {
-                        let mut res = EventResponse::new(me, String::from("click"));
+                        let mut res = EventResponse::new(me, String::from("focus"));
                         let internal_pane = self.panes.get(pane).unwrap();
                         let pane_id = match internal_pane {
                             InternalPane(pane_id, _) => pane_id.clone(),
                         };
                         res.data_str = Some(pane_id);
                         res.window_system_data_window = Some(pane);
-                        Message::DomEvent(event.event_uid, res)
+                        Message::DomEvent(Some(event.event_uid), res)
                     });
                 }
                 "drag" => {
                     pane_grid = pane_grid.on_drag(move |ev| {
-                        Message::DomEvent(event.event_uid, self.preprocess_pane_drag(ev, me))
+                        Message::DomEvent(Some(event.event_uid), self.preprocess_pane_drag(ev, me))
                     })
                 }
                 "resize" => {
@@ -450,7 +462,7 @@ impl ElementBase for WindowSystem {
                         let mut res = EventResponse::new(me, String::from("resize"));
                         res.window_system_data_split = Some(ev.split);
                         res.data_float = Some(HashableF32::new(ev.ratio));
-                        Message::DomEvent(event.event_uid, res)
+                        Message::DomEvent(Some(event.event_uid), res)
                     })
                 }
                 _ => (),
@@ -460,166 +472,157 @@ impl ElementBase for WindowSystem {
         return pane_grid.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let hintmsg = "WindowSystem focus event must include a window ID. Hint: use DomEvent::new().with(\"window\", window_id) to include the window ID.";
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::EmittedEvent(name, datas) => match name.as_str() {
-                "focus" => {
-                    if datas.datas_str.value().get("window").is_none() {
-                        panic!("{}", hintmsg);
-                    }
-                    self.focused = self
-                        .window_id_to_pane(
-                            datas
-                                .datas_str
-                                .value()
-                                .get("window")
-                                .as_ref()
-                                .unwrap()
-                                .as_str(),
-                        )
-                        .unwrap();
-                    None
-                }
-                "fullscreen" => {
-                    if datas.datas_str.value().get("window").is_none() {
-                        panic!("{}", hintmsg);
-                    }
-                    let pane = self
-                        .window_id_to_pane(
-                            datas
-                                .datas_str
-                                .value()
-                                .get("window")
-                                .as_ref()
-                                .unwrap()
-                                .as_str(),
-                        )
-                        .unwrap();
-                    self.panes.maximize(pane);
-                    None
-                }
-                "restore" => {
-                    self.panes.restore();
-                    None
-                }
-                "close" => {
-                    if datas.datas_str.value().get("window").is_none() {
-                        panic!("{}", hintmsg);
-                    }
-                    let pane = self
-                        .window_id_to_pane(
-                            datas
-                                .datas_str
-                                .value()
-                                .get("window")
-                                .as_ref()
-                                .unwrap()
-                                .as_str(),
-                        )
-                        .unwrap();
-                    let datas_op = self.panes.close(pane);
-                    if datas_op.is_some() {
-                        let (_, to_focus) = datas_op.unwrap();
-                        self.focused = to_focus;
-                    }
-                    None
-                }
-                "open" => {
-                    if datas.datas_str.value().get("window").is_none() {
-                        panic!("{}", hintmsg);
-                    }
-                    let window_id = datas
-                        .datas_str
-                        .value()
-                        .get("window")
-                        .as_ref()
-                        .unwrap()
-                        .as_str();
-                    if self.children_id.get(window_id).is_none() {
-                        panic!(
-                            "WindowSystem open event: window-id {} not found.",
-                            window_id
-                        );
-                    }
-                    let child_uid = self.children_id.get(window_id).unwrap();
-                    let datas_attributes = datas.datas_str.value();
-                    let parent_pane_id = datas_attributes.get("parent");
-                    if parent_pane_id.is_none() {
-                        panic!(
-                            "WindowSystem focus event must include a parent. Hint: use DomEvent::new().with(\"parent\", parent_window_id) to include the parent."
-                        );
-                    }
-                    let parent_pane = self.window_id_to_pane(parent_pane_id.unwrap());
-                    if parent_pane.is_none() {
-                        println!(
-                            "WindowSystem open event: parent window-id {} not found.",
-                            parent_pane_id.unwrap()
-                        );
-                        return None;
-                    }
-                    let split_method = datas_attributes.get("split-method");
-                    if self.window_id_to_pane(window_id).is_some() {
-                        println!(
-                            "Window with id: {} is already opened. Not opening a new one.",
-                            window_id
-                        );
-                        return None;
-                    }
-                    let pane = self.panes.split(
-                        parse_pane_axis(split_method.unwrap().as_str()),
-                        parent_pane.unwrap(),
-                        InternalPane(window_id.to_string(), child_uid.clone()),
-                    );
+            DomInternalMessageType::FireEvent(event) => match event {
+                CustomElementEvent::TWMMaximizeWindow(window_id) => {
+                    let pane = self.window_id_to_pane(window_id);
                     if pane.is_some() {
-                        self.focused = pane.unwrap().0;
+                        self.panes.maximize(pane.unwrap());
+                        Some(ElementEventResponse::success())
+                    } else {
+                        Some(ElementEventResponse::new(QueryResponse::fail(
+                            format!("Pane {} not found", window_id).as_str(),
+                        )))
                     }
-                    None
+                }
+                CustomElementEvent::TWMRestoreWindow() => {
+                    self.panes.restore();
+                    Some(ElementEventResponse::success())
+                }
+                CustomElementEvent::TWMCloseWindow(window_id) => {
+                    let window = self.window_id_to_pane(window_id);
+                    if window.is_some() {
+                        let sibling_op = self.panes.close(window.unwrap());
+                        if sibling_op.is_some() {
+                            let (_, to_focus) = sibling_op.unwrap();
+                            self.focused = to_focus;
+                        }
+                        Some(ElementEventResponse::success())
+                    } else {
+                        Some(ElementEventResponse::new(QueryResponse::fail(
+                            format!("Pane {} not found", window_id).as_str(),
+                        )))
+                    }
+                }
+                CustomElementEvent::TWMFocusWindow(window) => {
+                    let pane = self.window_id_to_pane(window);
+                    if pane.is_some() {
+                        self.focused = pane.unwrap();
+                        Some(ElementEventResponse::success())
+                    } else {
+                        Some(ElementEventResponse::new(QueryResponse::fail(
+                            format!("Pane {} not found", window).as_str(),
+                        )))
+                    }
+                }
+                CustomElementEvent::TWMDragWindow(window_id, target) => {
+                    let window = self.window_id_to_pane(window_id);
+                    if window.is_some() {
+                        self.panes.drop(window.unwrap(), target.value());
+                        Some(ElementEventResponse::success())
+                    } else {
+                        Some(ElementEventResponse::new(QueryResponse::fail(
+                            format!("Pane {} not found", window_id).as_str(),
+                        )))
+                    }
+                }
+                CustomElementEvent::TWMOpenWindow(open_params) => {
+                    let window = self.children_id.get(&open_params.window_id);
+                    if window.is_some() {
+                        let parent_window = self.window_id_to_pane(&open_params.parent_window_id);
+                        if parent_window.is_some() {
+                            let split_method = parse_pane_axis(&open_params.split_method);
+                            let pane = self.panes.split(
+                                split_method,
+                                parent_window.unwrap(),
+                                InternalPane(
+                                    open_params.window_id.clone(),
+                                    window.unwrap().clone(),
+                                ),
+                            );
+                            if pane.is_some() {
+                                self.focused = pane.unwrap().0;
+                                Some(ElementEventResponse::success())
+                            } else {
+                                Some(ElementEventResponse::new(QueryResponse::fail(
+                                    format!(
+                                        "Failed to open Pane {} under Parent Pane {}",
+                                        open_params.window_id, open_params.parent_window_id
+                                    )
+                                    .as_str(),
+                                )))
+                            }
+                        } else {
+                            return Some(ElementEventResponse::new(QueryResponse::fail(
+                                format!("Parent Pane {} not found", open_params.parent_window_id)
+                                    .as_str(),
+                            )));
+                        }
+                    } else {
+                        Some(ElementEventResponse::new(QueryResponse::fail(
+                            format!("Pane {} not found", open_params.window_id).as_str(),
+                        )))
+                    }
                 }
                 _ => None,
             },
-            XmlChangeEvent::EventFired(t, response) => {
-                if t == "maximize" {
-                    self.panes
-                        .maximize(response.window_system_data_window.unwrap());
+            _ => None,
+        }
+    }
+
+    fn event_callback(
+        &mut self,
+        event_type: &String,
+        event_response: &EventResponse,
+    ) -> Option<ElementEventResponse> {
+        match event_type.as_str() {
+            "maximize" => {
+                self.panes
+                    .maximize(event_response.window_system_data_window.unwrap());
+                return Some(ElementEventResponse::success());
+            }
+            "restore" => {
+                self.panes.restore();
+                return Some(ElementEventResponse::success());
+            }
+            "close" => {
+                let datas_op = self
+                    .panes
+                    .close(event_response.window_system_data_window.unwrap());
+                if datas_op.is_some() {
+                    let (_, to_focus) = datas_op.unwrap();
+                    self.focused = to_focus;
                 }
-                if t == "restore" {
-                    self.panes.restore();
-                }
-                if t == "close" {
-                    let datas_op = self
-                        .panes
-                        .close(response.window_system_data_window.unwrap());
-                    if datas_op.is_some() {
-                        let (_, to_focus) = datas_op.unwrap();
-                        self.focused = to_focus;
+                return Some(ElementEventResponse::success());
+            }
+            "focus" => {
+                self.focused = event_response.window_system_data_window.unwrap();
+                return Some(ElementEventResponse::success());
+            }
+            "resize" => {
+                self.panes.resize(
+                    event_response.window_system_data_split.unwrap(),
+                    event_response.data_float.as_ref().unwrap().value(),
+                );
+                return Some(ElementEventResponse::success());
+            }
+            "drag" => {
+                let event_type = event_response.data_str.as_ref().unwrap();
+                match event_type.as_str() {
+                    "dropped" => {
+                        self.panes.drop(
+                            event_response.window_system_data_window.unwrap(),
+                            event_response
+                                .window_system_data_target
+                                .as_ref()
+                                .unwrap()
+                                .value(),
+                        );
+                        return Some(ElementEventResponse::success());
                     }
+                    _ => return Some(ElementEventResponse::success()),
                 }
-                if t == "click" {
-                    self.focused = response.window_system_data_window.unwrap();
-                }
-                if t == "resize" {
-                    self.panes.resize(
-                        response.window_system_data_split.unwrap(),
-                        response.data_float.as_ref().unwrap().value(),
-                    );
-                }
-                if t == "drag" {
-                    let event_type = response.data_str.as_ref().unwrap();
-                    match event_type.as_str() {
-                        "dropped" => {
-                            self.panes.drop(
-                                response.window_system_data_window.unwrap(),
-                                response.window_system_data_target.as_ref().unwrap().value(),
-                            );
-                        }
-                        _ => {}
-                    }
-                }
-                return None;
             }
             _ => None,
         }

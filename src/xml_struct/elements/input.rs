@@ -1,11 +1,16 @@
 // Copy-paste template
 use crate::{
-    dom::query::{EventResponse, QueryResponse},
+    dom::{
+        events::DomInternalMessageType,
+        query::{EventResponse, QueryResponse},
+    },
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
         elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        parser::XmlElement,
     },
 };
 
@@ -70,15 +75,15 @@ impl ElementBase for Input {
             .on_input(move |input| {
                 let mut event_response = EventResponse::new(me, String::from("input"));
                 event_response.data_str = Some(input);
-                return Message::DomEvent(-1, event_response);
+                return Message::DomEvent(None, event_response);
             })
             .on_paste(move |input| {
                 let mut event_response = EventResponse::new(me, String::from("paste"));
                 event_response.data_str = Some(input);
-                return Message::DomEvent(-1, event_response);
+                return Message::DomEvent(None, event_response);
             })
             .on_submit(Message::DomEvent(
-                -1,
+                None,
                 EventResponse::new(me, String::from("submit")),
             ));
 
@@ -96,19 +101,19 @@ impl ElementBase for Input {
                     input = input.on_input(move |input| {
                         let mut event_response = EventResponse::new(me, String::from("input"));
                         event_response.data_str = Some(input);
-                        return Message::DomEvent(event.event_uid, event_response);
+                        return Message::DomEvent(Some(event.event_uid), event_response);
                     });
                 }
                 "paste" => {
                     input = input.on_paste(move |input| {
                         let mut event_response = EventResponse::new(me, String::from("paste"));
                         event_response.data_str = Some(input);
-                        return Message::DomEvent(event.event_uid, event_response);
+                        return Message::DomEvent(Some(event.event_uid), event_response);
                     });
                 }
                 "submit" => {
                     input = input.on_submit(Message::DomEvent(
-                        event.event_uid,
+                        Some(event.event_uid),
                         EventResponse::new(event.event_uid, String::from("submit")),
                     ));
                 }
@@ -119,59 +124,62 @@ impl ElementBase for Input {
         return input.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let mut query_response = QueryResponse::new(true);
-        let default_response = Some((query_response.clone(), Vec::new(), Vec::new()));
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::EventFired(event_type, response) => match event_type.as_str() {
-                "input" => {
-                    if let Some(data_str) = &response.data_str {
-                        self.value = data_str.clone();
-                    }
-                    default_response
-                }
-                "paste" => {
-                    if let Some(data_str) = &response.data_str {
-                        self.value = data_str.clone();
-                    }
-                    default_response
-                }
-                "submit" => default_response,
-                _ => None,
-            },
-            XmlChangeEvent::PropertyChange(key, value) => match key.as_str() {
+            DomInternalMessageType::PropertyChange(key, value) => match key.as_str() {
                 "placeholder" => {
                     self.placeholder = value.clone();
-                    return default_response;
+                    return Some(ElementEventResponse::success());
                 }
                 "value" => {
                     self.value = value.clone();
-                    return default_response;
+                    return Some(ElementEventResponse::success());
                 }
                 "secure" => {
                     self.is_secured = value == "true";
-                    return default_response;
+                    return Some(ElementEventResponse::success());
                 }
                 _ => None,
             },
-            XmlChangeEvent::GetProperty(key) => match key.as_str() {
-                "placeholder" => {
-                    query_response.data_str = Some(self.placeholder.clone());
-                    Some((query_response, Vec::new(), Vec::new()))
-                }
-                "value" => {
-                    query_response.data_str = Some(self.value.clone());
-                    Some((query_response, Vec::new(), Vec::new()))
-                }
-                "secure" => {
-                    query_response.data_str = Some(self.is_secured.to_string());
-                    Some((query_response, Vec::new(), Vec::new()))
-                }
+            DomInternalMessageType::GetProperty(key) => match key.as_str() {
+                "placeholder" => Some(ElementEventResponse::new(
+                    QueryResponse::success().with_data_str(self.placeholder.clone()),
+                )),
+                "value" => Some(ElementEventResponse::new(
+                    QueryResponse::success().with_data_str(self.value.clone()),
+                )),
+                "secure" => Some(ElementEventResponse::new(
+                    QueryResponse::success().with_data_bool(self.is_secured),
+                )),
                 _ => None,
             },
+            _ => None,
+        }
+    }
+
+    fn event_callback(
+        &mut self,
+        event_type: &String,
+        event_response: &EventResponse,
+    ) -> Option<ElementEventResponse> {
+        match event_type.as_str() {
+            "input" => {
+                if event_response.data_str.is_some() {
+                    self.value = event_response.data_str.as_ref().unwrap().clone();
+                    Some(ElementEventResponse::success())
+                } else {
+                    None
+                }
+            }
+            "paste" => {
+                if event_response.data_str.is_some() {
+                    self.value = event_response.data_str.as_ref().unwrap().clone();
+                    Some(ElementEventResponse::success())
+                } else {
+                    None
+                }
+            }
+            "submit" => Some(ElementEventResponse::success()),
             _ => None,
         }
     }

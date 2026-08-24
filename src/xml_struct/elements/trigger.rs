@@ -1,13 +1,18 @@
 use std::time::Duration;
 
 use crate::{
-    dom::query::{EventResponse, QueryResponse},
+    dom::{
+        events::DomInternalMessageType,
+        query::{EventResponse, QueryResponse},
+    },
     rs_utils::{HashableF32, VectorWH},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
         elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        parser::XmlElement,
     },
 };
 
@@ -76,7 +81,7 @@ impl ElementBase for Trigger {
             match event.event_type.as_str() {
                 "hidden" => {
                     trigger = trigger.on_hide(Message::DomEvent(
-                        event.event_uid,
+                        Some(event.event_uid),
                         EventResponse::new(me, String::from("hidden")),
                     ))
                 }
@@ -87,7 +92,7 @@ impl ElementBase for Trigger {
                             width: HashableF32::new(size.width),
                             height: HashableF32::new(size.height),
                         });
-                        Message::DomEvent(event.event_uid, ev_res)
+                        Message::DomEvent(Some(event.event_uid), ev_res)
                     })
                 }
                 "resize" => {
@@ -97,7 +102,7 @@ impl ElementBase for Trigger {
                             width: HashableF32::new(size.width),
                             height: HashableF32::new(size.height),
                         });
-                        Message::DomEvent(event.event_uid, ev_res)
+                        Message::DomEvent(Some(event.event_uid), ev_res)
                     })
                 }
                 _ => (),
@@ -107,19 +112,29 @@ impl ElementBase for Trigger {
         return trigger.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::PropertyChange(key, val) => match key.as_str() {
+            DomInternalMessageType::PropertyChange(key, val) => match key.as_str() {
                 "anticipated_pixels" => {
                     self.anticipated_pixels = val.parse::<f32>().unwrap();
-                    return Some((QueryResponse::new(true), Vec::new(), Vec::new()));
+                    return Some(ElementEventResponse::success());
                 }
                 "time_trigger" => {
                     self.time_trigger = val.parse::<u64>().unwrap();
-                    return Some((QueryResponse::new(true), Vec::new(), Vec::new()));
+                    return Some(ElementEventResponse::success());
+                }
+                _ => None,
+            },
+            DomInternalMessageType::GetProperty(name) => match name.as_str() {
+                "anticipated_pixels" => {
+                    return Some(ElementEventResponse::new(
+                        QueryResponse::success().with_data_float(self.anticipated_pixels),
+                    ));
+                }
+                "time_trigger" => {
+                    return Some(ElementEventResponse::new(
+                        QueryResponse::success().with_data_float(self.time_trigger as f32),
+                    ));
                 }
                 _ => None,
             },

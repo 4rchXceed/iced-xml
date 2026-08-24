@@ -2,13 +2,14 @@ use iced::Border;
 
 // Copy-paste template
 use crate::{
-    dom::query::QueryResponse,
-    rs_utils::HashableF32,
+    dom::{events::DomInternalMessageType, query::QueryResponse},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
         elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        parser::XmlElement,
     },
 };
 
@@ -80,40 +81,33 @@ impl ElementBase for Progress {
         return progress.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let mut qr = QueryResponse::new(true);
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::PropertyChange(name, new_val) => match name.as_str() {
+            DomInternalMessageType::PropertyChange(name, new_val) => match name.as_str() {
                 "value" => {
                     self.progress = new_val.parse::<f32>().unwrap_or(self.progress);
-                    Some((qr, Vec::new(), Vec::new()))
+                    Some(ElementEventResponse::success())
                 }
                 "min" => {
                     self.min = new_val.parse::<f32>().unwrap_or(self.min);
-                    Some((qr, Vec::new(), Vec::new()))
+                    Some(ElementEventResponse::success())
                 }
                 "max" => {
                     self.max = new_val.parse::<f32>().unwrap_or(self.max);
-                    Some((qr, Vec::new(), Vec::new()))
+                    Some(ElementEventResponse::success())
                 }
                 _ => None,
             },
-            XmlChangeEvent::GetProperty(name) => match name.as_str() {
-                "value" => {
-                    qr.data_float = Some(HashableF32::new(self.progress));
-                    Some((qr, Vec::new(), Vec::new()))
-                }
-                "min" => {
-                    qr.data_float = Some(HashableF32::new(self.min));
-                    Some((qr, Vec::new(), Vec::new()))
-                }
-                "max" => {
-                    qr.data_float = Some(HashableF32::new(self.max));
-                    Some((qr, Vec::new(), Vec::new()))
-                }
+            DomInternalMessageType::GetProperty(name) => match name.as_str() {
+                "value" => Some(ElementEventResponse::new(
+                    QueryResponse::success().with_data_float(self.progress),
+                )),
+                "min" => Some(ElementEventResponse::new(
+                    QueryResponse::success().with_data_float(self.min),
+                )),
+                "max" => Some(ElementEventResponse::new(
+                    QueryResponse::success().with_data_float(self.max),
+                )),
                 _ => None,
             },
             _ => None,

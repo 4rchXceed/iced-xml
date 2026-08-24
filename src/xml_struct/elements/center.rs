@@ -1,10 +1,12 @@
 use crate::{
-    dom::query::QueryResponse,
+    dom::{events::DomInternalMessageType, query::QueryResponse},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
         elements::{element_base::ElementBase, label::Label, library::AnyElement},
-        parser::{XmlChangeEvent, XmlElement},
+        parser::XmlElement,
     },
 };
 
@@ -96,27 +98,23 @@ impl ElementBase for Center {
         return center.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let mut result = QueryResponse::new(true);
-        let mut elements_to_forward = Vec::new();
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::PropertyChange(key, newval) => {
+            DomInternalMessageType::PropertyChange(key, newval) => {
                 if key == "text" {
                     self.text = Some(newval.clone());
-                    elements_to_forward.push(self.virtual_label);
-                    Some((result, elements_to_forward, Vec::new()))
+                    Some(ElementEventResponse::success().with_forward_to(vec![self.virtual_label]))
                 } else {
                     None
                 }
             }
-            XmlChangeEvent::GetProperty(key) => {
+            DomInternalMessageType::GetProperty(key) => {
                 if key == "text" {
                     if self.text.is_some() {
-                        result.data_str = self.text.clone();
-                        Some((result, elements_to_forward, Vec::new()))
+                        Some(ElementEventResponse::new(
+                            QueryResponse::success()
+                                .with_data_str(self.text.as_ref().unwrap().clone()),
+                        ))
                     } else {
                         None
                     }

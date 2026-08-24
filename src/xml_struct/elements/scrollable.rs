@@ -2,13 +2,18 @@ use iced::widget::scrollable::AutoScroll;
 
 // Copy-paste template
 use crate::{
-    dom::query::{EventResponse, QueryResponse},
+    dom::{
+        events::DomInternalMessageType,
+        query::{EventResponse, QueryResponse},
+    },
     rs_utils::{HashableF32, ScrollState},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
         elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        parser::XmlElement,
     },
 };
 
@@ -161,7 +166,7 @@ impl ElementBase for Scroll {
                         };
                         let mut ev_response = EventResponse::new(me, "scroll".to_string());
                         ev_response.scrollable_scroll_state = Some(scroll_state);
-                        return Message::DomEvent(event.event_uid, ev_response);
+                        return Message::DomEvent(Some(event.event_uid), ev_response);
                     });
                 }
                 _ => (),
@@ -171,23 +176,20 @@ impl ElementBase for Scroll {
         return scrollable.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let mut query_response = QueryResponse::new(true);
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::PropertyChange(key, value) => match key.as_str() {
+            DomInternalMessageType::PropertyChange(key, value) => match key.as_str() {
                 "horizontal" => {
                     self.is_horizontal = value == "true";
-                    return Some((QueryResponse::new(true), vec![], vec![]));
+                    return Some(ElementEventResponse::success());
                 }
                 _ => None,
             },
-            XmlChangeEvent::GetProperty(key) => {
+            DomInternalMessageType::GetProperty(key) => {
                 if key == "horizontal" {
-                    query_response.data_bool = Some(self.is_horizontal);
-                    return Some((query_response, vec![], vec![]));
+                    return Some(ElementEventResponse::new(
+                        QueryResponse::success().with_data_bool(self.is_horizontal),
+                    ));
                 }
                 None
             }

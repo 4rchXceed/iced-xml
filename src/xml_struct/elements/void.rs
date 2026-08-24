@@ -1,11 +1,10 @@
 // Copy-paste template
 use crate::{
-    dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
         elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        parser::XmlElement,
     },
 };
 
@@ -24,12 +23,5 @@ impl ElementBase for Void {
         _: i32,
     ) -> iced::Element<'a, Message> {
         return iced::widget::space().into();
-    }
-
-    fn process_event(
-        &mut self,
-        _: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        return None;
     }
 }

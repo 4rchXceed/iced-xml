@@ -1,8 +1,10 @@
 use crate::{
-    dom::query::QueryResponse,
+    dom::events::DomInternalMessageType,
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
         elements::{
             button::Button, center::Center, checkbox::Checkbox, col::Col, container::Container,
             element_base::ElementBase, float::FloatingElement, grid::Grid, input::Input,
@@ -11,7 +13,7 @@ use crate::{
             toggle::Toggle, tooltip::Tooltip, trigger::Trigger, var::Var, void::Void,
             window_system::WindowSystem,
         },
-        parser::{XmlChangeEvent, XmlElement},
+        parser::XmlElement,
     },
 };
 
@@ -123,8 +125,8 @@ pub fn render_element<'a>(
 
 pub fn process_event_for_element<'a>(
     element: &'a mut AnyElement,
-    event: XmlChangeEvent,
-) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
+    event: DomInternalMessageType,
+) -> Option<ElementEventResponse> {
     match element {
         AnyElement::Label(label) => label.process_event(&event),
         AnyElement::Col(col) => col.process_event(&event),

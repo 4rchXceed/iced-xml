@@ -1,9 +1,12 @@
 use crate::{
     css_reader::{CssReader, Selector, split_complex_selector},
-    dom::query::DomEvent,
+    dom::query::CustomElementEvent,
     rs_utils::HashableXmlElement,
     xml_engine::DynamicEvent,
-    xml_struct::{element_renderer::extract_selector_style_flag, parser::XmlElement},
+    xml_struct::{
+        element_renderer::{StyleChangeEvent, extract_selector_style_flag},
+        parser::XmlElement,
+    },
 };
 
 #[derive(Debug)]
@@ -126,23 +129,23 @@ impl DomQuery {
 #[derive(Debug, Clone, Hash)]
 pub struct DomMessage {
     pub message: DomInternalMessageType,
-    pub uid: i32,
+    pub uid: Option<i32>,
     pub selector: DomQuery,
 }
 
 #[derive(Debug, Clone, Hash)]
 pub enum DomInternalMessageType {
-    StyleChange(String, String, Option<String>), // k => v custom_style_flag [for(xyz)]
-    PropertyChange(String, String),              // k => v
-    GetProperty(String),                         // key
-    RegisterEventListener(String),               // event_name
-    ImportCss(String, bool),                     // css content
+    StyleChange(StyleChangeEvent),  // k => v custom_style_flag [for(xyz)]
+    PropertyChange(String, String), // k => v
+    GetProperty(String),            // key
+    RegisterEventListener(String),  // event_name
+    ImportCss(String, bool),        // css content
     SubscribeDynamicEvent(DynamicEvent), // dynamic events (like set_timeout, set_interval, etc.)
-    GetData(String),                     // key
-    FireEvent(String, DomEvent),         // event name, event data
-    Remove,                              // remove element
-    Replace(HashableXmlElement),         // replace element with new one
-    GetElement,                          // get the element's source
+    GetData(String),                // key
+    FireEvent(CustomElementEvent),  // event name, event data
+    Remove,                         // remove element
+    Replace(HashableXmlElement),    // replace element with new one
+    GetElement,                     // get the element's source
 }
 
 #[derive(Debug, Clone)]
@@ -168,16 +171,7 @@ impl DomQueryResult {
         if style_flag.is_some() {
             if self.event.is_some() {
                 self.event = Some(DomMessage {
-                    message: match &self.event.as_ref().unwrap().message {
-                        DomInternalMessageType::StyleChange(k, v, _) => {
-                            DomInternalMessageType::StyleChange(
-                                k.clone(),
-                                v.clone(),
-                                Some(style_flag.unwrap()),
-                            )
-                        }
-                        _ => self.event.as_ref().unwrap().message.clone(),
-                    },
+                    message: self.event.as_ref().unwrap().message.clone(),
                     uid: self.event.as_ref().unwrap().uid,
                     selector: self.event.as_ref().unwrap().selector.clone(),
                 });
@@ -205,7 +199,7 @@ impl DomQueryResult {
     pub fn set_property(&mut self, key: &str, value: &str) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::PropertyChange(key.to_string(), value.to_string()),
-            uid: -1,
+            uid: None,
             selector: self.query_event.clone(),
         };
         self.event = Some(event);
@@ -215,7 +209,7 @@ impl DomQueryResult {
     pub fn get_property(&mut self, key: &str) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::GetProperty(key.to_string()),
-            uid: -1,
+            uid: None,
             selector: self.query_event.clone(),
         };
         self.event = Some(event);
@@ -224,8 +218,12 @@ impl DomQueryResult {
 
     pub fn set_style(&mut self, key: &str, value: &str) -> &mut Self {
         let event = DomMessage {
-            message: DomInternalMessageType::StyleChange(key.to_string(), value.to_string(), None),
-            uid: -1,
+            message: DomInternalMessageType::StyleChange(StyleChangeEvent {
+                key: key.to_string(),
+                value: value.to_string(),
+                custom_flag: None,
+            }),
+            uid: None,
             selector: self.query_event.clone(),
         };
         self.event = Some(event);
@@ -235,7 +233,7 @@ impl DomQueryResult {
     pub fn add_event_listener(&mut self, name: &str) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::RegisterEventListener(name.to_string()),
-            uid: -1,
+            uid: None,
             selector: self.query_event.clone(),
         };
         self.event = Some(event);
@@ -245,17 +243,17 @@ impl DomQueryResult {
     pub fn get_data(&mut self, key: &str) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::GetData(key.to_string()),
-            uid: -1,
+            uid: None,
             selector: self.query_event.clone(),
         };
         self.event = Some(event);
         return self;
     }
 
-    pub fn fire_event(&mut self, name: &str, data: &mut DomEvent) -> &mut Self {
+    pub fn fire_event(&mut self, event: CustomElementEvent) -> &mut Self {
         let event = DomMessage {
-            message: DomInternalMessageType::FireEvent(name.to_string(), data.clone()),
-            uid: -1,
+            message: DomInternalMessageType::FireEvent(event),
+            uid: None,
             selector: self.query_event.clone(),
         };
         self.event = Some(event);
@@ -265,7 +263,7 @@ impl DomQueryResult {
     pub fn remove(&mut self) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::Remove,
-            uid: -1,
+            uid: None,
             selector: self.query_event.clone(),
         };
         self.event = Some(event);
@@ -275,7 +273,7 @@ impl DomQueryResult {
     pub fn replace(&mut self, new_element: XmlElement) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::Replace(HashableXmlElement::new(new_element.clone())),
-            uid: -1,
+            uid: None,
             selector: self.query_event.clone(),
         };
         self.event = Some(event);
@@ -285,7 +283,7 @@ impl DomQueryResult {
     pub fn get_element(&mut self) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::GetElement,
-            uid: -1,
+            uid: None,
             selector: self.query_event.clone(),
         };
         self.event = Some(event);

@@ -1,11 +1,13 @@
 // Copy-paste template
 use crate::{
-    dom::query::QueryResponse,
+    dom::{events::DomInternalMessageType, query::QueryResponse},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
         elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        parser::XmlElement,
     },
 };
 
@@ -82,32 +84,26 @@ impl ElementBase for Var {
         return text_element.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let mut query_response = QueryResponse::new(true);
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::PropertyChange(key, value) => match key.as_str() {
+            DomInternalMessageType::PropertyChange(key, value) => match key.as_str() {
                 "var-key" => {
                     self.key_name = value.clone();
-                    Some((query_response, Vec::new(), Vec::new()))
+                    Some(ElementEventResponse::success())
                 }
                 "fallback" => {
                     self.fallback_text = value.clone();
-                    Some((query_response, Vec::new(), Vec::new()))
+                    Some(ElementEventResponse::success())
                 }
                 _ => None,
             },
-            XmlChangeEvent::GetProperty(key) => match key.as_str() {
-                "var-key" => {
-                    query_response.data_str = Some(self.key_name.clone());
-                    Some((query_response, Vec::new(), Vec::new()))
-                }
-                "fallback" => {
-                    query_response.data_str = Some(self.fallback_text.clone());
-                    Some((query_response, Vec::new(), Vec::new()))
-                }
+            DomInternalMessageType::GetProperty(key) => match key.as_str() {
+                "var-key" => Some(ElementEventResponse::new(
+                    QueryResponse::success().with_data_str(self.key_name.clone()),
+                )),
+                "fallback" => Some(ElementEventResponse::new(
+                    QueryResponse::success().with_data_str(self.fallback_text.clone()),
+                )),
                 _ => None,
             },
             _ => None,

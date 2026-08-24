@@ -44,12 +44,8 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
     fn get_self(&mut self) -> &mut WindowApp;
     fn update(&mut self, message: crate::xml_engine::Message, app_state: &mut App<AppState>) {
         let me = self.get_objects();
-        for (_, component) in me.engine.window.element_renderer.components.iter_mut() {
-            (me.engine.window.element_renderer.functions.update)(
-                component,
-                message.clone(),
-                app_state,
-            );
+        for (_, component) in me.engine.element_renderer.components.iter_mut() {
+            (me.engine.element_renderer.functions.update)(component, message.clone(), app_state);
         }
         let responses = me.engine.update(message);
         for (callback, response) in me.qb.fetch(responses) {
@@ -65,7 +61,6 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
         let me = self.get_objects();
         let uid = me
             .engine
-            .window
             .element_renderer
             .raw_element_query(&element.get_query().query_type);
         if uid.len() != 1 {
@@ -74,14 +69,13 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
             );
         }
         me.engine
-            .window
             .element_renderer
             .register_component(uid[0], component);
         return Ok(uid[0]);
     }
     fn remove_component(&mut self, component_uid: i32, app_state: &mut App<AppState>) {
         let me = self.get_objects();
-        let elem_renderer = &mut me.engine.window.element_renderer;
+        let elem_renderer = &mut me.engine.element_renderer;
         let component = elem_renderer.components.remove(&component_uid);
         if component.is_none() {
             panic!("Component with id {} not found", component_uid);

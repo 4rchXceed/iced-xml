@@ -10,8 +10,26 @@ use crate::{
         get_unique_id,
     },
     xml_engine::{DynamicEvent, Message, XmlEngine},
-    xml_struct::{elements::textarea::TextareaEvent, parser::XmlElement},
+    xml_struct::{
+        elements::{textarea::TextareaEvent, window_system::TWMWindowOpenParams},
+        parser::XmlElement,
+    },
 };
+
+#[derive(Debug, Clone, Hash)]
+pub enum CustomElementEvent {
+    AddSelectOption(String, String),                    // (key, text)
+    RemoveSelectOption(String),                         // (key)
+    SetTableData(Vec<HashableHashMap<String, String>>), // (data)
+    TextareaEvent(TextareaEvent),                       // (event)
+    MoveCursor(VectorXY),                               // (position)
+    TWMMaximizeWindow(String),                          // (window)
+    TWMRestoreWindow(),                                 // (no data)
+    TWMCloseWindow(String),                             // (window)
+    TWMFocusWindow(String),                             // (window)
+    TWMDragWindow(String, HashableGridTarget),          // (window, position)
+    TWMOpenWindow(TWMWindowOpenParams),                 // (window)
+}
 
 #[derive(Debug, Clone, Hash)]
 pub struct DomEvent {
@@ -75,14 +93,20 @@ impl DomEvent {
     }
 }
 
+#[derive(Debug, Clone, Hash, Copy)]
+pub enum EventType {
+    User,
+    Dynamic,
+}
+
 #[derive(Debug, Clone, Hash)]
 pub struct EventResponse {
     // HERE: All properties in Option<> for every event response, so that we can return None if the event is not applicable to the element
     pub next_timeout: Option<u64>,
-    pub is_timeout: bool,
+    pub event_type: EventType,
     pub timer_id: Option<i32>, // useful for clear_timer
-    pub target_uid: i32,
-    pub event_type: String,
+    pub target_uid: Option<i32>,
+    pub event_name: String,
     pub target: Option<DomQuery>,
     pub data_str: Option<String>,
     pub data_bool: Option<bool>,
@@ -105,8 +129,8 @@ impl EventResponse {
                 query_type: DomQueryType::ByUid(uid),
                 flag: None,
             }),
-            target_uid: uid,
-            event_type: event_type,
+            target_uid: Some(uid),
+            event_name: event_type,
             ..Default::default()
         }
     }
@@ -116,12 +140,12 @@ impl Default for EventResponse {
     fn default() -> Self {
         Self {
             next_timeout: None,
-            is_timeout: false,
+            event_type: EventType::User,
             target: None,
             data_str: None,
-            event_type: String::new(),
+            event_name: String::new(),
             timer_id: None,
-            target_uid: -1,
+            target_uid: None,
             data_bool: None,
             data_int: None,
             window_system_data_window: None,
@@ -137,7 +161,8 @@ impl Default for EventResponse {
 
 #[derive(Debug, Clone)]
 pub struct QueryResponse {
-    pub success: bool,
+    pub success: bool, // If one element failed, the whole query is considered failed.
+    pub detailed_success: Vec<Box<QueryResponse>>, // If one element failed, the whole query is considered failed.
     pub element_uid: Option<i32>,
     pub error_message: Option<String>,
     pub data_str: Option<String>,
@@ -152,6 +177,7 @@ impl QueryResponse {
     pub fn new(success: bool) -> Self {
         Self {
             success,
+            detailed_success: Vec::new(),
             element_uid: None,
             error_message: None,
             data_str: None,
@@ -163,11 +189,58 @@ impl QueryResponse {
         }
     }
 
+    pub fn success() -> Self {
+        Self::new(true)
+    }
+
+    pub fn fail(reason: &str) -> Self {
+        Self::new(false).with_error_message(reason)
+    }
+
+    pub fn with_error_message(mut self, message: &str) -> Self {
+        self.error_message = Some(message.to_string());
+        self
+    }
+
+    pub fn with_data_str(mut self, data: String) -> Self {
+        self.data_str = Some(data);
+        self
+    }
+
+    pub fn with_data_bool(mut self, data: bool) -> Self {
+        self.data_bool = Some(data);
+        self
+    }
+
+    pub fn with_data_float(mut self, data: f32) -> Self {
+        self.data_float = Some(HashableF32::new(data));
+        self
+    }
+
+    pub fn with_data_vector(mut self, data: VectorXY) -> Self {
+        self.data_vector = Some(data);
+        self
+    }
+
+    pub fn with_data_element(mut self, data: XmlElement) -> Self {
+        self.data_element = Some(data);
+        self
+    }
+
+    pub fn with_data_selector(mut self, data: DomQuery) -> Self {
+        self.data_selector = Some(data);
+        self
+    }
+
     pub fn get_str_or(&self, default: &str) -> String {
         if let Some(data_str) = &self.data_str {
             return data_str.clone();
         }
         return default.to_string();
+    }
+
+    pub fn concat(&mut self, other: QueryResponse) {
+        self.detailed_success.push(Box::new(other));
     }
 }
 
@@ -190,7 +263,7 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
     pub fn new() -> Self {
         Self {
             queries: Vec::new(),
-            last: QueryResponse::new(false),
+            last: QueryResponse::fail("No queries executed yet"),
             last_timer_id: None,
             ignore_timer: Vec::new(),
         }
@@ -199,7 +272,7 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
     pub fn import_css(&mut self, css: String, hot_reload: bool) -> &mut Self {
         self.build_query(&mut DomQueryResult::from_dom_message(DomMessage {
             message: DomInternalMessageType::ImportCss(css, hot_reload),
-            uid: get_unique_id(),
+            uid: Some(get_unique_id()),
             selector: DomQuery {
                 query_type: DomQueryType::Unused,
                 flag: None,
@@ -219,7 +292,7 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
             let query = Query {
                 query: DomMessage {
                     message: ev.message,
-                    uid: id,
+                    uid: Some(id),
                     selector: ev.selector,
                 },
                 callback: None,
@@ -258,7 +331,7 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
             message: DomInternalMessageType::SubscribeDynamicEvent(DynamicEvent::SetTimeout(
                 timeout,
             )),
-            uid: self.last_timer_id.unwrap(),
+            uid: Some(self.last_timer_id.unwrap()),
             selector: DomQuery {
                 query_type: DomQueryType::Unused,
                 flag: None,
@@ -274,7 +347,7 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
             message: DomInternalMessageType::SubscribeDynamicEvent(DynamicEvent::SetInterval(
                 interval,
             )),
-            uid: self.last_timer_id.unwrap(),
+            uid: Some(self.last_timer_id.unwrap()),
             selector: DomQuery {
                 query_type: DomQueryType::Unused,
                 flag: None,
@@ -334,14 +407,14 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
                     }
                     DynamicEvent::SetTimeout(timeout) => {
                         every = *timeout;
-                        ev_data.is_timeout = true;
+                        ev_data.event_type = EventType::Dynamic;
                     }
                 };
                 if every >= 0 {
                     let ev_uid = uid.clone();
                     subscriptions.push(
                         time::every(Duration::from_millis(every.clone() as u64))
-                            .with(Message::DomEvent(ev_uid, ev_data.clone()))
+                            .with(Message::DomEvent(Some(ev_uid), ev_data.clone()))
                             .map(|a| a.0),
                     );
                 } else {
@@ -349,23 +422,25 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
                 }
             }
         }
-        subscriptions.append(&mut engine.window.element_renderer.subscribe_components());
+        subscriptions.append(&mut engine.element_renderer.subscribe_components());
         return subscriptions;
     }
 
     pub fn fetch(
         &mut self,
-        returned_callbacks: Vec<(i32, EventResponse)>,
+        returned_callbacks: Vec<(Option<i32>, EventResponse)>,
     ) -> Vec<(
         fn(&mut Window, EventResponse, &mut App<AppState>),
         EventResponse,
     )> {
         let mut callbacks = Vec::new();
         for (uid, event_response) in returned_callbacks {
-            if let Some(query) = self.queries.iter().find(|q| q.uid == uid) {
-                if query.listener_callback.is_some() {
-                    for callback in query.listener_callback.as_ref().unwrap().iter() {
-                        callbacks.push((*callback, event_response.clone()));
+            if uid.is_some() {
+                if let Some(query) = self.queries.iter().find(|q| q.uid == uid.unwrap()) {
+                    if query.listener_callback.is_some() {
+                        for callback in query.listener_callback.as_ref().unwrap().iter() {
+                            callbacks.push((*callback, event_response.clone()));
+                        }
                     }
                 }
             }

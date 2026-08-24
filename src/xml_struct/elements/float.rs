@@ -2,12 +2,11 @@ use iced::Shadow;
 
 // Copy-paste template
 use crate::{
-    dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
         elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        parser::XmlElement,
     },
 };
 
@@ -52,18 +51,5 @@ impl ElementBase for FloatingElement {
         // TODO: What does .translate do?
 
         return float_element.into();
-    }
-
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        match event {
-            // Process PropertyChange / GetProperty / Custom events
-            // The second parameter is a list of element IDs to forward the event to
-            // For example, if you want to forward the event to your "virtual label element", so it changes text,
-            // you would use `Some(..., vec![virtual_text])`
-            _ => None,
-        }
     }
 }

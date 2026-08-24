@@ -7,18 +7,18 @@ use quick_xml::{
 
 use crate::{
     css_reader::CssReader,
-    dom::query::{DomEvent, EventResponse},
     xml_struct::theming::{Fonts, XmlTheme, gen_styles},
 };
 
-#[derive(Debug, Clone)]
-pub enum XmlChangeEvent {
-    StyleChange(String, String, Option<String>), // k => v, flag
-    PropertyChange(String, String),              // k => v
-    GetProperty(String),                         // key
-    EventFired(String, EventResponse),           // event name
-    EmittedEvent(String, DomEvent),              // event name, event data
-}
+//HERE
+// #[derive(Debug, Clone)]
+// pub enum XmlChangeEvent {
+//     StyleChange(String, String, Option<String>), // k => v, flag
+//     PropertyChange(String, String),              // k => v
+//     GetProperty(String),                         // key
+//     EventFired(String, EventResponse),           // event name
+//     EmittedEvent(String, DomEvent),              // event name, event data
+// }
 
 #[derive(Debug, Clone)]
 pub struct XmlElement {

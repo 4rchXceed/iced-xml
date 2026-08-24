@@ -1,11 +1,13 @@
 // Copy-paste template
 use crate::{
-    dom::query::QueryResponse,
+    dom::{events::DomInternalMessageType, query::QueryResponse},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
         elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        parser::XmlElement,
     },
 };
 
@@ -128,29 +130,27 @@ impl ElementBase for Tooltip {
         return tooltip.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let mut response = QueryResponse::new(true);
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::PropertyChange(name, newval) => match name.as_str() {
+            DomInternalMessageType::PropertyChange(name, newval) => match name.as_str() {
                 "tip-pos" => {
                     self.position = parse_position(newval);
-                    Some((response, vec![], vec![]))
+                    Some(ElementEventResponse::success())
                 }
                 _ => None,
             },
-            XmlChangeEvent::GetProperty(name) => match name.as_str() {
+            DomInternalMessageType::GetProperty(name) => match name.as_str() {
                 "tip-pos" => {
-                    response.data_str = Some(match self.position {
+                    let pos_string = match self.position {
                         iced::widget::tooltip::Position::Top => "top".to_string(),
                         iced::widget::tooltip::Position::Bottom => "bottom".to_string(),
                         iced::widget::tooltip::Position::Left => "left".to_string(),
                         iced::widget::tooltip::Position::Right => "right".to_string(),
                         iced::widget::tooltip::Position::FollowCursor => "cursor".to_string(),
-                    });
-                    Some((response, vec![], vec![]))
+                    };
+                    Some(ElementEventResponse::new(
+                        QueryResponse::success().with_data_str(pos_string),
+                    ))
                 }
                 _ => None,
             },

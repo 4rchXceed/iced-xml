@@ -3,12 +3,17 @@ use std::panic;
 use iced::{Border, Shadow};
 
 use crate::{
-    dom::query::{EventResponse, QueryResponse},
+    dom::{
+        events::DomInternalMessageType,
+        query::{EventResponse, QueryResponse},
+    },
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
         elements::{element_base::ElementBase, label::Label, library::AnyElement},
-        parser::{XmlChangeEvent, XmlElement},
+        parser::XmlElement,
     },
 };
 
@@ -103,7 +108,7 @@ impl ElementBase for Button {
             match event.event_type.as_str() {
                 "click" => {
                     button = button.on_press(Message::DomEvent(
-                        event.event_uid,
+                        Some(event.event_uid),
                         EventResponse::new(self_uid, event.event_type.clone()),
                     ));
                 }
@@ -114,30 +119,29 @@ impl ElementBase for Button {
         return button.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         // returns (query_response, elementsToForwardTheEvent)
-        let mut query_response = QueryResponse::new(true);
-        let mut elements_to_forward = Vec::new();
         match event {
-            XmlChangeEvent::PropertyChange(property, new_val) => {
+            DomInternalMessageType::PropertyChange(property, new_val) => {
                 return match property.as_str() {
                     "text" => {
                         self.text = Some(new_val.clone());
-                        elements_to_forward.push(self.virtual_text);
-                        Some((query_response, elements_to_forward, Vec::new()))
+                        Some(
+                            ElementEventResponse::success()
+                                .with_forward_to(vec![self.virtual_text]),
+                        )
                     }
                     _ => None,
                 };
             }
-            XmlChangeEvent::GetProperty(property) => {
+            DomInternalMessageType::GetProperty(property) => {
                 return match property.as_str() {
                     "text" => {
                         if self.text.is_some() {
-                            query_response.data_str = self.text.clone();
-                            Some((query_response, elements_to_forward, Vec::new()))
+                            Some(ElementEventResponse::new(
+                                QueryResponse::success()
+                                    .with_data_str(self.text.as_ref().unwrap().clone()),
+                            ))
                         } else {
                             None
                         }
