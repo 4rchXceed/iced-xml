@@ -6,8 +6,7 @@ use crate::{
     app_manager::{App, WindowId},
     dom::events::{DomInternalMessageType, DomMessage, DomQuery, DomQueryResult, DomQueryType},
     rs_utils::{
-        HashableF32, HashableGridTarget, HashableHashMap, ScrollState, VectorWH, VectorXY,
-        get_unique_id,
+        HashableF32, HashableGridTarget, HashableHashMap, ScrollState, Vector2, get_unique_id,
     },
     xml_engine::{DynamicEvent, Message, XmlEngine},
     xml_struct::{
@@ -22,7 +21,7 @@ pub enum CustomElementEvent {
     RemoveSelectOption(String),                         // (key)
     SetTableData(Vec<HashableHashMap<String, String>>), // (data)
     TextareaEvent(TextareaEvent),                       // (event)
-    MoveCursor(VectorXY),                               // (position)
+    MoveCursor(Vector2),                                // (position)
     TWMMaximizeWindow(String),                          // (window)
     TWMRestoreWindow(),                                 // (no data)
     TWMCloseWindow(String),                             // (window)
@@ -39,7 +38,7 @@ pub struct DomEvent {
     pub data_float: Option<HashableF32>,
     pub data_tabledata: Option<Vec<HashableHashMap<String, String>>>,
     pub data_textarea_event: Option<TextareaEvent>,
-    pub data_vector: Option<VectorXY>,
+    pub data_vector: Option<Vector2>,
 }
 
 impl DomEvent {
@@ -112,7 +111,7 @@ pub struct EventResponse {
     pub data_bool: Option<bool>,
     pub data_int: Option<i32>,
     pub data_float: Option<HashableF32>,
-    pub data_vectorwh: Option<VectorWH>,
+    pub data_vector: Option<Vector2>,
     // Element-specific properties (with non-builtin types):
     // WindowSystem
     pub window_system_data_window: Option<iced::widget::pane_grid::Pane>,
@@ -151,9 +150,9 @@ impl Default for EventResponse {
             window_system_data_window: None,
             window_system_data_split: None,
             data_float: None,
+            data_vector: None,
             window_system_data_target: None,
             scrollable_scroll_state: None,
-            data_vectorwh: None,
             textarea_event: None,
         }
     }
@@ -168,7 +167,7 @@ pub struct QueryResponse {
     pub data_str: Option<String>,
     pub data_bool: Option<bool>,
     pub data_float: Option<HashableF32>,
-    pub data_vector: Option<VectorXY>,
+    pub data_vector: Option<Vector2>,
     pub data_element: Option<XmlElement>,
     pub data_selector: Option<DomQuery>,
 }
@@ -217,7 +216,7 @@ impl QueryResponse {
         self
     }
 
-    pub fn with_data_vector(mut self, data: VectorXY) -> Self {
+    pub fn with_data_vector(mut self, data: Vector2) -> Self {
         self.data_vector = Some(data);
         self
     }

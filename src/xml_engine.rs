@@ -12,70 +12,78 @@ use crate::xml_struct::theming::Fonts;
 use iced::window;
 use quick_xml::Reader;
 
-/// Message is the main event-system message for Iced.
-/// This enum is used to pass events from the UI to the engine.
-/// It has:
+///  Message is the main event-system message for Iced.
+///
+///  This enum is used to pass events from the UI to the engine.
+///
+///  It has:
 #[derive(Debug, Clone, Hash)]
 pub enum Message {
-    /// - DomEvent: these are the events that are meant to be handled by the engine. i32 => event UID, EventResponse => event data
+    ///  - DomEvent: these are the events that are meant to be handled by the engine. i32 => event UID, EventResponse => event data
     DomEvent(Option<i32>, EventResponse),
-    /// - Void: this is a event that does nothing.
+    ///  - Void: this is a event that does nothing.
     Void,
-    /// - OpenWindow: this opens a new window with the given creation params ID.
+    ///  - OpenWindow: this opens a new window with the given creation params ID.
     OpenWindow(i32), // creation params ID
-    /// - WindowOpened: this is a event that is sent when a window is opened. It's an internal event that is meant to be handled by the window system. It has the window ID as parameter.
-    /// The WindowOpened handles after-window-creation setup for the Window System
+    ///  - WindowOpened: this is a event that is sent when a window is opened. It's an internal event that is meant to be handled by the window system. It has the window ID as parameter.
+    ///  The WindowOpened handles after-window-creation setup for the Window System
     WindowOpened(window::Id, i32), // WindowID, creation params ID
-    /// - WindowClosed: this is a event that is sent when a window is closed.
+    ///  - WindowClosed: this is a event that is sent when a window is closed.
     WindowClosed(window::Id),
 }
 
-/// The dynamic events are the events that are created using "Subscribe" in Iced.
-/// These are events that aren't triggered by the user, but by a time-based event.
+///  The dynamic events are the events that are created using "Subscribe" in Iced.
+///
+///  These are events that aren't triggered by the user, but by a time-based event.
 #[derive(Debug, Clone, Hash)]
 pub enum DynamicEvent {
-    /// - SetTimeout: the query's settimeout event
+    ///  - SetTimeout: the query's settimeout event
     SetTimeout(i32), // time in milliseconds
-    /// - SetInterval: the query's setinterval event
+    ///  - SetInterval: the query's setinterval event
     SetInterval(i32), // time in milliseconds
 }
 
-/// The EngineSettings struct is used to configure the XmlEngine, before it's created.
+///  The EngineSettings struct is used to configure the XmlEngine, before it's created.
 #[derive(Debug, Clone)]
 pub struct EngineSettings {
-    /// The fonts that will be available for the styling system
+    ///  The fonts that will be available for the styling system
     pub fonts: Fonts,
-    /// The functions that will be available for the component system (since their type is unknown for the library)
+    ///  The functions that will be available for the component system (since their type is unknown for the library)
     pub functions: ComponentFunctions,
 }
 
-/// The XmlEngine is the rendering / event-handling engine for Iced-XML. It is responsible for parsing XML, managing the DOM, and handling events.
+///  The XmlEngine is the rendering / event-handling engine for Iced-XML. It is responsible for parsing XML, managing the DOM, and handling events.
 pub struct XmlEngine {
-    /// The UID of the element renderer root element. This is the root of the DOM tree. Used as "entrypoint"
+    ///  The UID of the element renderer root element. This is the root of the DOM tree. Used as "entrypoint"
     root_uid: i32,
-    /// The element renderer is the main component that handles the rendering of the DOM tree. It is responsible for managing the elements, their properties, and their events.
+    ///  The element renderer is the main component that handles the rendering of the DOM tree. It is responsible for managing the elements, their properties, and their events.
     pub element_renderer: ElementRenderer,
-    /// The fired events are the events that have been fired by the UI or dynamic events, they are stored and then their IDs are used to identify the callbacks.
+    ///  The fired events are the events that have been fired by the UI or dynamic events, they are stored and then their IDs are used to identify the callbacks.
     pub fired_events: Vec<(Option<i32>, EventResponse)>,
-    /// The dynamic events are the events that are created using "Subscribe" in Iced. This is used to store the dynamic events that needs to be "subscribed"
+    ///  The dynamic events are the events that are created using "Subscribe" in Iced. This is used to store the dynamic events that needs to be "subscribed"
     pub dyn_events: Vec<(i32, DynamicEvent)>, // (Callback UID, DynamicEvent)
 }
 
-/// This stores all the reason why the XmlEngine failed to be created.
+///  This stores all the reason why the XmlEngine failed to be created.
 #[derive(Debug)]
 pub enum XmlEngineError {
-    /// The XML failed to parse, this is usually due to invalid XML syntax.
-    /// The quick_xml::Error is the error that was returned by the quick_xml parser.
+    ///  The XML failed to parse, this is usually due to invalid XML syntax.
+    ///
+    ///  The quick_xml::Error is the error that was returned by the quick_xml parser.
     XmlParseError(quick_xml::Error),
-    /// The root element is not a <Window> element. This is usually due to invalid XML structure.
-    /// The XmlElement is the root element that was parsed from the XML.
+    ///
+    ///  The root element is not a <Window> element. This is usually due to invalid XML structure.
+    ///
+    ///  The XmlElement is the root element that was parsed from the XML.
     InvalidRootElement(XmlElement),
 }
 
 impl XmlEngine {
-    /// This created the XmlEngine from the given XML content and settings. It will panic if the XML is invalid or if the root element is not a <Window> element.
-    /// xml: The XML content to parse. This should be a valid XML document with a <Window> root element.
-    /// settings: The settings to use for the engine. You can use the DEFAULT_ENGINE_SETTINGS constant given from window_manager! macro, and update it if needed.
+    ///  This created the XmlEngine from the given XML content and settings. It will panic if the XML is invalid or if the root element is not a <Window> element.
+    ///
+    ///  xml: The XML content to parse. This should be a valid XML document with a <Window> root element.
+    ///
+    ///  settings: The settings to use for the engine. You can use the DEFAULT_ENGINE_SETTINGS constant given from window_manager! macro, and update it if needed.
     pub fn new(xml: String, settings: EngineSettings) -> Self {
         let self_op = Self::try_new(xml, settings);
         if self_op.is_err() {
@@ -91,9 +99,11 @@ impl XmlEngine {
         return self_op.unwrap();
     }
 
-    /// This created the XmlEngine from the given XML content and settings. It will return an error if the XML is invalid or if the root element is not a <Window> element.
-    /// xml: The XML content to parse. This should be a valid XML document with a <Window> root element.
-    /// settings: The settings to use for the engine. You can use the DEFAULT_ENGINE_SETTINGS constant given from window_manager! macro, and update it if needed.
+    ///  This created the XmlEngine from the given XML content and settings. It will return an error if the XML is invalid or if the root element is not a <Window> element.
+    ///
+    ///  xml: The XML content to parse. This should be a valid XML document with a <Window> root element.
+    ///
+    ///  settings: The settings to use for the engine. You can use the DEFAULT_ENGINE_SETTINGS constant given from window_manager! macro, and update it if needed.
     pub fn try_new(xml: String, settings: EngineSettings) -> Result<Self, XmlEngineError> {
         // Create a quick_xml reader from the XML string
         let reader = Reader::from_reader(Cursor::new(xml.into_bytes()));
@@ -154,13 +164,10 @@ impl XmlEngine {
                         }
                         // If it's none, it means that the event is a direct event from the program, so we need to pass it to the element renderer to handle it.
                         if event_data.target_uid.is_some() {
-                            self.element_renderer.emit_internal_event(
+                            self.element_renderer.pass_event_to_element(
                                 event_data.target_uid.unwrap(),
-                                XmlChangeEvent::EventFired(
-                                    event_data.event_name.clone(),
-                                    event_data.clone(),
-                                ),
-                                false,
+                                event_data.event_name.clone(),
+                                event_data.clone(),
                             );
                         }
                     }
@@ -172,7 +179,7 @@ impl XmlEngine {
         return self.fired_events.clone();
     }
 
-    /// This function returns the Iced Element that represents the root of the DOM tree. This is used to render the UI in Iced.
+    ///  This function returns the Iced Element that represents the root of the DOM tree. This is used to render the UI in Iced.
     pub fn view(&self) -> iced::Element<'_, Message> {
         return self
             .element_renderer
@@ -180,11 +187,15 @@ impl XmlEngine {
             .into();
     }
 
-    /// Handles the events that are sent from the program to the engine.
-    /// Parameters:
-    /// - query: The DomMessage that contains the event to handle.
-    /// Returns:
-    /// - QueryResponse: The response of the event handling. It contains information about the success, and other data that might be needed by the program.
+    ///  Handles the events that are sent from the program to the engine.
+    ///
+    ///  Parameters:
+    ///
+    ///  - query: The DomMessage that contains the event to handle.
+    ///
+    ///  Returns:
+    ///
+    ///  - QueryResponse: The response of the event handling. It contains information about the success, and other data that might be needed by the program.
     pub fn client_events(&mut self, query: &DomMessage) -> QueryResponse {
         match &query.message {
             // If the event is a generic event, non-related to a specific element, we handle it in the generic event handler.
@@ -199,12 +210,16 @@ impl XmlEngine {
         }
     }
 
-    /// Handles the generic events (not related to a specific element) that are sent from the program to the engine.
-    /// Parameters:
-    /// - event: The DomMessage that contains the event to handle.
-    /// Returns:
-    /// - QueryResponse: The response of the event handling. It contains information about the success, and other data that might be needed by the program.
-    pub fn handle_generic_event(&mut self, event: &DomMessage) -> QueryResponse {
+    ///  Handles the generic events (not related to a specific element) that are sent from the program to the engine.
+    ///
+    ///  Parameters:
+    ///
+    ///  - event: The DomMessage that contains the event to handle.
+    ///
+    ///  Returns:
+    ///
+    ///  - QueryResponse: The response of the event handling. It contains information about the success, and other data that might be needed by the program.
+    fn handle_generic_event(&mut self, event: &DomMessage) -> QueryResponse {
         return match &event.message {
             // If the event is a SubscribeDynamicEvent (EventType::Dynamic), we add it to the dyn_events vector, so that it can be handled later when the dynamic event is triggered.
             DomInternalMessageType::SubscribeDynamicEvent(dynamic_event) => {
@@ -220,7 +235,7 @@ impl XmlEngine {
                     };
                     return QueryResponse::success();
                 } else {
-                    return QueryResponse::fail();
+                    return QueryResponse::fail("Dynamic event must have a UID to be registered.");
                 }
             }
             // If it's an ImportCss event, we load the CSS into the element renderer, and return the success status and any error message that might have occurred during the loading process.
@@ -232,49 +247,25 @@ impl XmlEngine {
                 query_response.error_message = Some(message);
                 return query_response;
             }
-            _ => QueryResponse::fail(),
+            _ => QueryResponse::fail("Message supposed to be a generic event, but it is not."),
         };
     }
 
-    /// Handles the element-specific events (related to a specific element) that are sent from the program to the engine.
-    /// Parameters:
-    /// - query: The DomMessage that contains the event to handle.
-    /// Returns:
-    /// - QueryResponse: The response of the event handling. It contains information about the success and other data that might be needed by the program.
-    pub fn handle_element_specific_event(&mut self, query: &DomMessage) -> QueryResponse {
+    ///  Handles the element-specific events (related to a specific element) that are sent from the program to the engine.
+    ///
+    ///  Parameters:
+    ///
+    ///  - query: The DomMessage that contains the event to handle.
+    ///
+    ///  Returns:
+    ///
+    ///  - QueryResponse: The response of the event handling. It contains information about the success and other data that might be needed by the program.
+    fn handle_element_specific_event(&mut self, query: &DomMessage) -> QueryResponse {
         let mut response = QueryResponse::success();
         let elements = self.element_renderer.element_query(&query.selector);
         for element in elements {
             let status = match query.message {
                 // TODO: Remove XmlChangeEvent and use DomInternalMessageType instead
-                // DomInternalMessageType::PropertyChange(ref key, ref value) => {
-                //     self.element_renderer.emit_internal_event(
-                //         element,
-                //         XmlChangeEvent::PropertyChange(key.clone(), value.clone()),
-                //         false,
-                //     )
-                // }
-                // DomInternalMessageType::GetProperty(ref key) => self
-                //     .element_renderer
-                //     .emit_internal_event(element, XmlChangeEvent::GetProperty(key.clone()), false),
-                // DomInternalMessageType::StyleChange(ref key, ref value, ref custom_style_flag) => {
-                //     self.element_renderer.emit_internal_event(
-                //         element,
-                //         XmlChangeEvent::StyleChange(
-                //             key.clone(),
-                //             value.clone(),
-                //             custom_style_flag.clone(),
-                //         ),
-                //         false,
-                //     )
-                // }
-                // DomInternalMessageType::FireEvent(ref event_name, ref ev_datas) => {
-                //     self.element_renderer.emit_internal_event(
-                //         element,
-                //         XmlChangeEvent::EmittedEvent(event_name.clone(), ev_datas.clone()),
-                //         false,
-                //     )
-                // }
                 // RegisterEventListener is used to register an event listener for a specific event on an element.
                 // Used by .add_event_listener() in the DomQuery.
                 DomInternalMessageType::RegisterEventListener(ref event_name) => {
@@ -286,7 +277,9 @@ impl XmlEngine {
                         );
                         return QueryResponse::success();
                     } else {
-                        return QueryResponse::fail();
+                        return QueryResponse::fail(
+                            "Event listener must have a UID to be registered.",
+                        );
                     }
                 }
                 // This removes an element from the DOM tree. It will also remove all of its children, and any event listeners that are registered on it or its children.
@@ -319,10 +312,12 @@ impl XmlEngine {
                         qr.data_str = data;
                         qr
                     } else {
-                        QueryResponse::fail()
+                        QueryResponse::fail("Data not found for the given key.")
                     }
                 }
-                _ => QueryResponse::fail(),
+                _ => QueryResponse::fail(
+                    "Message supposed to be an element-specific event, but it is not.",
+                ),
             };
             response.concat(status);
         }

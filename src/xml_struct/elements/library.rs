@@ -1,5 +1,5 @@
 use crate::{
-    dom::events::DomInternalMessageType,
+    dom::{events::DomInternalMessageType, query::EventResponse},
     xml_engine::Message,
     xml_struct::{
         element_renderer::{
@@ -152,5 +152,42 @@ pub fn process_event_for_element<'a>(
         AnyElement::Tooltip(tooltip) => tooltip.process_event(&event),
         AnyElement::Range(range) => range.process_event(&event),
         AnyElement::Void(void) => void.process_event(&event),
+    }
+}
+
+pub fn process_event_callback_for_element<'a>(
+    element: &'a mut AnyElement,
+    event_name: &String,
+    event_response: &EventResponse,
+) -> Option<ElementEventResponse> {
+    match element {
+        AnyElement::Label(label) => label.event_callback(event_name, event_response),
+        AnyElement::Col(col) => col.event_callback(event_name, event_response),
+        AnyElement::Button(button) => button.event_callback(event_name, event_response),
+        AnyElement::Row(row) => row.event_callback(event_name, event_response),
+        AnyElement::Center(center) => center.event_callback(event_name, event_response),
+        AnyElement::Checkbox(checkbox) => checkbox.event_callback(event_name, event_response),
+        AnyElement::Select(select) => select.event_callback(event_name, event_response),
+        AnyElement::Container(container) => container.event_callback(event_name, event_response),
+        AnyElement::FloatingElement(floating_element) => {
+            floating_element.event_callback(event_name, event_response)
+        }
+        AnyElement::Grid(grid) => grid.event_callback(event_name, event_response),
+        AnyElement::WindowSystem(window_system) => {
+            window_system.event_callback(event_name, event_response)
+        }
+        AnyElement::Radio(radio) => radio.event_callback(event_name, event_response),
+        AnyElement::Scroll(scroll) => scroll.event_callback(event_name, event_response),
+        AnyElement::Progress(progress) => progress.event_callback(event_name, event_response),
+        AnyElement::Space(space) => space.event_callback(event_name, event_response),
+        AnyElement::Trigger(trigger) => trigger.event_callback(event_name, event_response),
+        AnyElement::Table(table) => table.event_callback(event_name, event_response),
+        AnyElement::Var(var) => var.event_callback(event_name, event_response),
+        AnyElement::Input(input) => input.event_callback(event_name, event_response),
+        AnyElement::Textarea(textarea) => textarea.event_callback(event_name, event_response),
+        AnyElement::Toggle(toggle) => toggle.event_callback(event_name, event_response),
+        AnyElement::Tooltip(tooltip) => tooltip.event_callback(event_name, event_response),
+        AnyElement::Range(range) => range.event_callback(event_name, event_response),
+        AnyElement::Void(void) => void.event_callback(event_name, event_response),
     }
 }

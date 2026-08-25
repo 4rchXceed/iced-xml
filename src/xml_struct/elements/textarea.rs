@@ -6,7 +6,7 @@ use crate::{
         events::DomInternalMessageType,
         query::{CustomElementEvent, EventResponse, QueryResponse},
     },
-    rs_utils::{HashableF32, HashableTextareaEdit, VectorXY},
+    rs_utils::{HashableF32, HashableTextareaEdit, Vector2},
     xml_engine::Message,
     xml_struct::{
         element_renderer::{
@@ -19,8 +19,8 @@ use crate::{
 
 #[derive(Debug, Clone, Hash)]
 pub enum TextareaEvent {
-    Click(VectorXY),
-    Drag(VectorXY),
+    Click(Vector2),
+    Drag(Vector2),
     Input((HashableTextareaEdit, String)),
     CursorMove(String),
     Scroll(i32),
@@ -102,13 +102,11 @@ fn generate_action(
     content: &iced::widget::text_editor::Content,
 ) -> TextareaEvent {
     return match action {
-        iced::widget::text_editor::Action::Click(Point { x, y }) => {
-            TextareaEvent::Click(VectorXY {
-                x: HashableF32::new(x),
-                y: HashableF32::new(y),
-            })
-        }
-        iced::widget::text_editor::Action::Drag(Point { x, y }) => TextareaEvent::Drag(VectorXY {
+        iced::widget::text_editor::Action::Click(Point { x, y }) => TextareaEvent::Click(Vector2 {
+            x: HashableF32::new(x),
+            y: HashableF32::new(y),
+        }),
+        iced::widget::text_editor::Action::Drag(Point { x, y }) => TextareaEvent::Drag(Vector2 {
             x: HashableF32::new(x),
             y: HashableF32::new(y),
         }),
@@ -247,7 +245,7 @@ impl ElementBase for Textarea {
                 "cursor_position" => {
                     let pos = self.content.cursor().position;
                     return Some(ElementEventResponse::new(
-                        QueryResponse::success().with_data_vector(VectorXY {
+                        QueryResponse::success().with_data_vector(Vector2 {
                             x: HashableF32::new(pos.column as f32),
                             y: HashableF32::new(pos.line as f32),
                         }),

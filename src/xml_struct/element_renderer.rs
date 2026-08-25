@@ -9,14 +9,15 @@ use crate::{
         events::{
             ComplexQuery, ComplexQueryJoinType, DomInternalMessageType, DomQuery, DomQueryType,
         },
-        query::QueryResponse,
+        query::{EventResponse, QueryResponse},
     },
     rs_utils::get_unique_id,
     xml_engine::Message,
     xml_struct::{
         elements::{
             library::{
-                AnyElement, generate_element_from_tag, process_event_for_element, render_element,
+                AnyElement, generate_element_from_tag, process_event_callback_for_element,
+                process_event_for_element, render_element,
             },
             radio::RadioElement,
         },
@@ -654,6 +655,35 @@ impl ElementRenderer {
                     .or_insert(datas.default_theme.clone());
             }
             gen_styles(&event.key, &event.value, flag_theme, &self.fonts);
+        }
+    }
+
+    pub fn pass_event_to_element(
+        &mut self,
+        target_uid: i32,
+        event_name: String,
+        event_datas: EventResponse,
+    ) -> QueryResponse {
+        let element = self.elements.get_mut(&target_uid);
+        if element.is_some() {
+            let (element, _) = element.unwrap();
+            let element_response_op =
+                process_event_callback_for_element(element, &event_name, &event_datas);
+            if element_response_op.is_some() {
+                return element_response_op.unwrap().response;
+            } else {
+                return QueryResponse::fail(
+                    format!(
+                        "Element with uid {} doesn't have a callback for event {}",
+                        target_uid, event_name
+                    )
+                    .as_str(),
+                );
+            }
+        } else {
+            return QueryResponse::fail(
+                format!("Element with uid {} not found", target_uid).as_str(),
+            );
         }
     }
 

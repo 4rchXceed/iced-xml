@@ -5,7 +5,7 @@ use crate::{
         events::DomInternalMessageType,
         query::{EventResponse, QueryResponse},
     },
-    rs_utils::{HashableF32, VectorWH},
+    rs_utils::{HashableF32, Vector2},
     xml_engine::Message,
     xml_struct::{
         element_renderer::{
@@ -88,9 +88,9 @@ impl ElementBase for Trigger {
                 "shown" => {
                     trigger = trigger.on_show(move |size| {
                         let mut ev_res = EventResponse::new(me, String::from("shown"));
-                        ev_res.data_vectorwh = Some(VectorWH {
-                            width: HashableF32::new(size.width),
-                            height: HashableF32::new(size.height),
+                        ev_res.data_vector = Some(Vector2 {
+                            x: HashableF32::new(size.width),
+                            y: HashableF32::new(size.height),
                         });
                         Message::DomEvent(Some(event.event_uid), ev_res)
                     })
@@ -98,9 +98,9 @@ impl ElementBase for Trigger {
                 "resize" => {
                     trigger = trigger.on_resize(move |size| {
                         let mut ev_res = EventResponse::new(me, String::from("resize"));
-                        ev_res.data_vectorwh = Some(VectorWH {
-                            width: HashableF32::new(size.width),
-                            height: HashableF32::new(size.height),
+                        ev_res.data_vector = Some(Vector2 {
+                            x: HashableF32::new(size.width),
+                            y: HashableF32::new(size.height),
                         });
                         Message::DomEvent(Some(event.event_uid), ev_res)
                     })
