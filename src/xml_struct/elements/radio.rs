@@ -1,5 +1,5 @@
 use crate::{
-    dom::{events::DomInternalMessageType, query::EventResponse},
+    dom::{events::DomInternalMessageType, query_builder::EventResponse},
     xml_engine::Message::{self},
     xml_struct::{
         element_renderer::{

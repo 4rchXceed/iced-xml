@@ -1,7 +1,7 @@
 use iced::widget::text;
 
 use crate::{
-    dom::{events::DomInternalMessageType, query::QueryResponse},
+    dom::{events::DomInternalMessageType, query_builder::QueryResponse},
     xml_engine::Message,
     xml_struct::{
         element_renderer::{

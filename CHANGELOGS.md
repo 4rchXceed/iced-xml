@@ -224,3 +224,8 @@ Pretty big commit here.
 
 ### Commit msg: "Added component system, and updated a lot the code to support it"
 ### Other: -m "+ Added 'component' system, allows for embedding a window as a element in another window. The component's engine is 100% independent from the parent engine, and can have it's own state, events, and elements." -m "~ Updated a lot the code to support the new component system" -m "+ Added a new 'DEFAULT_ENGINE_SETTINGS' variable that needs to be passed to the engine." -m "+ Added 4 new functions in window_manager! macro: render_component, update_component, subscribe_component, on_close_component" -m "+ Added add_component() and remove_component() methods to the WindowTemplate struct, allows for adding/removing components to/from a window." -m "~ Removed Clone dependency from the app state, now instead of passing AppState, we pass a function that returns a new AppState." -m "-- Note on poor code quality: The window_system! macro is a mess, I know. I will *try* to 100% remove it, but for now I'll keep it until V0.1.0"
+
+## Last commit: a2ebb20937073391971681fa75459ca2f7581151
++ Code rewrite
+
+### Commit msg: "Code rewrite (3): made another part of the code rewrite"

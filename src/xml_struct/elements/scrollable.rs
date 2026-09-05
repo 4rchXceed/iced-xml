@@ -4,7 +4,7 @@ use iced::widget::scrollable::AutoScroll;
 use crate::{
     dom::{
         events::DomInternalMessageType,
-        query::{EventResponse, QueryResponse},
+        query_builder::{EventResponse, QueryResponse},
     },
     rs_utils::{HashableF32, ScrollState},
     xml_engine::Message,

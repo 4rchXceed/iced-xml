@@ -1,3 +1,4 @@
+//! This file contains all the utility functions that are related to the Rust code, such as hashing, unique IDs, and other utilities.
 use std::{cell::Cell, collections::HashMap, f32::consts::PI};
 
 use crate::xml_struct::parser::XmlElement;

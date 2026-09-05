@@ -6,10 +6,9 @@ use crate::{
     app_manager::ComponentFunctions,
     css_reader::{CssReader, Rule, RuleBlock, Selector},
     dom::{
-        events::{
-            ComplexQuery, ComplexQueryJoinType, DomInternalMessageType, DomQuery, DomQueryType,
-        },
-        query::{EventResponse, QueryResponse},
+        events::DomInternalMessageType,
+        query::{ComplexQuery, ComplexQueryJoinType, DomQuery, DomQueryType},
+        query_builder::{EventResponse, QueryResponse},
     },
     rs_utils::get_unique_id,
     xml_engine::Message,
@@ -174,18 +173,18 @@ impl ElementRenderer {
     pub fn load_css(&mut self, css: &str, hot_reload: bool) -> (bool, String) {
         let mut reader = CssReader::new(css);
         reader.parse();
-        if reader.kill_switch {
-            return (false, reader.kill_message);
+        if reader.get_kill_switch() {
+            return (false, reader.get_kill_message());
         }
         if hot_reload {
             if self.hot_reload_states.is_some() {
-                self.update_state(&reader.rules);
-                self.cleanup_for_hot_reload(&reader.rules);
+                self.update_state(&reader.get_rules());
+                self.cleanup_for_hot_reload(&reader.get_rules());
             } else {
-                self.hot_reload_states = Some(self.generate_state(&reader.rules));
+                self.hot_reload_states = Some(self.generate_state(&reader.get_rules()));
             }
         }
-        for rule_block in &reader.rules {
+        for rule_block in reader.get_rules() {
             // TODO: Add support for multiple selectors in a single rule block
             let selectors = &rule_block.selectors;
             for selector in selectors {

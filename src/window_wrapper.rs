@@ -1,10 +1,12 @@
+//! This module contains the base trait that every window must implement. It also contains some utils (structs and enums
+//! TODO: doc
 use std::any::Any;
 
 use crate::{
     app_manager::App,
     dom::{
-        events::DomQueryResult,
-        query::{QueryBuilder, QueryResponse},
+        events::DomQueryBuilder,
+        query_builder::{QueryBuilder, QueryResponse},
     },
     xml_engine::{Message, XmlEngine},
     xml_struct::{elements::library::generate_element_from_tag, parser::XmlElement},
@@ -119,7 +121,7 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
     ///  Add a component to the window template, given a DOM query result (Dom::...) and a boxed component
     fn add_component(
         &mut self,
-        element: DomQueryResult,
+        element: DomQueryBuilder,
         component: Box<dyn Any>,
     ) -> Result<i32, &str> {
         // Get the engine and query builder

@@ -1,8 +1,14 @@
 use crate::rs_utils::is_alphabetic;
 
-// Utils
-// Vec<String> -> [("#container", None), (".button", '>'), ("div", '+')]
-// (String, Option<String>) -> String = selector, Option<String> = operator
+/// This function splits a query into parts
+/// A complex query is like this:
+///
+/// .selector1 > #selector2 + Tag1 ~ .selector3 => vec![(".selector1", None), ("#selector2", '>'), ("Tag1", '+'), (".selector3", '~')]
+///
+/// Parameters:
+/// - query: the query to split
+/// Returns:
+/// - Vec<(String, Option<char>)>: the query splitted
 pub fn split_complex_selector(query: String) -> Vec<(String, Option<char>)> {
     let mut query = query.chars();
     let mut next_op = query.next();
@@ -55,19 +61,42 @@ pub fn split_complex_selector(query: String) -> Vec<(String, Option<char>)> {
     return all_parts;
 }
 
-#[derive(Clone)]
+/// This represents a Selector Type
+#[derive(Clone, Debug)]
+pub enum SelectorType {
+    Class,
+    Id,
+    Tag,
+    Complex,
+    None,
+    All,
+    Uid,
+}
+
+/// This represents a selector
+/// Types of selectors:
+/// .class
+/// #id
+/// Tag
+/// <selector> + > ~ or ' ' <selector2> ...
+#[derive(Clone, Debug)]
 pub struct Selector {
-    pub selector_type: String,
+    /// The SelectorType
+    pub selector_type: SelectorType,
+    /// The string content
     pub content: String,
+    /// The potential flag (::*)
     pub flag: Option<String>, // Supported: virtuals (parsed as: ::virtual)
 }
 
+/// This represents a list of rules (used to represent "selector, selector")
 #[derive(Clone)]
 pub struct RuleBlock {
     pub selectors: Vec<Selector>,
     pub rules: Vec<Rule>,
 }
 
+/// This represents a single rule (key: value;)
 #[derive(Clone)]
 pub struct Rule {
     pub name: String,
@@ -75,10 +104,23 @@ pub struct Rule {
 }
 
 impl Rule {
+    /// Used to hash a key to a hashmap, this is *NOT* a Hash trait
+    /// Parameters:
+    /// - selector: the selector to hash with self
+    /// Returns:
+    /// - String: the "hashed" string
     pub fn hash_with_selector(&self, selector: &Selector) -> String {
         return format!(
             "{}:{}:{}:{}",
-            selector.selector_type,
+            match selector.selector_type {
+                SelectorType::Class => "class",
+                SelectorType::Complex => "complex",
+                SelectorType::Id => "id",
+                SelectorType::None => "none",
+                SelectorType::Tag => "tag",
+                SelectorType::All => "all",
+                SelectorType::Uid => "uid",
+            },
             selector.content,
             self.name,
             selector.flag.clone().unwrap_or("none".to_string())
@@ -86,17 +128,26 @@ impl Rule {
     }
 }
 
+/// This struct is the main CSS Parsing code
+/// It's state is made of a position in an input.
+/// Usage:
+/// ```rust
+/// let mut reader = CssReader::new("css here");
+/// reader.parse();
+/// let rules = reader.get_rules();
+/// ```
 #[derive(Clone)]
 pub struct CssReader {
     input: String,
     pos: usize,
-    pub max_it: usize,
-    pub rules: Vec<RuleBlock>,
-    pub kill_switch: bool,
-    pub kill_message: String,
+    max_it: usize,
+    rules: Vec<RuleBlock>,
+    kill_switch: bool,
+    kill_message: String,
 }
 
 impl CssReader {
+    /// Creates a CssReader from a string
     pub fn new(css: &str) -> Self {
         Self {
             input: css.to_string(),
@@ -108,6 +159,23 @@ impl CssReader {
         }
     }
 
+    /// Gets the kill switch states
+    pub fn get_kill_switch(&self) -> bool {
+        return self.kill_switch;
+    }
+
+    /// Gets the kill message
+    pub fn get_kill_message(&self) -> String {
+        return self.kill_message.clone();
+    }
+
+    /// Gets all the rules in the CssReader
+    /// Returns: the rules
+    pub fn get_rules(&self) -> &Vec<RuleBlock> {
+        return &self.rules;
+    }
+
+    /// Gets the current character, and if it's the end of the String (self.input), kill the CssReader
     pub fn cur_unchecked(&mut self) -> char {
         let current = self.input.chars().take(self.pos + 1).skip(self.pos).next();
         if current.is_none() {
@@ -119,10 +187,14 @@ impl CssReader {
         }
     }
 
+    /// Is the current character at the end of the string
+    /// Returns: bool
     pub fn eof(&mut self) -> bool {
         self.pos >= self.input.chars().count()
     }
 
+    /// Peek the next character, and kill the CssReader if it's EOF
+    /// Returns: self.input at self.pos + 1
     pub fn peek_unchecked(&mut self) -> char {
         let mut chars = self.input.chars().take(self.pos + 2).skip(self.pos + 1);
         let current = chars.next();
@@ -134,6 +206,7 @@ impl CssReader {
         return current.unwrap();
     }
 
+    /// Skips all whitespace and comments, until the next "normal" char
     pub fn skip_whitespace(&mut self) {
         if self.kill_switch {
             return;
@@ -165,6 +238,7 @@ impl CssReader {
         }
     }
 
+    /// Parses the CSS as a file
     pub fn parse(&mut self) {
         self.skip_whitespace();
         let mut it = 0;
@@ -181,6 +255,7 @@ impl CssReader {
         }
     }
 
+    /// Parses selectors separated by a comma ",", returns a list of Selector
     fn parse_selectors(&mut self) -> Vec<Selector> {
         if self.kill_switch {
             return Vec::new();
@@ -198,6 +273,11 @@ impl CssReader {
         return selectors;
     }
 
+    /// Parses all the CSS rules, like:
+    ///     {
+    /// key: value;
+    /// }
+    /// Returns a Vec<Rule>
     fn parse_rules(&mut self) -> Vec<Rule> {
         if self.kill_switch {
             return Vec::new();
@@ -214,6 +294,8 @@ impl CssReader {
         return rules;
     }
 
+    /// Parses a single rule. (key: value;)
+    /// Returns: a Rule object
     fn parse_rule(&mut self) -> Rule {
         if self.kill_switch {
             return Rule {
@@ -250,11 +332,12 @@ impl CssReader {
         };
     }
 
-    // Fn used by complex_selector
+    // pub since it's used elsewere
+    // Parses a selector, and returns a Selector object
     pub fn parse_selector(&mut self) -> Selector {
         if self.kill_switch {
             return Selector {
-                selector_type: String::from("none"),
+                selector_type: SelectorType::None,
                 content: String::new(),
                 flag: None,
             };
@@ -290,7 +373,7 @@ impl CssReader {
             self.kill_switch = true;
             self.kill_message = "Invalid selector at position ".to_string() + &self.pos.to_string();
             return Selector {
-                selector_type: String::from("none"),
+                selector_type: SelectorType::None,
                 content: String::new(),
                 flag: None,
             };
@@ -305,31 +388,31 @@ impl CssReader {
             || selector.contains('~');
         if is_complex {
             return Selector {
-                selector_type: String::from("complex"),
+                selector_type: SelectorType::Complex,
                 content: selector,
                 flag: flag,
             };
         } else if selector.starts_with("#") {
             return Selector {
-                selector_type: String::from("id"),
+                selector_type: SelectorType::Id,
                 content: selector.strip_prefix("#").unwrap().to_string(),
                 flag: flag,
             };
         } else if selector.starts_with(".") {
             return Selector {
-                selector_type: String::from("class"),
+                selector_type: SelectorType::Class,
                 content: selector.strip_prefix(".").unwrap().to_string(),
                 flag: flag,
             };
         } else if selector == "*" {
             return Selector {
-                selector_type: String::from("all"),
+                selector_type: SelectorType::All,
                 content: selector,
                 flag: flag,
             };
         } else if is_alphabetic(&selector) {
             return Selector {
-                selector_type: String::from("tag"),
+                selector_type: SelectorType::Tag,
                 content: selector,
                 flag: flag,
             };
@@ -337,7 +420,7 @@ impl CssReader {
             self.kill_switch = true;
             self.kill_message = "Invalid selector at position ".to_string() + &self.pos.to_string();
             return Selector {
-                selector_type: String::from("none"),
+                selector_type: SelectorType::None,
                 content: String::new(),
                 flag: None,
             };

@@ -4,7 +4,7 @@ use iced::{Point, widget::text_editor::Motion::*};
 use crate::{
     dom::{
         events::DomInternalMessageType,
-        query::{CustomElementEvent, EventResponse, QueryResponse},
+        query_builder::{CustomElementEvent, EventResponse, QueryResponse},
     },
     rs_utils::{HashableF32, HashableTextareaEdit, Vector2},
     xml_engine::Message,

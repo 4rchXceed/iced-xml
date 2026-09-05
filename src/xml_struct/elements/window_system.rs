@@ -9,7 +9,7 @@ use iced::{
 use crate::{
     dom::{
         events::DomInternalMessageType,
-        query::{CustomElementEvent, EventResponse, QueryResponse},
+        query_builder::{CustomElementEvent, EventResponse, QueryResponse},
     },
     parse_utils::parse_pane_axis,
     rs_utils::{HashableF32, HashableGridTarget},

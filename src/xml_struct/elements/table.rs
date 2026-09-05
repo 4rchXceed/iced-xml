@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 // Copy-paste template
 use crate::{
-    dom::{events::DomInternalMessageType, query::CustomElementEvent::SetTableData},
+    dom::{events::DomInternalMessageType, query_builder::CustomElementEvent::SetTableData},
     xml_engine::Message,
     xml_struct::{
         element_renderer::{

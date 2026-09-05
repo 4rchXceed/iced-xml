@@ -1,6 +1,6 @@
 use crate::{
-    css_reader::{CssReader, Selector, split_complex_selector},
-    dom::query::CustomElementEvent,
+    css_reader::SelectorType,
+    dom::{query::DomQuery, query_builder::CustomElementEvent},
     rs_utils::HashableXmlElement,
     xml_engine::DynamicEvent,
     xml_struct::{
@@ -9,130 +9,18 @@ use crate::{
     },
 };
 
-#[derive(Debug)]
-pub enum ComplexQueryJoinType {
-    Descendant, // " "
-    Child,      // ">"
-    Silbling,   // "~"
-    Also,       // Tag#id.class
-}
-
-impl ComplexQueryJoinType {
-    pub fn from(s: Option<char>) -> Option<Self> {
-        if s.is_none() {
-            return None;
-        } else {
-            return Some(match s.as_ref().unwrap() {
-                ' ' => ComplexQueryJoinType::Descendant,
-                '>' => ComplexQueryJoinType::Child,
-                '~' => ComplexQueryJoinType::Silbling,
-                '=' => ComplexQueryJoinType::Also,
-                _ => panic!(
-                    "Invalid complex query join type: {} [shouldn't happen]",
-                    s.unwrap()
-                ),
-            });
-        }
-    }
-}
-
-// a b > c
-// d ~ e
-
-#[derive(Debug)]
-pub struct ComplexQuery {
-    pub query: DomQueryType,
-    pub next: Option<Box<ComplexQuery>>,
-    pub link_next: Option<ComplexQueryJoinType>,
-}
-
-impl ComplexQuery {
-    pub fn new(mut query_part: String, link: Option<char>) -> Self {
-        query_part.push_str(",");
-        let query: Selector = CssReader::new(query_part.as_str()).parse_selector();
-        let query_type = gen_query_type(query.selector_type, query.content);
-        match query_type {
-            DomQueryType::Complex(_) => {
-                println!(
-                    "Complex query type is not supported in ComplexQuery: {:?}",
-                    query_type
-                );
-                return Self {
-                    query: DomQueryType::Unused,
-                    next: None,
-                    link_next: ComplexQueryJoinType::from(link),
-                };
-            }
-            _ => {}
-        }
-        return Self {
-            query: query_type,
-            next: None,
-            link_next: ComplexQueryJoinType::from(link),
-        };
-    }
-
-    fn next(mut full: Vec<(String, Option<char>)>) -> Self {
-        let (query_part, link_next) = full.remove(0);
-        let mut base = ComplexQuery::new(query_part, link_next);
-        if full.len() > 0 {
-            base.next = Some(Box::new(ComplexQuery::next(full)));
-        }
-        return base;
-    }
-
-    pub fn from(full_query: String) -> Self {
-        let full = split_complex_selector(full_query);
-        return ComplexQuery::next(full);
-    }
-}
-
-#[derive(Debug, Clone, Hash)]
-pub enum DomQueryType {
-    ById(String),
-    ByUid(i32),
-    Class(String),
-    Tag(String),
-    Complex(String),
-    All,
-    Unused,
-}
-
-#[derive(Debug, Clone, Hash)]
-pub struct DomQuery {
-    pub query_type: DomQueryType,
-    pub flag: Option<String>,
-}
-
-pub fn gen_query_type(selector_type: String, val: String) -> DomQueryType {
-    return match selector_type.as_str() {
-        "id" => DomQueryType::ById(val),
-        "uid" => DomQueryType::ByUid(val.parse::<i32>().unwrap()),
-        "class" => DomQueryType::Class(val),
-        "tag" => DomQueryType::Tag(val),
-        "all" => DomQueryType::All,
-        "complex" => DomQueryType::Complex(val),
-        "none" => DomQueryType::Unused,
-        _ => panic!("Invalid query type: {}", selector_type),
-    };
-}
-
-impl DomQuery {
-    pub fn new(selector_type: String, val: String, flag: Option<String>) -> Self {
-        return Self {
-            query_type: gen_query_type(selector_type, val),
-            flag: flag,
-        };
-    }
-}
-
+/// Message to pass to the Engine / Element Renderer from the "Client" side (like the UI or the user code)
 #[derive(Debug, Clone, Hash)]
 pub struct DomMessage {
+    /// The type of message to send to the engine
     pub message: DomInternalMessageType,
+    /// The unique identifier of the element to send the message to (if any)
     pub uid: Option<i32>,
+    /// The selector to use to find the element to send the message to
     pub selector: DomQuery,
 }
 
+/// The type of message to send to the engine
 #[derive(Debug, Clone, Hash)]
 pub enum DomInternalMessageType {
     StyleChange(StyleChangeEvent),  // k => v custom_style_flag [for(xyz)]
@@ -148,24 +36,35 @@ pub enum DomInternalMessageType {
     GetElement,                     // get the element's source
 }
 
+/// A result of a Dom::XYZ query, which can be used to select elements (View Dom struct & src/dom/api.rs)
 #[derive(Debug, Clone)]
-pub struct DomQueryResult {
+pub struct DomQueryBuilder {
     query_event: DomQuery,
     pub event: Option<DomMessage>,
 }
 
-impl DomQueryResult {
-    pub fn new(query_type: String, element: String) -> Self {
+impl DomQueryBuilder {
+    /// Creates a new DomQueryResult with the given query type and element
+    ///
+    /// Parameters:
+    /// - query_type: The SelectorType for the query
+    /// - element: The "value" of the query
+    ///
+    /// Returns:
+    /// - A new Self
+    pub fn new(query_type: SelectorType, element: String) -> Self {
         Self {
             query_event: DomQuery::new(query_type, element, None),
             event: None,
         }
     }
 
+    /// Returns the DomQuery associated with this result
     pub(crate) fn get_query(&self) -> &DomQuery {
         return &self.query_event;
     }
 
+    /// Adds a flag to the query,if  it's a ::for() flag, it will be added to the event instead of the query
     pub fn with_flag(&mut self, flag: String) -> &mut Self {
         let style_flag = extract_selector_style_flag(&flag);
         if style_flag.is_some() {
@@ -182,6 +81,7 @@ impl DomQueryResult {
         return self;
     }
 
+    /// Creates a new DomQueryResult from a DomQuery
     pub fn from(dom_query: DomQuery) -> Self {
         Self {
             query_event: dom_query,
@@ -189,6 +89,7 @@ impl DomQueryResult {
         }
     }
 
+    /// Creates a new DomQueryResult from a DomMessage
     pub fn from_dom_message(dom_message: DomMessage) -> Self {
         Self {
             query_event: dom_message.selector.clone(),
@@ -196,6 +97,17 @@ impl DomQueryResult {
         }
     }
 
+    /// Sets a property on the element selected by the query
+    ///
+    /// Parameters:
+    /// - key: The property name
+    /// - value: The property value
+    ///
+    /// Example:
+    /// ```rust
+    /// self.qb.b(Dom::get_element_by_id("test").set_property("value", "new_value"));
+    /// self.process();
+    /// ```
     pub fn set_property(&mut self, key: &str, value: &str) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::PropertyChange(key.to_string(), value.to_string()),
@@ -206,6 +118,18 @@ impl DomQueryResult {
         return self;
     }
 
+    /// Gets a property from the element selected by the query
+    ///
+    /// Parameters:
+    /// - key: The property name
+    /// Example:
+    /// ```rust
+    /// self.qb.b(Dom::get_element_by_id("test").get_property("value")).then(|query_response| {
+    ///     println!("Property value: {:?}", query_response.data_str);
+    /// });
+    /// self.process();
+    /// // Some("Property value: Some(\"new_value\")")
+    /// ```
     pub fn get_property(&mut self, key: &str) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::GetProperty(key.to_string()),
@@ -216,6 +140,16 @@ impl DomQueryResult {
         return self;
     }
 
+    /// Sets a style on the element selected by the query
+    ///
+    /// Parameters:
+    /// - key: The style property name
+    /// - value: The style property value
+    /// Example:
+    /// ```rust
+    /// self.qb.b(Dom::get_element_by_id("test").set_style("bg", "red"));
+    /// self.process();
+    /// ```
     pub fn set_style(&mut self, key: &str, value: &str) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::StyleChange(StyleChangeEvent {
@@ -230,6 +164,17 @@ impl DomQueryResult {
         return self;
     }
 
+    /// Registers an event listener on the element selected by the query
+    /// TODO: Switch to an enum
+    ///
+    /// Parameters:
+    /// - name: The event name
+    ///
+    /// Example:
+    /// ```rust
+    /// self.qb.b(Dom::get_element_by_id("test").add_event_listener("click")).with_callback(|query_response| ...);
+    /// self.process();
+    /// ```
     pub fn add_event_listener(&mut self, name: &str) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::RegisterEventListener(name.to_string()),
@@ -240,6 +185,18 @@ impl DomQueryResult {
         return self;
     }
 
+    /// Gets a value from the element dataset (data-* attributes)
+    ///
+    /// Parameters:
+    /// - key: The dataset key
+    /// Example:
+    /// ```rust
+    /// self.qb.b(Dom::get_element_by_id("test").get_data("value")).then(|query_response| {
+    ///     println!("Dataset value: {:?}", query_response.data_str);
+    /// });
+    /// self.process();
+    /// // <Test id="test" data-value="new_value" />
+    /// ```
     pub fn get_data(&mut self, key: &str) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::GetData(key.to_string()),
@@ -250,6 +207,15 @@ impl DomQueryResult {
         return self;
     }
 
+    /// Fires a custom event on the element selected by the query
+    ///
+    /// Parameters:
+    /// - event: The custom event to fire
+    /// Example:
+    /// ```rust
+    /// self.qb.b(Dom::get_element_by_id("test").fire_event(CustomElementEvent::new("custom_event", Some("event_data"))));
+    /// self.process();
+    /// ```
     pub fn fire_event(&mut self, event: CustomElementEvent) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::FireEvent(event),
@@ -260,6 +226,13 @@ impl DomQueryResult {
         return self;
     }
 
+    /// Removes the element selected by the query from the DOM
+    ///
+    /// Example:
+    /// ```rust
+    /// self.qb.b(Dom::get_element_by_id("test").remove());
+    /// self.process();
+    /// ```
     pub fn remove(&mut self) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::Remove,
@@ -270,6 +243,16 @@ impl DomQueryResult {
         return self;
     }
 
+    /// Replaces the element selected by the query with a new element
+    ///
+    /// Parameters:
+    /// - new_element: The new XmlElement to replace the old one with
+    /// Example:
+    /// ```rust
+    /// let new_element = xml("<Test></Test>")
+    /// self.qb.b(Dom::get_element_by_id("test").replace(new_element));
+    /// self.process();
+    /// ```
     pub fn replace(&mut self, new_element: XmlElement) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::Replace(HashableXmlElement::new(new_element.clone())),
@@ -280,6 +263,7 @@ impl DomQueryResult {
         return self;
     }
 
+    /// Gets the element's source (XmlElement) from the DOM
     pub fn get_element(&mut self) -> &mut Self {
         let event = DomMessage {
             message: DomInternalMessageType::GetElement,

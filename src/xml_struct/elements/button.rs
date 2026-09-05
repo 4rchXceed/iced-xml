@@ -5,7 +5,7 @@ use iced::{Border, Shadow};
 use crate::{
     dom::{
         events::DomInternalMessageType,
-        query::{EventResponse, QueryResponse},
+        query_builder::{EventResponse, QueryResponse},
     },
     xml_engine::Message,
     xml_struct::{

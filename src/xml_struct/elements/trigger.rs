@@ -3,7 +3,7 @@ use std::time::Duration;
 use crate::{
     dom::{
         events::DomInternalMessageType,
-        query::{EventResponse, QueryResponse},
+        query_builder::{EventResponse, QueryResponse},
     },
     rs_utils::{HashableF32, Vector2},
     xml_engine::Message,

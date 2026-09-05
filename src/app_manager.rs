@@ -15,6 +15,7 @@ pub type WindowSettings = window::Settings;
 pub fn open_window(settings: WindowSettings) -> (WindowId, Task<WindowId>) {
     return window::open(settings);
 }
+
 pub fn close_event_messages() -> Subscription<Message> {
     return window::close_events().map(|id| Message::WindowClosed(id));
 }
@@ -27,6 +28,7 @@ pub fn close_window(id: WindowId) -> Task<Message> {
     return window::close(id);
 }
 
+/// ComponentFunctions is a struct that holds the functions for rendering, updating, subscribing and handling window close events
 #[derive(Debug, Clone)]
 pub struct ComponentFunctions {
     pub render: fn(&Box<dyn Any>) -> IcedElement<'_>,
@@ -35,6 +37,7 @@ pub struct ComponentFunctions {
     pub on_close: fn(&mut Box<dyn Any>, &mut dyn Any),
 }
 
+/// Run the application with the given boot, update, view and subscribe functions
 pub fn run_app_internal<State: 'static>(
     boot: impl application::BootFn<State, Message> + 'static,
     update: impl application::UpdateFn<State, Message> + 'static,
@@ -46,10 +49,12 @@ pub fn run_app_internal<State: 'static>(
         .run();
 }
 
+/// Create a text element with the given text
 pub fn text(text: &str) -> IcedElement<'_> {
     return iced::widget::text(text).into();
 }
 
+/// App is a wrapper for the app's State with a few utility functions
 pub struct App<State> {
     pub state: State,
     window_params: Vec<Box<dyn Any>>, // This is used to store the creation parameters for each window
@@ -57,6 +62,7 @@ pub struct App<State> {
 }
 
 impl<State> App<State> {
+    /// Create a new App with the given state
     pub fn new(state: State) -> Self {
         return Self {
             state: state,
@@ -65,14 +71,17 @@ impl<State> App<State> {
         };
     }
 
+    /// Opens a new window with the specified parameters.
     pub fn open_window(&mut self, params: Box<dyn Any>) {
         self.window_params.push(params);
     }
 
+    /// Closes the window with the specified ID.
     pub fn close_window(&mut self, id: WindowId) {
         self.window_closure_queue.push(id);
     }
 
+    /// Gets all of the window params
     pub fn get_window_params(&mut self) -> Vec<Box<dyn Any>> {
         let mut window_params = Vec::new();
         for params in self.window_params.drain(..) {

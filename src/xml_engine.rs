@@ -4,7 +4,7 @@ use std::io::Cursor;
 
 use crate::app_manager::ComponentFunctions;
 use crate::dom::events::{DomInternalMessageType, DomMessage};
-use crate::dom::query::{EventResponse, EventType, QueryResponse};
+use crate::dom::query_builder::{EventResponse, EventType, QueryResponse};
 use crate::rs_utils::get_unique_id;
 use crate::xml_struct::element_renderer::ElementRenderer;
 use crate::xml_struct::parser::{XmlElement, XmlParser};
