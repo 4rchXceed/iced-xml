@@ -21,9 +21,11 @@ use crate::parse_utils::{
     parse_value_int, parse_value_maybe, parse_vector,
 };
 
+/// A type alias for a vector of font names and their corresponding font paths.
 pub type Fonts = Vec<(String, &'static str)>;
 
-// The theme struct
+/// A struct representing the theme of the XML UI.
+/// See the documentation for more details on each field.
 #[derive(Debug, Clone)]
 pub struct XmlTheme {
     pub enable: bool,
@@ -101,7 +103,7 @@ macro_rules! check {
 
 impl XmlTheme {
     /**
-     * Changes the values of the current theme to match the values of `changes` only on the properties that are different between `first` and `second`.
+     * Changes the values of the current theme to match the values of changes only on the properties that are different between first and second.
      */
     pub fn apply_only_changes(&mut self, first: &XmlTheme, second: &XmlTheme, changes: &XmlTheme) {
         if first.select_icon.is_some() && second.select_icon.is_some() {
@@ -196,6 +198,7 @@ impl XmlTheme {
 }
 
 impl Default for XmlTheme {
+    /// Returns a default XmlTheme with predefined values for each field.
     fn default() -> Self {
         Self {
             enable: true,
@@ -263,6 +266,8 @@ impl Default for XmlTheme {
     }
 }
 
+/// Generates styles for the given key-value pair and updates the provided XmlTheme accordingly.
+/// See parse_utils.rs for the parsing functions used to convert string values into the appropriate types.
 pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme, fonts: &Fonts) {
     match key.as_str() {
         "enable" => theme.enable = parse_bool(value),

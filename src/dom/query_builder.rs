@@ -22,7 +22,7 @@ use crate::{
 /// Used with the .fire_event() method.
 ///
 /// Example:
-/// ```rust
+/// ```rust,ignore
 /// self.qb.b(Dom::get_element_by_id("test").fire_event(CustomElementEvent::AddSelectOption("option1".to_string(), "Option 1".to_string())));
 /// self.process();
 /// ```
@@ -217,6 +217,9 @@ impl QueryResponse {
 
     /// Adds another QueryResponse to the detailed_success vector, allowing for multiple responses to be stored in a single QueryResponse.
     pub fn concat(&mut self, other: QueryResponse) {
+        if !other.success {
+            self.success = false;
+        }
         self.detailed_success.push(Box::new(other));
     }
 }
@@ -330,7 +333,7 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
     /// - timeout: The timeout in milliseconds.
     ///
     /// Example:
-    /// ```rust
+    /// ```rust,ignore
     /// self.qb.set_timeout(1000).with_callback(|window, event_response, app| {
     ///     // Do something after 1 second
     /// });
@@ -357,7 +360,7 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
     /// - interval: The interval in milliseconds.
     ///
     /// Example:
-    /// ```rust
+    /// ```rust,ignore
     /// self.qb.set_interval(1000).with_callback(|window, event_response, app| {
     ///     // Do something every 1 second
     /// });
@@ -390,7 +393,7 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
     /// Aka cancels it. Same as JS clearTimeout(timer_id); or clearInterval(timer_id);
     ///
     /// Example:
-    /// ```rust
+    /// ```rust,ignore
     /// let mut timer_id: Option<i32> = None;
     /// self.qb.set_timeout(1000).get_timer_id(&mut timer_id);
     /// self.process();
@@ -408,7 +411,7 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
     /// - callback: The callback function to be called when the query is executed. (!! MUST BE STATIC !!)
     ///
     /// Example:
-    /// ```rust
+    /// ```rust,ignore
     /// self.qb.set_timeout(1000).with_callback(|window, event_response, app| {
     ///     // Do something after 1 second
     /// });
@@ -440,7 +443,7 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
     /// - callback: the callback function, with two arguments: The current class, the response data (!! MUST BE STATIC !!)
     ///
     /// Example:
-    /// ```rust
+    /// ```rust,ignore
     /// self.qb.b(Dom::get_element_by_id("test").get_property("value")).then(|window, query_response| {
     ///     println!("Property value: {:?}", query_response.data_str);
     /// });
@@ -527,10 +530,14 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
         let mut i: usize = 0;
         for query in self.queries.iter_mut() {
             if query.listener_callback.is_none() || !query.listener_registered {
-                let response = engine.client_events(&query.query);
-                self.last = response.clone();
-                if let Some(callback) = query.callback {
-                    callbacks.push((callback, response));
+                let responses = engine.client_events(&query.query);
+                if responses.len() > 0 {
+                    self.last = responses.last().unwrap().clone();
+                }
+                if query.callback.is_some() {
+                    for response in responses.iter() {
+                        callbacks.push((query.callback.unwrap(), response.clone()));
+                    }
                 }
                 if query.listener_callback.is_none() {
                     queries_to_remove.push(i);

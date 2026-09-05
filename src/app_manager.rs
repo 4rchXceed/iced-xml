@@ -115,7 +115,7 @@ macro_rules! window_manager {
             $state:ty;
             $window_creation_params:ty
         ) => {
-        use iced_xml::dom::query::EventResponse;
+        use iced_xml::dom::query_builder::EventResponse;
         use iced_xml::app_manager::{
             IcedSubscription,
             IcedElement,
@@ -284,6 +284,7 @@ macro_rules! window_manager {
                     Message::OpenWindow(params_id) => {
                         if !self.creation_params.contains_key(&params_id) {
                             println!("Window creation params not found for id: {}", params_id);
+                            IcedTask::none()
                         } else {
                             let (_, open) = open_window(WindowSettings::default());
                             open.map(move |id| Message::WindowOpened(id, params_id))

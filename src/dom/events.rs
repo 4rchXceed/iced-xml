@@ -131,7 +131,7 @@ impl DomQueryBuilder {
     /// - value: The property value
     ///
     /// Example:
-    /// ```rust
+    /// ```rust,ignore
     /// self.qb.b(Dom::get_element_by_id("test").set_property("value", "new_value"));
     /// self.process();
     /// ```
@@ -150,7 +150,7 @@ impl DomQueryBuilder {
     /// Parameters:
     /// - key: The property name
     /// Example:
-    /// ```rust
+    /// ```rust,ignore
     /// self.qb.b(Dom::get_element_by_id("test").get_property("value")).then(|query_response| {
     ///     println!("Property value: {:?}", query_response.data_str);
     /// });
@@ -173,7 +173,7 @@ impl DomQueryBuilder {
     /// - key: The style property name
     /// - value: The style property value
     /// Example:
-    /// ```rust
+    /// ```rust,ignore
     /// self.qb.b(Dom::get_element_by_id("test").set_style("bg", "red"));
     /// self.process();
     /// ```
@@ -198,7 +198,7 @@ impl DomQueryBuilder {
     /// - name: The event name
     ///
     /// Example:
-    /// ```rust
+    /// ```rust,ignore
     /// self.qb.b(Dom::get_element_by_id("test").add_event_listener("click")).with_callback(|query_response| ...);
     /// self.process();
     /// ```
@@ -217,7 +217,7 @@ impl DomQueryBuilder {
     /// Parameters:
     /// - key: The dataset key
     /// Example:
-    /// ```rust
+    /// ```rust,ignore
     /// self.qb.b(Dom::get_element_by_id("test").get_data("value")).then(|query_response| {
     ///     println!("Dataset value: {:?}", query_response.data_str);
     /// });
@@ -239,7 +239,7 @@ impl DomQueryBuilder {
     /// Parameters:
     /// - event: The custom event to fire
     /// Example:
-    /// ```rust
+    /// ```rust,ignore
     /// self.qb.b(Dom::get_element_by_id("test").fire_event(CustomElementEvent::new("custom_event", Some("event_data"))));
     /// self.process();
     /// ```
@@ -256,7 +256,7 @@ impl DomQueryBuilder {
     /// Removes the element selected by the query from the DOM
     ///
     /// Example:
-    /// ```rust
+    /// ```rust,ignore
     /// self.qb.b(Dom::get_element_by_id("test").remove());
     /// self.process();
     /// ```
@@ -275,7 +275,7 @@ impl DomQueryBuilder {
     /// Parameters:
     /// - new_element: The new XmlElement to replace the old one with
     /// Example:
-    /// ```rust
+    /// ```rust,ignore
     /// let new_element = xml("<Test></Test>")
     /// self.qb.b(Dom::get_element_by_id("test").replace(new_element));
     /// self.process();

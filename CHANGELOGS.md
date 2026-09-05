@@ -251,3 +251,14 @@ TODO:
 - Documentation for the library user
 
 ### Commit msg: "Code rewrite (4): finished the code rewrite"
+
+## Last commit: b75ed3e283703e165d1b26dddc83463b4e5b8e2f
++ Unittests for every functions in parse_utils.rs
+
+## Last commit: b75ed3e283703e165d1b26dddc83463b4e5b8e2f
++ Added comments where I forgot to add them (in xml_struct)
++ Moved the big hot reload code to a separate file (hot_reload.rs)
++ Added unittests for the parse_utils.rs file
+
+TODO:
+- Unittests with iced_test

@@ -9,25 +9,6 @@ thread_local! {
     static CURRENT_UID: Cell<i32> = Cell::new(1);
 }
 
-///  Safe read file function, returns a Result<String, std::io::Error> instead of panicking on error
-///
-///  Parameters:
-///
-///  - filename: the filename to read
-///
-///  Returns:
-///
-///  - the file content or an error
-pub fn safe_read_file(filename: &str) -> Result<String, std::io::Error> {
-    // Read the file
-    let content = std::fs::read_to_string(filename);
-    // Then process the result.
-    if content.is_err() {
-        return Err(content.unwrap_err());
-    }
-    return Ok(content.unwrap());
-}
-
 ///  Get a unique ID for all purposes, such as element IDs, component IDs, etc.
 ///
 ///  No parameters.

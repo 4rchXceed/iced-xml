@@ -154,9 +154,6 @@ pub fn parse_color(color: &String) -> Color {
 /// - Error: if any of the values is not a number (f32).
 pub fn parse_vector(value: &String) -> Vector {
     let value_sep = value.split(",").collect::<Vec<&str>>();
-    if value_sep.len() != 2 {
-        println!("Invalid vector: {}", value);
-    }
     let value_f32: Result<[f32; 2], _> = value_sep
         .iter()
         .map(|c| c.parse())
@@ -170,6 +167,10 @@ pub fn parse_vector(value: &String) -> Vector {
         .map(|c| c.unwrap())
         .collect::<Vec<f32>>()
         .try_into();
+    if value_sep.len() != 2 {
+        println!("Invalid vector: {}", value);
+        return Vector::new(0.0, 0.0);
+    }
     if value_f32.is_err() {
         println!("Invalid vector: {}", value);
         return Vector::new(0.0, 0.0);
@@ -191,10 +192,10 @@ pub fn parse_radius(value: &String) -> Radius {
     let value_float = value.parse::<f32>();
     if value_float.is_err() {
         let value_sep = value.split(" ").collect::<Vec<&str>>();
-        let mut top = 0.0;
-        let mut right = 0.0;
-        let mut bottom = 0.0;
-        let mut left = 0.0;
+        let mut top_left = 0.0;
+        let mut top_right = 0.0;
+        let mut bottom_right = 0.0;
+        let mut bottom_left = 0.0;
         for (_, v) in value_sep.iter().enumerate() {
             let val_part = v.split("=").collect::<Vec<&str>>();
             if val_part.len() != 2 {
@@ -202,20 +203,25 @@ pub fn parse_radius(value: &String) -> Radius {
                 continue;
             }
             let val_kw = val_part[0];
-            let val_f32 = val_part[1].parse().unwrap();
+            let val_f32 = val_part[1].parse();
+            if val_f32.is_err() {
+                println!("Error: {} is not a number (f32)", val_part[1]);
+                continue;
+            }
+            let val_f32 = val_f32.unwrap();
             match val_kw {
-                "top_left" => top = val_f32,
-                "top_right" => right = val_f32,
-                "bottom_left" => left = val_f32,
-                "bottom_right" => bottom = val_f32,
+                "top_left" => top_left = val_f32,
+                "top_right" => top_right = val_f32,
+                "bottom_left" => bottom_left = val_f32,
+                "bottom_right" => bottom_right = val_f32,
                 _ => println!("Invalid radius keyword: {}", val_kw),
             }
         }
         return Radius {
-            bottom_left: bottom,
-            top_right: top,
-            bottom_right: right,
-            top_left: left,
+            top_left: top_left,
+            top_right: top_right,
+            bottom_right: bottom_right,
+            bottom_left: bottom_left,
         };
     } else {
         let value_float = value_float.unwrap();
@@ -252,7 +258,12 @@ pub fn parse_padding(value: &String) -> Padding {
                 continue;
             }
             let val_kw = val_part[0];
-            let val_f32 = val_part[1].parse().unwrap();
+            let val_f32 = val_part[1].parse();
+            if val_f32.is_err() {
+                println!("Error: {} is not a number (f32)", val_part[1]);
+                continue;
+            }
+            let val_f32 = val_f32.unwrap();
             match val_kw {
                 "top" => top = val_f32,
                 "right" => right = val_f32,
@@ -491,6 +502,10 @@ pub fn parse_checkbox_icon(
         size = Some(Pixels(size_str.unwrap()));
         i = 2;
     }
+    if parts.len() <= i + 1 {
+        println!("{}", err_msg);
+        return None;
+    }
     let line_height = match parts[i] {
         "absolute" => LineHeight::Absolute(Pixels(parts[i + 1].parse::<f32>().unwrap_or(10.0))),
         "relative" => LineHeight::Relative(parts[i + 1].parse::<f32>().unwrap_or(10.0)),
@@ -622,7 +637,7 @@ pub fn check_anchor(value: &str) -> String {
 /// The slider handle theme value can be specified in the following format:
 /// "circle <radius>" or "rectangle <width> <border radius>"
 pub fn parse_slider_handle_theme(value: &str, theme: &XmlTheme) -> HandleShape {
-    let msg = "Slider handle theme must be specified as `circle <radius>` or `rectangle <width> <border radius>`";
+    let msg = "Slider handle theme must be specified as `circle <radius>` or `rectangle <width>`";
     let split = value.split(" ").collect::<Vec<&str>>();
     if split.len() < 1 {
         println!("{}", msg);
@@ -642,16 +657,12 @@ pub fn parse_slider_handle_theme(value: &str, theme: &XmlTheme) -> HandleShape {
             };
         }
     } else if split[0] == "rectangle" {
-        if split.len() != 3 {
+        if split.len() != 2 {
             println!("{}", msg);
         } else {
             let width = split[1].parse::<u16>();
-            let border_radius = split[2].parse::<f32>();
-            if width.is_err() || border_radius.is_err() {
-                println!(
-                    "Invalid width or border radius: {}, {}, must be numbers",
-                    split[1], split[2]
-                );
+            if width.is_err() {
+                println!("Invalid width: {}, must be a number.", split[1]);
                 return HandleShape::Circle { radius: 10.0 };
             }
             return HandleShape::Rectangle {
@@ -806,7 +817,7 @@ pub fn parse_bool(value: &str) -> bool {
 /// "left", "center", "right", "justified", "default". If the value is not one of these, it will default to default and print an error message.
 pub fn parse_text_alignment(value: &str) -> iced::widget::text::Alignment {
     match value {
-        "left" => iced::widget::text::Alignment::Center,
+        "left" => iced::widget::text::Alignment::Left,
         "center" => iced::widget::text::Alignment::Center,
         "right" => iced::widget::text::Alignment::Right,
         "justified" => iced::widget::text::Alignment::Justified,
@@ -829,5 +840,498 @@ pub fn parse_time(value: &str) -> f32 {
         let value = value.strip_suffix("ms").unwrap();
         return parse_value(&String::from(value)) / 1000.0;
     }
-    return parse_value(&String::from(value));
+    if value.ends_with("s") {
+        let value = value.strip_suffix("s").unwrap();
+        return parse_value(&String::from(value));
+    }
+    return 0.0;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_length() {
+        assert_eq!(parse_length(&String::from("1fp")), Length::FillPortion(1));
+        assert_eq!(parse_length(&String::from("afp")), Length::FillPortion(0));
+        assert_eq!(parse_length(&String::from("1f")), Length::Fixed(1.0));
+        assert_eq!(parse_length(&String::from("?f")), Length::Fixed(0.0));
+        assert_eq!(parse_length(&String::from("max")), Length::Fill);
+        assert_eq!(parse_length(&String::from("min")), Length::Shrink);
+        assert_eq!(parse_length(&String::from("Miku")), Length::Fixed(0.0));
+    }
+
+    #[test]
+    fn test_parse_color_op() {
+        assert_eq!(parse_color_op(&String::from("")), None);
+        assert_eq!(parse_color_op(&String::from("none")), None);
+    }
+
+    #[test]
+    fn test_parse_color() {
+        assert_eq!(parse_color(&String::from("#")), Color::BLACK);
+        assert_eq!(parse_color(&String::from("#FFFFFF")), Color::WHITE);
+        assert_eq!(parse_color(&String::from("rgba")), Color::BLACK);
+        assert_eq!(parse_color(&String::from("rgba(0,0,0,1")), Color::BLACK);
+        assert_eq!(parse_color(&String::from("rgba(0,0,0)")), Color::BLACK);
+        assert_eq!(
+            parse_color(&String::from("rgba(Miku,Miku,Miku,Miku)")),
+            Color::TRANSPARENT
+        );
+        assert_eq!(
+            parse_color(&String::from("rgba(128, 90, 20, 0.7)")),
+            Color::from_rgba(128.0 / 255.0, 90.0 / 255.0, 20.0 / 255.0, 0.7)
+        );
+        assert_eq!(parse_color(&String::from("rgb")), Color::BLACK);
+        assert_eq!(parse_color(&String::from("rgb(0,0,1")), Color::BLACK);
+        assert_eq!(parse_color(&String::from("rgb(0,0)")), Color::BLACK);
+        assert_eq!(
+            parse_color(&String::from("rgb(Miku,Miku,Miku)")),
+            Color::BLACK
+        );
+        assert_eq!(
+            parse_color(&String::from("rgb(128, 90, 20)")),
+            Color::from_rgb(128.0 / 255.0, 90.0 / 255.0, 20.0 / 255.0)
+        );
+    }
+
+    #[test]
+    fn test_parse_vector() {
+        assert_eq!(parse_vector(&String::from("")), Vector::new(0.0, 0.0));
+        assert_eq!(parse_vector(&String::from("1.5,3")), Vector::new(1.5, 3.0));
+        assert_eq!(parse_vector(&String::from("1,Miku")), Vector::new(0.0, 0.0));
+    }
+
+    #[test]
+    fn test_parse_radius() {
+        assert_eq!(parse_radius(&String::from("5.0")), Radius::new(5.0));
+        assert_eq!(parse_radius(&String::from("Miku")), Radius::new(0.0));
+        assert_eq!(parse_radius(&String::from("top_left=")), Radius::new(0.0));
+        assert_eq!(parse_radius(&String::from("top_left5.0")), Radius::new(0.0));
+        assert_eq!(parse_radius(&String::from("miku=5.0")), Radius::new(0.0));
+        assert_eq!(
+            parse_radius(&String::from("top_left=Miku")),
+            Radius::new(0.0)
+        );
+        assert_eq!(
+            parse_radius(&String::from("top_right=5.0")),
+            Radius {
+                bottom_left: 0.0,
+                top_right: 5.0,
+                bottom_right: 0.0,
+                top_left: 0.0,
+            }
+        );
+        assert_eq!(
+            parse_radius(&String::from(
+                "top_right=5.0 top_left=3.0 bottom_right=1.0 bottom_left=5.39"
+            )),
+            Radius {
+                bottom_left: 5.39,
+                top_right: 5.0,
+                bottom_right: 1.0,
+                top_left: 3.0,
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_padding() {
+        assert_eq!(parse_padding(&String::from("5.0")), Padding::new(5.0));
+        assert_eq!(parse_padding(&String::from("Miku")), Padding::new(0.0));
+        assert_eq!(parse_padding(&String::from("top=")), Padding::new(0.0));
+        assert_eq!(parse_padding(&String::from("top5.0")), Padding::new(0.0));
+        assert_eq!(parse_padding(&String::from("miku=5.0")), Padding::new(0.0));
+        assert_eq!(parse_padding(&String::from("top=Miku")), Padding::new(0.0));
+        assert_eq!(
+            parse_padding(&String::from("right=5.0")),
+            Padding {
+                bottom: 0.0,
+                right: 5.0,
+                top: 0.0,
+                left: 0.0,
+            }
+        );
+        assert_eq!(
+            parse_padding(&String::from("right=5.0 left=3.0 top=1.0 bottom=5.39")),
+            Padding {
+                bottom: 5.39,
+                right: 5.0,
+                top: 1.0,
+                left: 3.0,
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_align_x() {
+        assert_eq!(parse_align_x(&String::from("start")), Horizontal::Left);
+        assert_eq!(parse_align_x(&String::from("center")), Horizontal::Center);
+        assert_eq!(parse_align_x(&String::from("end")), Horizontal::Right);
+        assert_eq!(parse_align_x(&String::from("Miku")), Horizontal::Left);
+    }
+
+    #[test]
+    fn test_parse_align_y() {
+        assert_eq!(parse_align_y(&String::from("start")), Vertical::Top);
+        assert_eq!(parse_align_y(&String::from("center")), Vertical::Center);
+        assert_eq!(parse_align_y(&String::from("end")), Vertical::Bottom);
+        assert_eq!(parse_align_y(&String::from("Miku")), Vertical::Top);
+    }
+
+    #[test]
+    fn test_parse_value() {
+        assert_eq!(parse_value(&String::from("3.9")), 3.9);
+        assert_eq!(parse_value(&String::from("Miku")), 0.0);
+    }
+
+    #[test]
+    fn test_parse_value_int() {
+        assert_eq!(parse_value_int(&String::from("5")), 5);
+        assert_eq!(parse_value_int(&String::from("Miku")), 0);
+    }
+
+    #[test]
+    fn test_parse_value_maybe() {
+        assert_eq!(parse_value_maybe(&String::from("3.9")), Some(3.9));
+        assert_eq!(parse_value_maybe(&String::from("Miku")), None);
+    }
+
+    #[test]
+    fn test_parse_font_style() {
+        let mut style = iced::font::Style::Normal;
+        parse_font_style(&mut style, "normal");
+        assert_eq!(style, iced::font::Style::Normal);
+        parse_font_style(&mut style, "italic");
+        assert_eq!(style, iced::font::Style::Italic);
+        parse_font_style(&mut style, "oblique");
+        assert_eq!(style, iced::font::Style::Oblique);
+        parse_font_style(&mut style, "Miku");
+        assert_eq!(style, iced::font::Style::Normal);
+    }
+
+    #[test]
+    fn test_parse_font_stretch() {
+        let mut stretch = Stretch::Normal;
+        parse_font_stretch(&mut stretch, "normal");
+        assert_eq!(stretch, Stretch::Normal);
+        parse_font_stretch(&mut stretch, "condensed");
+        assert_eq!(stretch, Stretch::Condensed);
+        parse_font_stretch(&mut stretch, "expanded");
+        assert_eq!(stretch, Stretch::Expanded);
+        parse_font_stretch(&mut stretch, "extra-condensed");
+        assert_eq!(stretch, Stretch::ExtraCondensed);
+        parse_font_stretch(&mut stretch, "extra-expanded");
+        assert_eq!(stretch, Stretch::ExtraExpanded);
+        parse_font_stretch(&mut stretch, "semi-condensed");
+        assert_eq!(stretch, Stretch::SemiCondensed);
+        parse_font_stretch(&mut stretch, "semi-expanded");
+        assert_eq!(stretch, Stretch::SemiExpanded);
+        parse_font_stretch(&mut stretch, "ultra-condensed");
+        assert_eq!(stretch, Stretch::UltraCondensed);
+        parse_font_stretch(&mut stretch, "ultra-expanded");
+        assert_eq!(stretch, Stretch::UltraExpanded);
+        parse_font_stretch(&mut stretch, "Miku");
+        assert_eq!(stretch, Stretch::Normal);
+    }
+
+    #[test]
+    fn test_parse_font_weight() {
+        let mut weight = Weight::Normal;
+        parse_font_weight(&mut weight, "normal");
+        assert_eq!(weight, Weight::Normal);
+        parse_font_weight(&mut weight, "bold");
+        assert_eq!(weight, Weight::Bold);
+        parse_font_weight(&mut weight, "black");
+        assert_eq!(weight, Weight::Black);
+        parse_font_weight(&mut weight, "extra-bold");
+        assert_eq!(weight, Weight::ExtraBold);
+        parse_font_weight(&mut weight, "extra-light");
+        assert_eq!(weight, Weight::ExtraLight);
+        parse_font_weight(&mut weight, "light");
+        assert_eq!(weight, Weight::Light);
+        parse_font_weight(&mut weight, "medium");
+        assert_eq!(weight, Weight::Medium);
+        parse_font_weight(&mut weight, "semibold");
+        assert_eq!(weight, Weight::Semibold);
+        parse_font_weight(&mut weight, "thin");
+        assert_eq!(weight, Weight::Thin);
+        parse_font_weight(&mut weight, "Miku");
+        assert_eq!(weight, Weight::Normal);
+    }
+
+    #[test]
+    fn test_parse_font_family() {
+        let mut family = Family::Serif;
+        let mut fonts = Fonts::new();
+        fonts.push(("Miku".to_string(), "Miku"));
+        parse_font_family(&mut family, "serif", &fonts);
+        assert_eq!(family, Family::Serif);
+        parse_font_family(&mut family, "fantasy", &fonts);
+        assert_eq!(family, Family::Fantasy);
+        parse_font_family(&mut family, "cursive", &fonts);
+        assert_eq!(family, Family::Cursive);
+        parse_font_family(&mut family, "monospace", &fonts);
+        assert_eq!(family, Family::Monospace);
+        parse_font_family(&mut family, "sans-serif", &fonts);
+        assert_eq!(family, Family::SansSerif);
+        parse_font_family(&mut family, "Miku", &fonts);
+        assert_eq!(family, Family::Name("Miku"));
+        parse_font_family(&mut family, "Unknown", &fonts);
+        assert_eq!(family, Family::Serif);
+    }
+
+    #[test]
+    fn test_parse_font() {
+        let mut fonts = Fonts::new();
+        fonts.push(("Miku".to_string(), "Miku"));
+        let font = parse_font(
+            &String::from("family=Miku weight=bold stretch=condensed style=italic"),
+            &fonts,
+        );
+        assert_eq!(font.family, Family::Name("Miku"));
+        assert_eq!(font.weight, Weight::Bold);
+        assert_eq!(font.stretch, Stretch::Condensed);
+        assert_eq!(font.style, iced::font::Style::Italic);
+    }
+
+    #[test]
+    fn test_parse_shaping() {
+        assert_eq!(parse_shaping("quality"), Shaping::Advanced);
+        assert_eq!(parse_shaping("performance"), Shaping::Basic);
+        assert_eq!(parse_shaping("auto"), Shaping::Auto);
+        assert_eq!(parse_shaping("Miku"), Shaping::Auto);
+    }
+
+    #[test]
+    fn test_parse_text_wrapping() {
+        assert_eq!(parse_text_wrapping("word"), Wrapping::Word);
+        assert_eq!(parse_text_wrapping("glyph"), Wrapping::Glyph);
+        assert_eq!(parse_text_wrapping("word-or-glyph"), Wrapping::WordOrGlyph);
+        assert_eq!(parse_text_wrapping("none"), Wrapping::None);
+        assert_eq!(parse_text_wrapping("Miku"), Wrapping::None);
+    }
+
+    #[test]
+    fn test_parse_checkbox_icon() {
+        let font = Font {
+            family: Family::Serif,
+            weight: Weight::Normal,
+            stretch: Stretch::Normal,
+            style: iced::font::Style::Normal,
+        };
+        let shaping = Shaping::Auto;
+        assert_eq!(parse_checkbox_icon("none", &font, shaping), None);
+        assert_eq!(parse_checkbox_icon("", &font, shaping), None);
+        assert_eq!(parse_checkbox_icon("\"X\" 20", &font, shaping), None);
+        assert_eq!(
+            parse_checkbox_icon("X\" 20 absolute 15", &font, shaping),
+            None
+        );
+        assert_eq!(
+            parse_checkbox_icon("\"X 20 absolute 15", &font, shaping),
+            None
+        );
+        assert_eq!(
+            parse_checkbox_icon("X 20 absolute 15", &font, shaping),
+            None
+        );
+        assert_eq!(parse_checkbox_icon("\"X\" Miku", &font, shaping), None);
+        assert_eq!(
+            parse_checkbox_icon("\"X\" absolute 15", &font, shaping).unwrap(),
+            iced::widget::checkbox::Icon {
+                font: font.clone(),
+                code_point: 'X',
+                size: None,
+                line_height: LineHeight::Absolute(Pixels(15.0)),
+                shaping: shaping,
+            }
+        );
+        assert_eq!(
+            parse_checkbox_icon("\"❌\" 20 relative 15.5", &font, shaping).unwrap(),
+            iced::widget::checkbox::Icon {
+                font: font.clone(),
+                code_point: '❌',
+                size: Some(Pixels(20.0)),
+                line_height: LineHeight::Relative(15.5),
+                shaping: shaping,
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_line_height() {
+        assert_eq!(
+            parse_line_height("absolute 15"),
+            LineHeight::Absolute(Pixels(15.0))
+        );
+        assert_eq!(parse_line_height("relative 1.5"), LineHeight::Relative(1.5));
+        assert_eq!(
+            parse_line_height("absolute Miku"),
+            LineHeight::Absolute(Pixels(10.0))
+        );
+    }
+
+    #[test]
+    fn test_parse_pane_axis() {
+        assert_eq!(
+            parse_pane_axis("horizontal"),
+            iced::widget::pane_grid::Axis::Horizontal
+        );
+        assert_eq!(
+            parse_pane_axis("Miku"),
+            iced::widget::pane_grid::Axis::Horizontal
+        );
+        assert_eq!(
+            parse_pane_axis("vertical"),
+            iced::widget::pane_grid::Axis::Vertical
+        );
+    }
+
+    #[test]
+    fn test_check_anchor() {
+        assert_eq!(check_anchor("top"), "top");
+        assert_eq!(check_anchor("bottom"), "bottom");
+        assert_eq!(check_anchor("left"), "left");
+        assert_eq!(check_anchor("right"), "right");
+        assert_eq!(check_anchor("Miku"), "top");
+    }
+
+    #[test]
+    fn test_parse_slider_handle_theme() {
+        let theme = XmlTheme {
+            border_radius: Radius {
+                top_left: 1.0,
+                top_right: 1.0,
+                bottom_right: 1.0,
+                bottom_left: 1.0,
+            },
+            ..Default::default()
+        };
+        assert_eq!(
+            parse_slider_handle_theme("", &theme),
+            HandleShape::Circle { radius: 10.0 }
+        );
+        assert_eq!(
+            parse_slider_handle_theme("Miku 20", &theme),
+            HandleShape::Circle { radius: 10.0 }
+        );
+        assert_eq!(
+            parse_slider_handle_theme("circle Miku", &theme),
+            HandleShape::Circle { radius: 10.0 }
+        );
+        assert_eq!(
+            parse_slider_handle_theme("circle 20", &theme),
+            HandleShape::Circle { radius: 20.0 }
+        );
+        assert_eq!(
+            parse_slider_handle_theme("rectangle 1.5", &theme),
+            HandleShape::Circle { radius: 10.0 }
+        );
+        assert_eq!(
+            parse_slider_handle_theme("rectangle 2", &theme),
+            HandleShape::Rectangle {
+                width: 2,
+                border_radius: theme.border_radius,
+            }
+        );
+    }
+
+    #[test]
+    fn test_parse_two_f32() {
+        assert_eq!(parse_two_f32("3.9 4.2"), (3.9, 4.2));
+        assert_eq!(parse_two_f32("Miku 4.2"), (0.0, 0.0));
+        assert_eq!(parse_two_f32("3.9 Miku"), (0.0, 0.0));
+        assert_eq!(parse_two_f32("3.9"), (3.9, 3.9));
+        assert_eq!(parse_two_f32("Miku"), (0.0, 0.0));
+    }
+
+    #[test]
+    fn test_parse_center_type() {
+        assert_eq!(parse_center_type("align"), true);
+        assert_eq!(parse_center_type("center"), false);
+        assert_eq!(parse_center_type("Miku"), false);
+    }
+
+    #[test]
+    fn test_parse_background() {
+        assert_eq!(
+            parse_background("linear-gradient(45deg, #FF0000 0%, #00FF00 50%, #0000FF 100%)"),
+            Background::Gradient(iced::Gradient::Linear(iced::gradient::Linear {
+                angle: iced::Radians(to_rad(45.0)),
+                stops: [
+                    Some(ColorStop {
+                        color: Color::from_rgb(1.0, 0.0, 0.0),
+                        offset: 0.0,
+                    }),
+                    Some(ColorStop {
+                        color: Color::from_rgb(0.0, 1.0, 0.0),
+                        offset: 0.5,
+                    }),
+                    Some(ColorStop {
+                        color: Color::from_rgb(0.0, 0.0, 1.0),
+                        offset: 1.0,
+                    }),
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                ],
+            }))
+        );
+        assert_eq!(
+            parse_background("#FF0000"),
+            Background::Color(Color::from_rgb(1.0, 0.0, 0.0))
+        );
+        assert_eq!(
+            parse_background(
+                "linear-gradient(90,rgba(42, 123, 155, 1) 0%, rgba(87, 199, 133, 1) 50%, rgba(237, 221, 83, 1) 100%)"
+            ),
+            Background::Color(Color::TRANSPARENT) // deg missing
+        );
+    }
+
+    #[test]
+    fn test_parse_bool() {
+        assert_eq!(parse_bool("true"), true);
+        assert_eq!(parse_bool("false"), false);
+        assert_eq!(parse_bool("Miku"), false);
+    }
+
+    #[test]
+    fn test_parse_text_alignment() {
+        assert_eq!(
+            parse_text_alignment("left"),
+            iced::widget::text::Alignment::Left
+        );
+        assert_eq!(
+            parse_text_alignment("center"),
+            iced::widget::text::Alignment::Center
+        );
+        assert_eq!(
+            parse_text_alignment("right"),
+            iced::widget::text::Alignment::Right
+        );
+        assert_eq!(
+            parse_text_alignment("justified"),
+            iced::widget::text::Alignment::Justified
+        );
+        assert_eq!(
+            parse_text_alignment("default"),
+            iced::widget::text::Alignment::Default
+        );
+        assert_eq!(
+            parse_text_alignment("Miku"),
+            iced::widget::text::Alignment::Default
+        );
+    }
+
+    #[test]
+    fn test_parse_time() {
+        assert_eq!(parse_time("1000ms"), 1.0);
+        assert_eq!(parse_time("1s"), 1.0);
+        assert_eq!(parse_time("Miku"), 0.0);
+    }
 }

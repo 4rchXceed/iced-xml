@@ -7,7 +7,7 @@ use crate::{
     xml_struct::{
         element_renderer::{
             ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
-            RenderChildDatas,
+            RenderChildParameters,
         },
         elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
@@ -100,9 +100,9 @@ impl ElementBase for Table {
                 iced::widget::table::column(column_name_elem, |ev: HashMap<String, String>| {
                     return renderer.render_element(
                         *column_template_elem_id,
-                        Some(RenderChildDatas {
+                        Some(RenderChildParameters {
                             table_datas: Some(ev.clone()),
-                            ..RenderChildDatas::default()
+                            ..RenderChildParameters::default()
                         }),
                     );
                 })

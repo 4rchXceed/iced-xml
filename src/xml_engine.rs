@@ -152,18 +152,21 @@ impl XmlEngine {
                     // User events are events that are triggered by the user, such as clicks, key presses, etc.
                     EventType::User => {
                         // If the event_uid is Some, it means that the event is from a registered event listener, so we need to find the event listener and call its handlers.
-                        if event_uid.is_none() {
-                            for event_listener in self.element_renderer.event_listeners.iter_mut() {
-                                if event_listener.event_uid == event_uid.unwrap() {
-                                    for handler in event_listener.handlers.iter() {
-                                        self.fired_events
-                                            .push((Some(handler.clone()), event_data.clone()));
-                                    }
+                        if event_uid.is_some() {
+                            let event_listener = self
+                                .element_renderer
+                                .get_event_listeners()
+                                .iter_mut()
+                                .find(|e| e.event_uid == event_uid.unwrap());
+                            if event_listener.is_some() {
+                                for handler in event_listener.unwrap().handlers.iter() {
+                                    self.fired_events
+                                        .push((Some(handler.clone()), event_data.clone()));
                                 }
                             }
                         }
                         // If it's none, it means that the event is a direct event from the program, so we need to pass it to the element renderer to handle it.
-                        if event_data.target_uid.is_some() {
+                        if event_data.target_uid.is_none() {
                             self.element_renderer.pass_event_to_element(
                                 event_data.target_uid.unwrap(),
                                 event_data.event_name.clone(),
@@ -196,7 +199,7 @@ impl XmlEngine {
     ///  Returns:
     ///
     ///  - QueryResponse: The response of the event handling. It contains information about the success, and other data that might be needed by the program.
-    pub fn client_events(&mut self, query: &DomMessage) -> QueryResponse {
+    pub fn client_events(&mut self, query: &DomMessage) -> Vec<QueryResponse> {
         match &query.message {
             // If the event is a generic event, non-related to a specific element, we handle it in the generic event handler.
             DomInternalMessageType::SubscribeDynamicEvent(_)
@@ -219,7 +222,7 @@ impl XmlEngine {
     ///  Returns:
     ///
     ///  - QueryResponse: The response of the event handling. It contains information about the success, and other data that might be needed by the program.
-    fn handle_generic_event(&mut self, event: &DomMessage) -> QueryResponse {
+    fn handle_generic_event(&mut self, event: &DomMessage) -> Vec<QueryResponse> {
         return match &event.message {
             // If the event is a SubscribeDynamicEvent (EventType::Dynamic), we add it to the dyn_events vector, so that it can be handled later when the dynamic event is triggered.
             DomInternalMessageType::SubscribeDynamicEvent(dynamic_event) => {
@@ -233,9 +236,11 @@ impl XmlEngine {
                             .dyn_events
                             .push((event.uid.unwrap(), DynamicEvent::SetTimeout(*time))),
                     };
-                    return QueryResponse::success();
+                    return vec![QueryResponse::success()];
                 } else {
-                    return QueryResponse::fail("Dynamic event must have a UID to be registered.");
+                    return vec![QueryResponse::fail(
+                        "Dynamic event must have a UID to be registered.",
+                    )];
                 }
             }
             // If it's an ImportCss event, we load the CSS into the element renderer, and return the success status and any error message that might have occurred during the loading process.
@@ -245,9 +250,11 @@ impl XmlEngine {
 
                 let mut query_response = QueryResponse::new(success);
                 query_response.error_message = Some(message);
-                return query_response;
+                return vec![query_response];
             }
-            _ => QueryResponse::fail("Message supposed to be a generic event, but it is not."),
+            _ => vec![QueryResponse::fail(
+                "Message supposed to be a generic event, but it is not.",
+            )],
         };
     }
 
@@ -260,23 +267,21 @@ impl XmlEngine {
     ///  Returns:
     ///
     ///  - QueryResponse: The response of the event handling. It contains information about the success and other data that might be needed by the program.
-    fn handle_element_specific_event(&mut self, query: &DomMessage) -> QueryResponse {
-        let mut response = QueryResponse::success();
+    fn handle_element_specific_event(&mut self, query: &DomMessage) -> Vec<QueryResponse> {
+        let mut responses = Vec::new();
         let elements = self.element_renderer.element_query(&query.selector);
         for element in elements {
             let status = match query.message {
-                DomInternalMessageType::RegisterEventListener(ref event_name) => {
-                    if query.uid.is_none() {
+                DomInternalMessageType::RegisterEventListener(ref event_type) => {
+                    if query.uid.is_some() {
                         self.element_renderer.register_event(
-                            event_name.clone(),
+                            event_type.clone(),
                             element,
                             query.uid.unwrap(),
                         );
-                        return QueryResponse::success();
+                        QueryResponse::success()
                     } else {
-                        return QueryResponse::fail(
-                            "Event listener must have a UID to be registered.",
-                        );
+                        QueryResponse::fail("Event listener must have a UID to be registered.")
                     }
                 }
                 // This removes an element from the DOM tree. It will also remove all of its children, and any event listeners that are registered on it or its children.
@@ -312,12 +317,13 @@ impl XmlEngine {
                         QueryResponse::fail("Data not found for the given key.")
                     }
                 }
-                _ => QueryResponse::fail(
-                    "Message supposed to be an element-specific event, but it is not.",
-                ),
+                _ => {
+                    self.element_renderer
+                        .emit_internal_event(element, query.message.clone(), false)
+                }
             };
-            response.concat(status);
+            responses.push(status);
         }
-        return response;
+        return responses;
     }
 }

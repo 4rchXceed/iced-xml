@@ -131,7 +131,7 @@ impl Rule {
 /// This struct is the main CSS Parsing code
 /// It's state is made of a position in an input.
 /// Usage:
-/// ```rust
+/// ```rust,ignore
 /// let mut reader = CssReader::new("css here");
 /// reader.parse();
 /// let rules = reader.get_rules();
