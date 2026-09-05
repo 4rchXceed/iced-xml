@@ -1,7 +1,7 @@
 // Copy-paste template
 use crate::{
     dom::{
-        events::DomInternalMessageType,
+        events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{EventResponse, QueryResponse},
     },
     xml_engine::Message,
@@ -9,7 +9,7 @@ use crate::{
         element_renderer::{
             ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
         },
-        elements::element_base::ElementBase,
+        elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
     },
 };
@@ -21,7 +21,11 @@ pub struct Input {
 }
 
 impl ElementBase for Input {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        _: &mut ElementRenderer,
+        _: i32,
+    ) -> Result<Self, ElementError> {
         let placeholder = xml_element
             .attributes
             .get("placeholder")
@@ -30,11 +34,11 @@ impl ElementBase for Input {
         let value = xml_element.text.clone();
         let is_secured = xml_element.attributes.contains_key("secure");
 
-        Self {
+        return Ok(Self {
             placeholder: placeholder,
             value: value,
             is_secured,
-        }
+        });
     }
 
     fn render<'a>(
@@ -73,18 +77,18 @@ impl ElementBase for Input {
                 selection: theme.selection_color,
             })
             .on_input(move |input| {
-                let mut event_response = EventResponse::new(me, String::from("input"));
+                let mut event_response = EventResponse::new(me, EventListenerTypes::Input);
                 event_response.data_str = Some(input);
                 return Message::DomEvent(None, event_response);
             })
             .on_paste(move |input| {
-                let mut event_response = EventResponse::new(me, String::from("paste"));
+                let mut event_response = EventResponse::new(me, EventListenerTypes::Paste);
                 event_response.data_str = Some(input);
                 return Message::DomEvent(None, event_response);
             })
             .on_submit(Message::DomEvent(
                 None,
-                EventResponse::new(me, String::from("submit")),
+                EventResponse::new(me, EventListenerTypes::Submit),
             ));
 
         if theme.select_icon.is_some() {
@@ -96,25 +100,25 @@ impl ElementBase for Input {
         }
 
         for event in events {
-            match event.event_type.as_str() {
-                "input" => {
+            match event.event_type {
+                EventListenerTypes::Input => {
                     input = input.on_input(move |input| {
-                        let mut event_response = EventResponse::new(me, String::from("input"));
+                        let mut event_response = EventResponse::new(me, event.event_type.clone());
                         event_response.data_str = Some(input);
                         return Message::DomEvent(Some(event.event_uid), event_response);
                     });
                 }
-                "paste" => {
+                EventListenerTypes::Paste => {
                     input = input.on_paste(move |input| {
-                        let mut event_response = EventResponse::new(me, String::from("paste"));
+                        let mut event_response = EventResponse::new(me, event.event_type.clone());
                         event_response.data_str = Some(input);
                         return Message::DomEvent(Some(event.event_uid), event_response);
                     });
                 }
-                "submit" => {
+                EventListenerTypes::Submit => {
                     input = input.on_submit(Message::DomEvent(
                         Some(event.event_uid),
-                        EventResponse::new(event.event_uid, String::from("submit")),
+                        EventResponse::new(event.event_uid, event.event_type.clone()),
                     ));
                 }
                 _ => (),
@@ -159,11 +163,11 @@ impl ElementBase for Input {
 
     fn event_callback(
         &mut self,
-        event_type: &String,
+        event_type: &EventListenerTypes,
         event_response: &EventResponse,
     ) -> Option<ElementEventResponse> {
-        match event_type.as_str() {
-            "input" => {
+        match event_type {
+            EventListenerTypes::Input => {
                 if event_response.data_str.is_some() {
                     self.value = event_response.data_str.as_ref().unwrap().clone();
                     Some(ElementEventResponse::success())
@@ -171,7 +175,7 @@ impl ElementBase for Input {
                     None
                 }
             }
-            "paste" => {
+            EventListenerTypes::Paste => {
                 if event_response.data_str.is_some() {
                     self.value = event_response.data_str.as_ref().unwrap().clone();
                     Some(ElementEventResponse::success())
@@ -179,7 +183,7 @@ impl ElementBase for Input {
                     None
                 }
             }
-            "submit" => Some(ElementEventResponse::success()),
+            EventListenerTypes::Submit => Some(ElementEventResponse::success()),
             _ => None,
         }
     }

@@ -229,3 +229,25 @@ Pretty big commit here.
 + Code rewrite
 
 ### Commit msg: "Code rewrite (3): made another part of the code rewrite"
+
+## Last commit. 79b51f49e2cea0664f702156f6aab1ae6c412d97
++ Code rewrite ended
+- Main changes:
+  + Commented every function and struct (except for elements, as these are repetitive)
+  + Added a SelectorType for CSS pre-process selectors, instead of using a String
+  + get for CssReader instead of pub fields
+  + Moves parts of the DOM to a new file, making it more readable
+  - Removed TODO, and made everything with DomInternalMessageType/DomMessage
+  - Removed every call to panic!(), replace with either Result, or a fallback (with a log message)
+  + Switched from String to CustomElementEvent for the library user-called events
+  + Switched from String to EventListenerTypes for the user-made events (add_event_listener)
+  + Created a new Error enum for the elements: ElementError
+  + I probably forgot some other changes, but these are the main ones.
+
+TODO:
+- Better logging system
+- Unittests
+- Performance tests
+- Documentation for the library user
+
+### Commit msg: "Code rewrite (4): finished the code rewrite"

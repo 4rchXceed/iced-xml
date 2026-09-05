@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::{
     dom::{
-        events::DomInternalMessageType,
+        events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{EventResponse, QueryResponse},
     },
     rs_utils::{HashableF32, Vector2},
@@ -11,7 +11,7 @@ use crate::{
         element_renderer::{
             ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
         },
-        elements::element_base::ElementBase,
+        elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
     },
 };
@@ -23,9 +23,15 @@ pub struct Trigger {
 }
 
 impl ElementBase for Trigger {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        renderer: &mut ElementRenderer,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         if xml_element.children.len() > 1 {
-            panic!("Trigger element can only have zero or one child");
+            return Err(ElementError::TriggerElementHasMoreThanOneChild(
+                xml_element.clone(),
+            ));
         }
         let mut child: Option<i32> = None;
         if xml_element.children.len() == 1 {
@@ -39,7 +45,7 @@ impl ElementBase for Trigger {
                 .get("anticipated_pixels")
                 .unwrap()
                 .parse::<f32>()
-                .unwrap();
+                .unwrap_or(0.0);
         }
         if xml_element.attributes.contains_key("time_trigger") {
             time_to_trigger = xml_element
@@ -47,14 +53,14 @@ impl ElementBase for Trigger {
                 .get("time_to_trigger")
                 .unwrap()
                 .parse::<u64>()
-                .unwrap();
+                .unwrap_or(0);
         }
 
-        Self {
+        return Ok(Self {
             child: child,
             anticipated_pixels: anticipated_pixels,
             time_trigger: time_to_trigger,
-        }
+        });
     }
 
     fn render<'a>(
@@ -78,16 +84,16 @@ impl ElementBase for Trigger {
         let me = self_uid;
 
         for event in events {
-            match event.event_type.as_str() {
-                "hidden" => {
+            match event.event_type {
+                EventListenerTypes::Hidden => {
                     trigger = trigger.on_hide(Message::DomEvent(
                         Some(event.event_uid),
-                        EventResponse::new(me, String::from("hidden")),
+                        EventResponse::new(me, event.event_type.clone()),
                     ))
                 }
-                "shown" => {
+                EventListenerTypes::Shown => {
                     trigger = trigger.on_show(move |size| {
-                        let mut ev_res = EventResponse::new(me, String::from("shown"));
+                        let mut ev_res = EventResponse::new(me, event.event_type.clone());
                         ev_res.data_vector = Some(Vector2 {
                             x: HashableF32::new(size.width),
                             y: HashableF32::new(size.height),
@@ -95,9 +101,9 @@ impl ElementBase for Trigger {
                         Message::DomEvent(Some(event.event_uid), ev_res)
                     })
                 }
-                "resize" => {
+                EventListenerTypes::Resize => {
                     trigger = trigger.on_resize(move |size| {
-                        let mut ev_res = EventResponse::new(me, String::from("resize"));
+                        let mut ev_res = EventResponse::new(me, event.event_type.clone());
                         ev_res.data_vector = Some(Vector2 {
                             x: HashableF32::new(size.width),
                             y: HashableF32::new(size.height),

@@ -5,7 +5,7 @@ use crate::{
     xml_engine::Message,
     xml_struct::{
         element_renderer::{ElementExtraData, ElementRenderer, EventListener},
-        elements::element_base::ElementBase,
+        elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
     },
 };
@@ -15,13 +15,19 @@ pub struct FloatingElement {
 }
 
 impl ElementBase for FloatingElement {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        renderer: &mut ElementRenderer,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         if xml_element.children.len() != 1 {
-            panic!("FloatingElement must have exactly one child");
+            return Err(ElementError::FloatingElementMustHaveOneChild(
+                xml_element.clone(),
+            ));
         }
         let child = renderer.init_element_from_xml(&xml_element.children[0], self_uid);
 
-        Self { child: child }
+        return Ok(Self { child: child });
     }
 
     fn render<'a>(

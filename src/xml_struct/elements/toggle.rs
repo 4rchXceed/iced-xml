@@ -1,7 +1,7 @@
 // Copy-paste template
 use crate::{
     dom::{
-        events::DomInternalMessageType,
+        events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{EventResponse, QueryResponse},
     },
     xml_engine::Message,
@@ -9,7 +9,7 @@ use crate::{
         element_renderer::{
             ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
         },
-        elements::element_base::ElementBase,
+        elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
     },
 };
@@ -20,8 +20,12 @@ pub struct Toggle {
 }
 
 impl ElementBase for Toggle {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
-        Self {
+    fn new(
+        xml_element: &XmlElement,
+        _: &mut ElementRenderer,
+        _: i32,
+    ) -> Result<Self, ElementError> {
+        return Ok(Self {
             toggled: xml_element
                 .attributes
                 .get("toggled")
@@ -32,7 +36,7 @@ impl ElementBase for Toggle {
                 .get("label")
                 .unwrap_or(&String::from(""))
                 .clone(),
-        }
+        });
     }
 
     fn render<'a>(
@@ -82,13 +86,13 @@ impl ElementBase for Toggle {
 
         let mut event_id = None;
         for event in events {
-            if event.event_type == "toggle" {
+            if event.event_type == EventListenerTypes::Toggle {
                 event_id = Some(event.event_uid);
             }
         }
 
         toggle = toggle.on_toggle(move |toggled| {
-            let mut event_response = EventResponse::new(self_uid, String::from("toggle"));
+            let mut event_response = EventResponse::new(self_uid, EventListenerTypes::Toggle);
             event_response.data_bool = Some(toggled);
             return Message::DomEvent(event_id, event_response);
         });
@@ -127,11 +131,11 @@ impl ElementBase for Toggle {
 
     fn event_callback(
         &mut self,
-        event_type: &String,
+        event_type: &EventListenerTypes,
         event_response: &EventResponse,
     ) -> Option<ElementEventResponse> {
-        match event_type.as_str() {
-            "toggle" => {
+        match event_type {
+            EventListenerTypes::Toggle => {
                 if event_response.data_bool.is_some() {
                     self.toggled = event_response.data_bool.unwrap();
                     return Some(ElementEventResponse::success());

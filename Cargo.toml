@@ -8,6 +8,7 @@ iced = {version = "0.14.0", features = ["smol"]}
 quick-xml = "0.40.1"
 hex_rgb_converter = "1.0.1"
 notify = { version = "8.2.0", optional = true }
+thiserror = "2.0.20"
 
 [features]
 css-watcher = ["notify"]

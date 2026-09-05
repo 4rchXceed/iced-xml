@@ -3,7 +3,7 @@ use iced::widget::scrollable::AutoScroll;
 // Copy-paste template
 use crate::{
     dom::{
-        events::DomInternalMessageType,
+        events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{EventResponse, QueryResponse},
     },
     rs_utils::{HashableF32, ScrollState},
@@ -12,7 +12,7 @@ use crate::{
         element_renderer::{
             ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
         },
-        elements::element_base::ElementBase,
+        elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
     },
 };
@@ -23,22 +23,25 @@ pub struct Scroll {
 }
 
 impl ElementBase for Scroll {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        renderer: &mut ElementRenderer,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         if xml_element.children.len() != 1 {
-            panic!(
-                "Scrollable MUST have one and only one child (currently has {})",
-                xml_element.children.len()
-            );
+            return Err(ElementError::ScrollableElementMustHaveOneChild(
+                xml_element.clone(),
+            ));
         }
         let mut is_horizontal = false;
         if xml_element.attributes.get("horizontal").is_some() {
             is_horizontal = true;
         }
 
-        Self {
+        return Ok(Self {
             child: renderer.init_element_from_xml(&xml_element.children[0], self_uid),
             is_horizontal,
-        }
+        });
     }
 
     fn render<'a>(
@@ -155,8 +158,8 @@ impl ElementBase for Scroll {
         // We don't need to change the state of the object when the event is triggered, so we can only create the event when the code is using the event.
 
         for event in events {
-            match event.event_type.as_str() {
-                "scroll" => {
+            match event.event_type {
+                EventListenerTypes::Scroll => {
                     scrollable = scrollable.on_scroll(move |v| {
                         let scroll_state = ScrollState {
                             scroll_height: HashableF32::new(v.bounds().height),
@@ -164,7 +167,7 @@ impl ElementBase for Scroll {
                             scroll_left: HashableF32::new(v.relative_offset().x * v.bounds().width),
                             scroll_top: HashableF32::new(v.relative_offset().y * v.bounds().height),
                         };
-                        let mut ev_response = EventResponse::new(me, "scroll".to_string());
+                        let mut ev_response = EventResponse::new(me, event.event_type.clone());
                         ev_response.scrollable_scroll_state = Some(scroll_state);
                         return Message::DomEvent(Some(event.event_uid), ev_response);
                     });

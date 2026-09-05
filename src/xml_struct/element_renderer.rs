@@ -6,7 +6,7 @@ use crate::{
     app_manager::ComponentFunctions,
     css_reader::{CssReader, Rule, RuleBlock, Selector},
     dom::{
-        events::DomInternalMessageType,
+        events::{DomInternalMessageType, EventListenerTypes},
         query::{ComplexQuery, ComplexQueryJoinType, DomQuery, DomQueryType},
         query_builder::{EventResponse, QueryResponse},
     },
@@ -44,7 +44,7 @@ impl Default for RenderChildDatas {
 }
 
 pub struct EventListener {
-    pub event_type: String,
+    pub event_type: EventListenerTypes,
     pub target: i32,
     pub handlers: Vec<i32>, // List of callbacks to forward the event to
     pub event_uid: i32,
@@ -185,7 +185,6 @@ impl ElementRenderer {
             }
         }
         for rule_block in reader.get_rules() {
-            // TODO: Add support for multiple selectors in a single rule block
             let selectors = &rule_block.selectors;
             for selector in selectors {
                 self.apply_rules(selector, &rule_block.rules, hot_reload);
@@ -396,18 +395,6 @@ impl ElementRenderer {
         }
     }
 
-    pub fn get_element(&mut self, uid: i32) -> &mut AnyElement {
-        let element = self.elements.get_mut(&uid);
-        if element.is_some() {
-            return &mut element.unwrap().0;
-        } else {
-            panic!(
-                "Element not found: {}, but called with a no-fail method. Probably a program state issue",
-                uid
-            )
-        }
-    }
-
     fn post_process_query_result(&self, query: &DomQuery, element: i32) -> Vec<i32> {
         if query.flag.is_some() {
             let flag = query.flag.as_ref().unwrap();
@@ -481,16 +468,9 @@ impl ElementRenderer {
     }
 
     pub fn init_element_from_xml(&mut self, xml_element: &XmlElement, parent_uid: i32) -> i32 {
-        // TODO: Add "plugin" support (function provided by the user to resolve custom elements)
         let id = get_unique_id();
         self.parent_map.insert(id, parent_uid);
-        let element = generate_element_from_tag(xml_element, self, id);
-        if element.is_some() {
-            self.init_element(element.unwrap(), Some(xml_element.clone()), None, id);
-            return id;
-        } else {
-            panic!("Block: <{} /> doesn't exists", &xml_element.tag);
-        }
+        return self.create_element_safe(xml_element.clone(), id, None);
     }
 
     pub fn init_element_virt(
@@ -660,21 +640,21 @@ impl ElementRenderer {
     pub fn pass_event_to_element(
         &mut self,
         target_uid: i32,
-        event_name: String,
+        event_type: EventListenerTypes,
         event_datas: EventResponse,
     ) -> QueryResponse {
         let element = self.elements.get_mut(&target_uid);
         if element.is_some() {
             let (element, _) = element.unwrap();
             let element_response_op =
-                process_event_callback_for_element(element, &event_name, &event_datas);
+                process_event_callback_for_element(element, &event_type, &event_datas);
             if element_response_op.is_some() {
                 return element_response_op.unwrap().response;
             } else {
                 return QueryResponse::fail(
                     format!(
-                        "Element with uid {} doesn't have a callback for event {}",
-                        target_uid, event_name
+                        "Element with uid {} doesn't have a callback for event {:?}",
+                        target_uid, event_type
                     )
                     .as_str(),
                 );
@@ -824,7 +804,7 @@ impl ElementRenderer {
         }
     }
 
-    pub fn register_event(&mut self, event_type: String, target: i32, handler: i32) {
+    pub fn register_event(&mut self, event_type: EventListenerTypes, target: i32, handler: i32) {
         if self
             .event_listeners
             .iter()
@@ -851,14 +831,40 @@ impl ElementRenderer {
         return self.sources_map.get(&uid).cloned();
     }
 
+    pub fn create_element_safe(
+        &mut self,
+        xml_element: XmlElement,
+        element_uid: i32,
+        parent_theme: Option<XmlTheme>,
+    ) -> i32 {
+        let element_result = generate_element_from_tag(&xml_element, self, element_uid);
+        let element;
+        if element_result.is_ok() {
+            element = element_result.unwrap();
+        } else {
+            println!(
+                "Error during element creation: {}. Generating <Void /> element instead",
+                element_result.err().unwrap().to_string()
+            );
+            let void_element = XmlElement::void();
+            let element_result = generate_element_from_tag(&void_element, self, 0);
+            if element_result.is_ok() {
+                element = element_result.unwrap();
+            } else {
+                println!(
+                    "Error during <Void /> element creation: {}. Returning 0, but the program will probably crash",
+                    element_result.err().unwrap().to_string()
+                );
+                return 0;
+            }
+        }
+        self.init_element(element, Some(xml_element), parent_theme, element_uid);
+        return element_uid;
+    }
+
     pub fn replace_element(&mut self, element_uid: i32, new_element: XmlElement) -> DomQuery {
         self.remove_cascade(element_uid, false);
-        let element = generate_element_from_tag(&new_element, self, element_uid);
-        if element.is_some() {
-            self.init_element(element.unwrap(), Some(new_element), None, element_uid);
-        } else {
-            panic!("Block: <{} /> doesn't exists", &new_element.tag);
-        }
+        let element_uid = self.create_element_safe(new_element, element_uid, None);
         return DomQuery {
             query_type: DomQueryType::ByUid(element_uid),
             flag: None,
@@ -898,12 +904,7 @@ impl ElementRenderer {
         // If the element is a parent, we need to re-add a <Void /> element to the parent, so that the parent can still render correctly
         if is_parent && old_parent.is_some() {
             let xml_element = XmlElement::void();
-            let element = generate_element_from_tag(&xml_element, self, element_uid);
-            if element.is_some() {
-                self.init_element(element.unwrap(), Some(xml_element), None, element_uid);
-            } else {
-                panic!("Block: <Void /> doesn't exists");
-            }
+            self.create_element_safe(xml_element, element_uid, None);
         }
         return source;
     }

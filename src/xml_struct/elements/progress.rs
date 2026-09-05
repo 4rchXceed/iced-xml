@@ -8,7 +8,7 @@ use crate::{
         element_renderer::{
             ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
         },
-        elements::element_base::ElementBase,
+        elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
     },
 };
@@ -21,12 +21,18 @@ pub struct Progress {
 }
 
 impl ElementBase for Progress {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        _: &mut ElementRenderer,
+        _: i32,
+    ) -> Result<Self, ElementError> {
         let min_op = xml_element.attributes.get("min");
         let max_op = xml_element.attributes.get("max");
         let mut vertical = false;
         if min_op.is_none() || max_op.is_none() {
-            panic!("Progress element must have 'min' and 'max' attributes");
+            return Err(ElementError::ProgressElementMustHaveMinMaxAttributes(
+                xml_element.clone(),
+            ));
         }
         let progress = xml_element
             .attributes
@@ -39,12 +45,12 @@ impl ElementBase for Progress {
         let min = min_op.unwrap().parse::<f32>().unwrap_or(0.0);
         let max = max_op.unwrap().parse::<f32>().unwrap_or(100.0);
 
-        Self {
+        return Ok(Self {
             progress,
             min,
             max,
             vertical,
-        }
+        });
     }
 
     fn render<'a>(

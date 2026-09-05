@@ -1,10 +1,8 @@
-use std::panic;
-
 use iced::{Border, Shadow};
 
 use crate::{
     dom::{
-        events::DomInternalMessageType,
+        events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{EventResponse, QueryResponse},
     },
     xml_engine::Message,
@@ -12,7 +10,11 @@ use crate::{
         element_renderer::{
             ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
         },
-        elements::{element_base::ElementBase, label::Label, library::AnyElement},
+        elements::{
+            element_base::ElementBase,
+            label::Label,
+            library::{AnyElement, ElementError},
+        },
         parser::XmlElement,
     },
 };
@@ -24,7 +26,11 @@ pub struct Button {
 }
 
 impl ElementBase for Button {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        renderer: &mut ElementRenderer,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         let virtual_text = renderer.init_element_virt(
             AnyElement::Label(Label::virt(xml_element.text.clone())),
             Some(xml_element.theme.clone()),
@@ -33,28 +39,29 @@ impl ElementBase for Button {
 
         if !xml_element.text.trim().is_empty() {
             if xml_element.children.is_empty() {
-                Self {
+                return Ok(Self {
                     children: Vec::new(),
                     text: Some(xml_element.text.clone()),
                     virtual_text: virtual_text,
-                }
+                });
             } else {
-                panic!(
-                    "Button with text cannot have children: {}",
-                    xml_element.text
-                );
+                return Err(ElementError::TextButtonHasChildren(
+                    xml_element.clone(),
+                    xml_element.text.clone(),
+                ));
             }
         } else {
-            let mut children: Vec<i32> = Vec::new();
-            for child in &xml_element.children {
-                children.push(renderer.init_element_from_xml(child, self_uid));
-            }
+            let children: Vec<i32> = xml_element
+                .children
+                .iter()
+                .map(|child| renderer.init_element_from_xml(child, self_uid))
+                .collect();
 
-            Self {
+            return Ok(Self {
                 children: children,
                 text: None,
                 virtual_text: virtual_text,
-            }
+            });
         }
     }
     fn render<'a>(
@@ -105,8 +112,8 @@ impl ElementBase for Button {
             .width(theme.width);
 
         for event in events {
-            match event.event_type.as_str() {
-                "click" => {
+            match event.event_type {
+                EventListenerTypes::Click => {
                     button = button.on_press(Message::DomEvent(
                         Some(event.event_uid),
                         EventResponse::new(self_uid, event.event_type.clone()),

@@ -3,7 +3,7 @@ use std::ops::RangeInclusive;
 // Copy-paste template
 use crate::{
     dom::{
-        events::DomInternalMessageType,
+        events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{EventResponse, QueryResponse},
     },
     rs_utils::HashableF32,
@@ -12,7 +12,7 @@ use crate::{
         element_renderer::{
             ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
         },
-        elements::element_base::ElementBase,
+        elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
         theming::XmlTheme,
     },
@@ -108,7 +108,11 @@ impl Range {
 }
 
 impl ElementBase for Range {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        _: &mut ElementRenderer,
+        _: i32,
+    ) -> Result<Self, ElementError> {
         let mut min = 0.0;
         let mut max = 1.0;
         let mut value = 0.0;
@@ -144,7 +148,7 @@ impl ElementBase for Range {
             );
         }
 
-        Self {
+        return Ok(Self {
             min: min,
             max: max,
             value: value,
@@ -152,7 +156,7 @@ impl ElementBase for Range {
             step: step,
             second_step: shift_step,
             vertical: xml_element.attributes.contains_key("vertical"),
-        }
+        });
     }
 
     fn render<'a>(
@@ -170,15 +174,15 @@ impl ElementBase for Range {
 
         let mut id = None;
         for event in &events {
-            match event.event_type.as_str() {
-                "input" => {
+            match event.event_type {
+                EventListenerTypes::Input => {
                     id = Some(event.event_uid);
                 }
                 _ => (),
             }
         }
         let on_input = move |v| {
-            let mut event_response = EventResponse::new(self_uid, String::from("input"));
+            let mut event_response = EventResponse::new(self_uid, EventListenerTypes::Input);
             event_response.data_float = Some(HashableF32::new(v));
             return Message::DomEvent(id, event_response);
         };
@@ -186,11 +190,11 @@ impl ElementBase for Range {
         let mut on_release_message = None;
 
         for event in events {
-            match event.event_type.as_str() {
-                "release" => {
+            match event.event_type {
+                EventListenerTypes::Release => {
                     on_release_message = Some(Message::DomEvent(
                         Some(event.event_uid),
-                        EventResponse::new(self_uid, String::from("release")),
+                        EventResponse::new(self_uid, event.event_type.clone()),
                     ));
                 }
                 _ => (),
@@ -315,11 +319,11 @@ impl ElementBase for Range {
 
     fn event_callback(
         &mut self,
-        event_type: &String,
+        event_type: &EventListenerTypes,
         event_response: &EventResponse,
     ) -> Option<ElementEventResponse> {
-        match event_type.as_str() {
-            "input" => {
+        match event_type {
+            EventListenerTypes::Input => {
                 self.value = event_response
                     .data_float
                     .clone()

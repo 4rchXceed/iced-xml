@@ -6,7 +6,7 @@ use crate::{
         element_renderer::{
             ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
         },
-        elements::element_base::ElementBase,
+        elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
     },
 };
@@ -17,7 +17,11 @@ pub struct Var {
 }
 
 impl ElementBase for Var {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        _: &mut ElementRenderer,
+        _: i32,
+    ) -> Result<Self, ElementError> {
         if !xml_element.attributes.contains_key("var-key") {
             panic!("<Var /> element must have the var-key attribute")
         }
@@ -25,10 +29,10 @@ impl ElementBase for Var {
         if xml_element.attributes.contains_key("fallback") {
             fallback_text = xml_element.attributes.get("fallback").unwrap().to_string();
         }
-        Self {
+        return Ok(Self {
             key_name: xml_element.attributes.get("var-key").unwrap().to_string(),
             fallback_text: fallback_text,
-        }
+        });
     }
 
     fn render<'a>(

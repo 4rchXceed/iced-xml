@@ -265,9 +265,6 @@ impl XmlEngine {
         let elements = self.element_renderer.element_query(&query.selector);
         for element in elements {
             let status = match query.message {
-                // TODO: Remove XmlChangeEvent and use DomInternalMessageType instead
-                // RegisterEventListener is used to register an event listener for a specific event on an element.
-                // Used by .add_event_listener() in the DomQuery.
                 DomInternalMessageType::RegisterEventListener(ref event_name) => {
                     if query.uid.is_none() {
                         self.element_renderer.register_event(

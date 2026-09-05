@@ -3,7 +3,7 @@ use iced::{Point, widget::text_editor::Motion::*};
 // Copy-paste template
 use crate::{
     dom::{
-        events::DomInternalMessageType,
+        events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{CustomElementEvent, EventResponse, QueryResponse},
     },
     rs_utils::{HashableF32, HashableTextareaEdit, Vector2},
@@ -12,7 +12,7 @@ use crate::{
         element_renderer::{
             ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
         },
-        elements::element_base::ElementBase,
+        elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
     },
 };
@@ -127,7 +127,11 @@ fn generate_action(
 }
 
 impl ElementBase for Textarea {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        _: &mut ElementRenderer,
+        _: i32,
+    ) -> Result<Self, ElementError> {
         let content = iced::widget::text_editor::Content::with_text(&xml_element.text);
         let mut placeholder = String::new();
 
@@ -135,10 +139,10 @@ impl ElementBase for Textarea {
             placeholder = xml_element.attributes["placeholder"].clone();
         }
 
-        Self {
+        return Ok(Self {
             content: content,
             placeholder: placeholder,
-        }
+        });
     }
 
     fn render<'a>(
@@ -185,15 +189,18 @@ impl ElementBase for Textarea {
         let mut event_uid = None;
 
         for event in events {
-            if event.event_type == "textarea_event" {
-                event_uid = Some(event.event_uid);
-                break;
+            match event.event_type {
+                EventListenerTypes::TextareaEvent => {
+                    event_uid = Some(event.event_uid);
+                    break;
+                }
+                _ => (),
             }
         }
 
         let me = self_uid;
         textarea = textarea.on_action(move |action| {
-            let mut ev_response = EventResponse::new(me, String::from("textarea_event"));
+            let mut ev_response = EventResponse::new(me, EventListenerTypes::TextareaEvent);
             ev_response.textarea_event = Some(generate_action(action, &self.content));
             return Message::DomEvent(event_uid, ev_response);
         });
@@ -269,11 +276,11 @@ impl ElementBase for Textarea {
 
     fn event_callback(
         &mut self,
-        event_type: &String,
+        event_type: &EventListenerTypes,
         event_response: &EventResponse,
     ) -> Option<ElementEventResponse> {
-        match event_type.as_str() {
-            "textarea_event" => {
+        match event_type {
+            EventListenerTypes::TextareaEvent => {
                 if event_response.textarea_event.is_some() {
                     handle_event(
                         &mut self.content,

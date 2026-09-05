@@ -5,6 +5,7 @@ use crate::{
     xml_struct::{
         element_renderer::{ElementExtraData, ElementRenderer, EventListener},
         elements::element_base::ElementBase,
+        elements::library::ElementError,
         parser::XmlElement,
     },
 };
@@ -15,7 +16,11 @@ pub struct __EL__NAME {
 }
 
 impl ElementBase for __EL__NAME {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        renderer: &mut ElementRenderer,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         // If it supports children, initialize them here with renderer.init_element
         // let mut children: Vec<i32> = Vec::new();
         // for child in &xml_element.children {
@@ -28,7 +33,7 @@ impl ElementBase for __EL__NAME {
         //     Some(xml_element.theme.clone()),
         // );
 
-        Self { children: children }
+        return Ok(Self { children: children });
     }
 
     fn render<'a>(

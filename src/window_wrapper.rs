@@ -9,7 +9,10 @@ use crate::{
         query_builder::{QueryBuilder, QueryResponse},
     },
     xml_engine::{Message, XmlEngine},
-    xml_struct::{elements::library::generate_element_from_tag, parser::XmlElement},
+    xml_struct::{
+        elements::library::{ElementError, generate_element_from_tag},
+        parser::XmlElement,
+    },
 };
 
 // Type alias for the result type used in the application
@@ -48,7 +51,7 @@ pub enum ComponentRemoveError {
     // Component with uid (i32) isn't found / has already been supressed
     ComponentUidNotFound(i32),
     // Tag <Void /> not found
-    TagVoidNotFound, // Shouldn't happen
+    ElementError(ElementError), // Shouldn't happen
 }
 
 ///  Trait for defining the interface of a window template
@@ -170,13 +173,13 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
         // The create an empty element replacing the old component, so it's parent doesn't crash
         let element = generate_element_from_tag(&XmlElement::void(), elem_renderer, component_uid);
         // If the element has been created
-        if element.is_some() {
+        if element.is_ok() {
             let element_uid = element.unwrap();
             // Add the element to the DOM
             elem_renderer.init_element(element_uid, Some(XmlElement::void()), None, component_uid);
             return Ok(component_uid);
         } else {
-            return Err(ComponentRemoveError::TagVoidNotFound);
+            return Err(ComponentRemoveError::ElementError(element.err().unwrap()));
         }
     }
     ///  This is processes all the query builder queries and execute them

@@ -7,7 +7,7 @@ use crate::{
         element_renderer::{
             ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
         },
-        elements::element_base::ElementBase,
+        elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
     },
 };
@@ -23,13 +23,17 @@ impl Label {
 }
 
 impl ElementBase for Label {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        _: &mut ElementRenderer,
+        _: i32,
+    ) -> Result<Self, ElementError> {
         if xml_element.children.len() > 0 {
             panic!("<Label> elements cannot have children");
         }
-        Self {
+        return Ok(Self {
             text: xml_element.text.clone(),
-        }
+        });
     }
 
     fn render<'a>(

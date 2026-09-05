@@ -1,7 +1,7 @@
 // Copy-paste template
 use crate::{
     dom::{
-        events::DomInternalMessageType,
+        events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{EventResponse, QueryResponse},
     },
     xml_engine::Message,
@@ -9,7 +9,7 @@ use crate::{
         element_renderer::{
             ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
         },
-        elements::element_base::ElementBase,
+        elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
     },
 };
@@ -22,7 +22,11 @@ pub struct Checkbox {
 }
 
 impl ElementBase for Checkbox {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        _: &mut ElementRenderer,
+        _: i32,
+    ) -> Result<Self, ElementError> {
         // If it supports children, initialize them here with renderer.init_element
         // let mut children: Vec<i32> = Vec::new();
         // for child in &xml_element.children {
@@ -34,10 +38,10 @@ impl ElementBase for Checkbox {
         if !text.is_empty() {
             maybe_text = Some(text);
         }
-        Self {
+        return Ok(Self {
             checked: checked,
             text: maybe_text,
-        }
+        });
     }
 
     fn render<'a>(
@@ -98,11 +102,11 @@ impl ElementBase for Checkbox {
         // Register any events here
         let me = self_uid.clone();
         checkbox = checkbox.on_toggle(move |_| {
-            return Message::DomEvent(None, EventResponse::new(me, "checked".to_string()));
+            return Message::DomEvent(None, EventResponse::new(me, EventListenerTypes::Checked));
         });
         for event in events {
-            match event.event_type.as_str() {
-                "checked" => {
+            match event.event_type {
+                EventListenerTypes::Checked => {
                     checkbox = checkbox.on_toggle(move |_| {
                         return Message::DomEvent(
                             Some(event.event_uid),
@@ -145,11 +149,11 @@ impl ElementBase for Checkbox {
 
     fn event_callback(
         &mut self,
-        event_type: &String,
+        event_type: &EventListenerTypes,
         _: &EventResponse,
     ) -> Option<ElementEventResponse> {
-        match event_type.as_str() {
-            "checked" => {
+        match event_type {
+            EventListenerTypes::Checked => {
                 self.checked = !self.checked;
                 return Some(ElementEventResponse::success());
             }

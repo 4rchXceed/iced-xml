@@ -5,7 +5,7 @@ use iced::{Subscription, time};
 use crate::{
     app_manager::{App, WindowId},
     dom::{
-        events::{DomInternalMessageType, DomMessage, DomQueryBuilder},
+        events::{DomInternalMessageType, DomMessage, DomQueryBuilder, EventListenerTypes},
         query::{DomQuery, DomQueryType},
     },
     rs_utils::{
@@ -59,7 +59,7 @@ pub struct EventResponse {
     pub event_type: EventType,
     pub timer_id: Option<i32>, // useful for clear_timer
     pub target_uid: Option<i32>,
-    pub event_name: String,
+    pub event_name: EventListenerTypes,
     pub target: Option<DomQuery>,
     pub data_str: Option<String>,
     pub data_bool: Option<bool>,
@@ -81,7 +81,7 @@ impl EventResponse {
     /// Parameters:
     /// - uid: The UID of the target element.
     /// - event_type: The type of the event ("click", ...).
-    pub fn new(uid: i32, event_type: String) -> Self {
+    pub fn new(uid: i32, event_type: EventListenerTypes) -> Self {
         Self {
             target: Some(DomQuery {
                 query_type: DomQueryType::ByUid(uid),
@@ -102,7 +102,7 @@ impl Default for EventResponse {
             event_type: EventType::User,
             target: None,
             data_str: None,
-            event_name: String::new(),
+            event_name: EventListenerTypes::None,
             timer_id: None,
             target_uid: None,
             data_bool: None,

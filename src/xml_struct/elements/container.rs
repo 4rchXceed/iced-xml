@@ -5,7 +5,7 @@ use crate::{
     xml_engine::Message,
     xml_struct::{
         element_renderer::{ElementExtraData, ElementRenderer, EventListener},
-        elements::element_base::ElementBase,
+        elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
     },
 };
@@ -15,17 +15,20 @@ pub struct Container {
 }
 
 impl ElementBase for Container {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        renderer: &mut ElementRenderer,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         if xml_element.children.len() != 1 {
-            panic!(
-                "Container MUST have one and only one child (currently has {})",
-                xml_element.children.len()
-            );
+            return Err(ElementError::ContainerElementNotOneChildren(
+                xml_element.clone(),
+            ));
         }
 
-        Self {
+        return Ok(Self {
             child: renderer.init_element_from_xml(&xml_element.children[0], self_uid),
-        }
+        });
     }
 
     fn render<'a>(

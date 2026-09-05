@@ -26,7 +26,7 @@ pub enum DomInternalMessageType {
     StyleChange(StyleChangeEvent),  // k => v custom_style_flag [for(xyz)]
     PropertyChange(String, String), // k => v
     GetProperty(String),            // key
-    RegisterEventListener(String),  // event_name
+    RegisterEventListener(EventListenerTypes), // event_name
     ImportCss(String, bool),        // css content
     SubscribeDynamicEvent(DynamicEvent), // dynamic events (like set_timeout, set_interval, etc.)
     GetData(String),                // key
@@ -34,6 +34,33 @@ pub enum DomInternalMessageType {
     Remove,                         // remove element
     Replace(HashableXmlElement),    // replace element with new one
     GetElement,                     // get the element's source
+}
+
+#[derive(Debug, Clone, Hash, PartialEq)]
+pub enum EventListenerTypes {
+    Click,
+    Checked,
+    Input,
+    Paste,
+    Submit,
+    Select,
+    Release,
+    Scroll,
+    Selected,
+    OnClose,
+    OnOpen,
+    OnInput,
+    TextareaEvent,
+    Toggle,
+    Hidden,
+    Shown,
+    Resize,
+    Drag,
+    Maximize,
+    Restore,
+    Close,
+    Focus,
+    None,
 }
 
 /// A result of a Dom::XYZ query, which can be used to select elements (View Dom struct & src/dom/api.rs)
@@ -175,9 +202,9 @@ impl DomQueryBuilder {
     /// self.qb.b(Dom::get_element_by_id("test").add_event_listener("click")).with_callback(|query_response| ...);
     /// self.process();
     /// ```
-    pub fn add_event_listener(&mut self, name: &str) -> &mut Self {
+    pub fn add_event_listener(&mut self, name: EventListenerTypes) -> &mut Self {
         let event = DomMessage {
-            message: DomInternalMessageType::RegisterEventListener(name.to_string()),
+            message: DomInternalMessageType::RegisterEventListener(name),
             uid: None,
             selector: self.query_event.clone(),
         };

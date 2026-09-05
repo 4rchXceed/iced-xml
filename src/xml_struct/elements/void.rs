@@ -3,7 +3,7 @@ use crate::{
     xml_engine::Message,
     xml_struct::{
         element_renderer::{ElementExtraData, ElementRenderer, EventListener},
-        elements::element_base::ElementBase,
+        elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
     },
 };
@@ -11,8 +11,8 @@ use crate::{
 pub struct Void {}
 
 impl ElementBase for Void {
-    fn new(_: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
-        Self {}
+    fn new(_: &XmlElement, _: &mut ElementRenderer, _: i32) -> Result<Self, ElementError> {
+        return Ok(Self {});
     }
 
     fn render<'a>(

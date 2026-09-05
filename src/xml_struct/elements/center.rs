@@ -5,7 +5,11 @@ use crate::{
         element_renderer::{
             ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
         },
-        elements::{element_base::ElementBase, label::Label, library::AnyElement},
+        elements::{
+            element_base::ElementBase,
+            label::Label,
+            library::{AnyElement, ElementError},
+        },
         parser::XmlElement,
     },
 };
@@ -17,12 +21,20 @@ pub struct Center {
 }
 
 impl ElementBase for Center {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        renderer: &mut ElementRenderer,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         if xml_element.children.len() != 1 && xml_element.text.trim().is_empty() {
-            panic!("Center element must have exactly one child (or text inside)");
+            return Err(ElementError::CenterElementNotOneChildren(
+                xml_element.clone(),
+            ));
         }
         if xml_element.children.len() == 1 && !xml_element.text.trim().is_empty() {
-            panic!("Center element must have either children or text, not both");
+            return Err(ElementError::CenterElementHasBothChildrenAndText(
+                xml_element.clone(),
+            ));
         }
 
         let virtual_label = renderer.init_element_virt(
@@ -32,17 +44,17 @@ impl ElementBase for Center {
         );
 
         if xml_element.text.trim().is_empty() {
-            Self {
+            return Ok(Self {
                 children: Some(renderer.init_element_from_xml(&xml_element.children[0], self_uid)),
                 text: None,
                 virtual_label,
-            }
+            });
         } else {
-            Self {
+            return Ok(Self {
                 children: None,
                 text: Some(xml_element.text.clone()),
                 virtual_label,
-            }
+            });
         }
     }
 

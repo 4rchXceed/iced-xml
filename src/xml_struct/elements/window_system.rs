@@ -8,7 +8,7 @@ use iced::{
 // Copy-paste template
 use crate::{
     dom::{
-        events::DomInternalMessageType,
+        events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{CustomElementEvent, EventResponse, QueryResponse},
     },
     parse_utils::parse_pane_axis,
@@ -18,7 +18,9 @@ use crate::{
         element_renderer::{
             ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
         },
-        elements::{element_base::ElementBase, window_system::PaneType::InternalPane},
+        elements::{
+            element_base::ElementBase, library::ElementError, window_system::PaneType::InternalPane,
+        },
         parser::XmlElement,
     },
 };
@@ -98,7 +100,7 @@ impl WindowSystem {
                 data_target = Some(target);
             }
         };
-        let mut ev_res = EventResponse::new(me, String::from("drag"));
+        let mut ev_res = EventResponse::new(me, EventListenerTypes::Drag);
         ev_res.data_str = Some(drag_type);
         ev_res.window_system_data_window = data_window;
         if data_target.is_some() {
@@ -264,13 +266,22 @@ fn transparent_btn_style() -> iced::widget::button::Style {
 }
 
 impl ElementBase for WindowSystem {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        renderer: &mut ElementRenderer,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         // If it supports children, initialize them here with renderer.init_element
         if xml_element.children.len() != 1 {
-            panic!("WindowSystem element must have exactly one child element.");
+            return Err(ElementError::WindowSystemElementMustHaveOneChild(
+                xml_element.clone(),
+            ));
         }
         if xml_element.children[0].tag != "Window" {
-            panic!("WindowSystem element's child must be a Window element.");
+            return Err(ElementError::WindowSystemChildMustBeWindow(
+                xml_element.clone(),
+                xml_element.children[0].clone(),
+            ));
         }
 
         let mut drag_border_size = 5.0;
@@ -312,12 +323,12 @@ impl ElementBase for WindowSystem {
 
         children.insert(first_id, first_child);
 
-        Self {
+        return Ok(Self {
             children_id: children.clone(),
             panes: state.0, // Initialize panes as empty
             focused: state.1,
             drag_border_size: drag_border_size,
-        }
+        });
     }
 
     fn render<'a>(
@@ -366,9 +377,12 @@ impl ElementBase for WindowSystem {
                             ))
                             .style(|_, _| transparent_btn_style());
                         }
-                        let mut ev_res_max = EventResponse::new(self_uid, String::from("maximize"));
-                        let ev_res_restore = EventResponse::new(self_uid, String::from("restore"));
-                        let mut ev_res_close = EventResponse::new(self_uid, String::from("close"));
+                        let mut ev_res_max =
+                            EventResponse::new(self_uid, EventListenerTypes::Maximize);
+                        let ev_res_restore =
+                            EventResponse::new(self_uid, EventListenerTypes::Restore);
+                        let mut ev_res_close =
+                            EventResponse::new(self_uid, EventListenerTypes::Close);
                         ev_res_max.window_system_data_window = Some(pane);
                         ev_res_close.window_system_data_window = Some(pane);
                         btn_max = btn_max.on_press(Message::DomEvent(None, ev_res_max.clone()));
@@ -425,13 +439,13 @@ impl ElementBase for WindowSystem {
             })
             .width(theme.width)
             .on_click(move |p| {
-                let mut res = EventResponse::new(me, String::from("focus"));
+                let mut res = EventResponse::new(me, EventListenerTypes::Focus);
                 res.window_system_data_window = Some(p);
                 Message::DomEvent(None, res)
             })
             .on_drag(move |ev| Message::DomEvent(None, self.preprocess_pane_drag(ev, me)))
             .on_resize(self.drag_border_size, move |ev| {
-                let mut res = EventResponse::new(me, String::from("resize"));
+                let mut res = EventResponse::new(me, EventListenerTypes::Resize);
                 res.window_system_data_split = Some(ev.split);
                 res.data_float = Some(HashableF32::new(ev.ratio));
                 Message::DomEvent(None, res)
@@ -439,10 +453,10 @@ impl ElementBase for WindowSystem {
 
         // Register any events here
         for event in events {
-            match event.event_type.as_str() {
-                "focus" => {
+            match event.event_type {
+                EventListenerTypes::Focus => {
                     pane_grid = pane_grid.on_click(move |pane| {
-                        let mut res = EventResponse::new(me, String::from("focus"));
+                        let mut res = EventResponse::new(me, event.event_type.clone());
                         let internal_pane = self.panes.get(pane).unwrap();
                         let pane_id = match internal_pane {
                             InternalPane(pane_id, _) => pane_id.clone(),
@@ -452,14 +466,14 @@ impl ElementBase for WindowSystem {
                         Message::DomEvent(Some(event.event_uid), res)
                     });
                 }
-                "drag" => {
+                EventListenerTypes::Drag => {
                     pane_grid = pane_grid.on_drag(move |ev| {
                         Message::DomEvent(Some(event.event_uid), self.preprocess_pane_drag(ev, me))
                     })
                 }
-                "resize" => {
+                EventListenerTypes::Resize => {
                     pane_grid = pane_grid.on_resize(self.drag_border_size, move |ev| {
-                        let mut res = EventResponse::new(me, String::from("resize"));
+                        let mut res = EventResponse::new(me, event.event_type.clone());
                         res.window_system_data_split = Some(ev.split);
                         res.data_float = Some(HashableF32::new(ev.ratio));
                         Message::DomEvent(Some(event.event_uid), res)
@@ -573,20 +587,20 @@ impl ElementBase for WindowSystem {
 
     fn event_callback(
         &mut self,
-        event_type: &String,
+        event_type: &EventListenerTypes,
         event_response: &EventResponse,
     ) -> Option<ElementEventResponse> {
-        match event_type.as_str() {
-            "maximize" => {
+        match event_type {
+            EventListenerTypes::Maximize => {
                 self.panes
                     .maximize(event_response.window_system_data_window.unwrap());
                 return Some(ElementEventResponse::success());
             }
-            "restore" => {
+            EventListenerTypes::Restore => {
                 self.panes.restore();
                 return Some(ElementEventResponse::success());
             }
-            "close" => {
+            EventListenerTypes::Close => {
                 let datas_op = self
                     .panes
                     .close(event_response.window_system_data_window.unwrap());
@@ -596,18 +610,18 @@ impl ElementBase for WindowSystem {
                 }
                 return Some(ElementEventResponse::success());
             }
-            "focus" => {
+            EventListenerTypes::Focus => {
                 self.focused = event_response.window_system_data_window.unwrap();
                 return Some(ElementEventResponse::success());
             }
-            "resize" => {
+            EventListenerTypes::Resize => {
                 self.panes.resize(
                     event_response.window_system_data_split.unwrap(),
                     event_response.data_float.as_ref().unwrap().value(),
                 );
                 return Some(ElementEventResponse::success());
             }
-            "drag" => {
+            EventListenerTypes::Drag => {
                 let event_type = event_response.data_str.as_ref().unwrap();
                 match event_type.as_str() {
                     "dropped" => {

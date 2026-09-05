@@ -5,7 +5,7 @@ use iced::{Border, Shadow};
 // Copy-paste template
 use crate::{
     dom::{
-        events::DomInternalMessageType,
+        events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{CustomElementEvent, EventResponse, QueryResponse},
     },
     xml_engine::Message,
@@ -13,7 +13,7 @@ use crate::{
         element_renderer::{
             ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
         },
-        elements::element_base::ElementBase,
+        elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
     },
 };
@@ -39,7 +39,11 @@ pub struct Select {
 }
 
 impl ElementBase for Select {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        _: &mut ElementRenderer,
+        _: i32,
+    ) -> Result<Self, ElementError> {
         // If it supports children, initialize them here with renderer.init_element
         let mut options: Vec<SelectEntry> = Vec::new();
         let mut selected_id: Option<usize> = None;
@@ -73,10 +77,10 @@ impl ElementBase for Select {
                 }
                 options.push(entry);
             } else {
-                panic!(
-                    "Only <Option selected=\"true|false\">text</Option> are allowed to be children of ComboBox, not <{} />",
-                    child.tag
-                );
+                return Err(ElementError::OnlyOptionElementAllowedInComboBox(
+                    xml_element.clone(),
+                    child.clone(),
+                ));
             }
         }
 
@@ -94,11 +98,11 @@ impl ElementBase for Select {
             selected = options.get(selected_id.unwrap());
         }
 
-        Self {
+        return Ok(Self {
             state: iced::widget::combo_box::State::with_selection(options.clone(), selected),
             placeholder: placeholder,
             selected: selected.cloned(),
-        }
+        });
     }
 
     fn render<'a>(
@@ -111,8 +115,8 @@ impl ElementBase for Select {
         let theme = datas.default_theme.clone();
         let mut select_event_uid: Option<i32> = None;
         for event in &events {
-            match event.event_type.as_str() {
-                "selected" => {
+            match event.event_type {
+                EventListenerTypes::Selected => {
                     select_event_uid = Some(event.event_uid);
                 }
                 _ => (),
@@ -125,7 +129,8 @@ impl ElementBase for Select {
                 &self.placeholder,
                 self.selected.as_ref(),
                 move |selected_entry| {
-                    let mut event_response = EventResponse::new(self_uid, "selected".to_string());
+                    let mut event_response =
+                        EventResponse::new(self_uid, EventListenerTypes::Selected);
                     event_response.data_str = Some(selected_entry.id);
                     if select_event_uid.is_some() {
                         return Message::DomEvent(Some(select_event_uid.unwrap()), event_response);
@@ -150,7 +155,7 @@ impl ElementBase for Select {
         if datas.flag_themes.get("input").is_some() {
             let theme = datas.flag_themes.get("input").cloned().unwrap();
             combo_box = combo_box.input_style(move |_, _| iced::widget::text_input::Style {
-                background: theme.background, // TODO: Add support for gradient backgrounds
+                background: theme.background,
                 border: Border {
                     color: theme.border_color,
                     radius: theme.border_radius,
@@ -188,20 +193,20 @@ impl ElementBase for Select {
         }
 
         for event in events {
-            match event.event_type.as_str() {
-                "onclose" => {
+            match event.event_type {
+                EventListenerTypes::OnClose => {
                     combo_box = combo_box.on_close(Message::DomEvent(
                         Some(event.event_uid),
                         EventResponse::new(self_uid, event.event_type.clone()),
                     ));
                 }
-                "onopen" => {
+                EventListenerTypes::OnOpen => {
                     combo_box = combo_box.on_open(Message::DomEvent(
                         Some(event.event_uid),
                         EventResponse::new(self_uid, event.event_type.clone()),
                     ));
                 }
-                "oninput" => {
+                EventListenerTypes::OnInput => {
                     let event_uid = Some(event.event_uid);
                     let event_type = event.event_type.clone();
                     combo_box = combo_box.on_input(move |d| {
@@ -282,11 +287,11 @@ impl ElementBase for Select {
 
     fn event_callback(
         &mut self,
-        event_type: &String,
+        event_type: &EventListenerTypes,
         event_response: &EventResponse,
     ) -> Option<ElementEventResponse> {
-        match event_type.as_str() {
-            "selected" => {
+        match event_type {
+            EventListenerTypes::Selected => {
                 let id_op = event_response.data_str.clone();
                 if id_op.is_some() {
                     let id = id_op.unwrap();
