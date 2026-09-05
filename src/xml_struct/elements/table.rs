@@ -2,14 +2,15 @@ use std::collections::HashMap;
 
 // Copy-paste template
 use crate::{
-    dom::query::QueryResponse,
+    dom::{events::DomInternalMessageType, query_builder::CustomElementEvent::SetTableData},
     xml_engine::Message,
     xml_struct::{
         element_renderer::{
-            ElementExtraData, ElementRenderer, EventListener, RenderChildDatas, RendererEvent,
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+            RenderChildParameters,
         },
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        elements::{element_base::ElementBase, library::ElementError},
+        parser::XmlElement,
     },
 };
 
@@ -19,7 +20,11 @@ pub struct Table {
 }
 
 impl ElementBase for Table {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        renderer: &mut ElementRenderer,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         // If it supports children, initialize them here with renderer.init_element
         let mut columns = HashMap::new();
         for table_column in &xml_element.children {
@@ -29,9 +34,9 @@ impl ElementBase for Table {
                 for child in &table_column.children {
                     if child.tag == "ColumnName" {
                         if child.children.len() != 1 {
-                            panic!(
-                                "<ColumnName> must have only one child element, which will be used as the column name"
-                            );
+                            return Err(ElementError::ColumnNameElementMustHaveOneChild(
+                                child.clone(),
+                            ));
                         }
                         column_name_elem_id = Some(
                             renderer
@@ -39,9 +44,9 @@ impl ElementBase for Table {
                         );
                     } else if child.tag == "ColumnTemplate" {
                         if child.children.len() != 1 {
-                            panic!(
-                                "<ColumnTemplate> must have only one child element, which will be used as the column template"
-                            );
+                            return Err(ElementError::ColumnTemplateElementMustHaveOneChild(
+                                child.clone(),
+                            ));
                         }
                         column_template = Some(
                             renderer
@@ -52,20 +57,25 @@ impl ElementBase for Table {
                 if column_name_elem_id.is_some() && column_template.is_some() {
                     columns.insert(column_name_elem_id.unwrap(), column_template.unwrap());
                 } else {
-                    panic!("TableColumn must have both <ColumnName> and <ColumnTemplate> children");
+                    return Err(ElementError::MissingChildInTableColumn(
+                        table_column.clone(),
+                    ));
                 }
             } else {
-                panic!("Table element can only have <TableColumn> children");
+                return Err(ElementError::TableCanOnlyHaveTableColumnChildren(
+                    xml_element.clone(),
+                    table_column.clone(),
+                ));
             }
         }
         if columns.is_empty() {
-            panic!("Table element must have at least one <TableColumn> child");
+            return Err(ElementError::TableHasNoChildren(xml_element.clone()));
         }
 
-        Self {
+        return Ok(Self {
             columns: columns,
             datas: Vec::new(),
-        }
+        });
     }
 
     fn render<'a>(
@@ -90,9 +100,9 @@ impl ElementBase for Table {
                 iced::widget::table::column(column_name_elem, |ev: HashMap<String, String>| {
                     return renderer.render_element(
                         *column_template_elem_id,
-                        Some(RenderChildDatas {
+                        Some(RenderChildParameters {
                             table_datas: Some(ev.clone()),
-                            ..RenderChildDatas::default()
+                            ..RenderChildParameters::default()
                         }),
                     );
                 })
@@ -114,25 +124,12 @@ impl ElementBase for Table {
         return table.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::EmittedEvent(event_name, datas) => match event_name.as_str() {
-                "set-data" => {
-                    if datas.data_tabledata.is_some() {
-                        self.datas = datas
-                            .data_tabledata
-                            .as_ref()
-                            .unwrap()
-                            .iter()
-                            .map(|v| v.value().clone())
-                            .collect();
-                        return Some((QueryResponse::new(true), vec![], vec![]));
-                    } else {
-                        return None;
-                    }
+            DomInternalMessageType::FireEvent(event) => match event {
+                SetTableData(datas) => {
+                    self.datas = datas.iter().map(|v| v.value().clone()).collect();
+                    return Some(ElementEventResponse::success());
                 }
                 _ => None,
             },

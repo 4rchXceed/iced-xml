@@ -2,13 +2,14 @@ use iced::Border;
 
 // Copy-paste template
 use crate::{
-    dom::query::QueryResponse,
-    rs_utils::HashableF32,
+    dom::{events::DomInternalMessageType, query_builder::QueryResponse},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
+        elements::{element_base::ElementBase, library::ElementError},
+        parser::XmlElement,
     },
 };
 
@@ -20,12 +21,18 @@ pub struct Progress {
 }
 
 impl ElementBase for Progress {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        _: &mut ElementRenderer,
+        _: i32,
+    ) -> Result<Self, ElementError> {
         let min_op = xml_element.attributes.get("min");
         let max_op = xml_element.attributes.get("max");
         let mut vertical = false;
         if min_op.is_none() || max_op.is_none() {
-            panic!("Progress element must have 'min' and 'max' attributes");
+            return Err(ElementError::ProgressElementMustHaveMinMaxAttributes(
+                xml_element.clone(),
+            ));
         }
         let progress = xml_element
             .attributes
@@ -38,12 +45,12 @@ impl ElementBase for Progress {
         let min = min_op.unwrap().parse::<f32>().unwrap_or(0.0);
         let max = max_op.unwrap().parse::<f32>().unwrap_or(100.0);
 
-        Self {
+        return Ok(Self {
             progress,
             min,
             max,
             vertical,
-        }
+        });
     }
 
     fn render<'a>(
@@ -80,40 +87,33 @@ impl ElementBase for Progress {
         return progress.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let mut qr = QueryResponse::new(true);
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::PropertyChange(name, new_val) => match name.as_str() {
+            DomInternalMessageType::PropertyChange(name, new_val) => match name.as_str() {
                 "value" => {
                     self.progress = new_val.parse::<f32>().unwrap_or(self.progress);
-                    Some((qr, Vec::new(), Vec::new()))
+                    Some(ElementEventResponse::success())
                 }
                 "min" => {
                     self.min = new_val.parse::<f32>().unwrap_or(self.min);
-                    Some((qr, Vec::new(), Vec::new()))
+                    Some(ElementEventResponse::success())
                 }
                 "max" => {
                     self.max = new_val.parse::<f32>().unwrap_or(self.max);
-                    Some((qr, Vec::new(), Vec::new()))
+                    Some(ElementEventResponse::success())
                 }
                 _ => None,
             },
-            XmlChangeEvent::GetProperty(name) => match name.as_str() {
-                "value" => {
-                    qr.data_float = Some(HashableF32::new(self.progress));
-                    Some((qr, Vec::new(), Vec::new()))
-                }
-                "min" => {
-                    qr.data_float = Some(HashableF32::new(self.min));
-                    Some((qr, Vec::new(), Vec::new()))
-                }
-                "max" => {
-                    qr.data_float = Some(HashableF32::new(self.max));
-                    Some((qr, Vec::new(), Vec::new()))
-                }
+            DomInternalMessageType::GetProperty(name) => match name.as_str() {
+                "value" => Some(ElementEventResponse::new(
+                    QueryResponse::success().with_data_float(self.progress),
+                )),
+                "min" => Some(ElementEventResponse::new(
+                    QueryResponse::success().with_data_float(self.min),
+                )),
+                "max" => Some(ElementEventResponse::new(
+                    QueryResponse::success().with_data_float(self.max),
+                )),
                 _ => None,
             },
             _ => None,

@@ -1,12 +1,14 @@
 use iced::widget::text;
 
 use crate::{
-    dom::query::QueryResponse,
+    dom::{events::DomInternalMessageType, query_builder::QueryResponse},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
+        elements::{element_base::ElementBase, library::ElementError},
+        parser::XmlElement,
     },
 };
 
@@ -21,13 +23,17 @@ impl Label {
 }
 
 impl ElementBase for Label {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        _: &mut ElementRenderer,
+        _: i32,
+    ) -> Result<Self, ElementError> {
         if xml_element.children.len() > 0 {
             panic!("<Label> elements cannot have children");
         }
-        Self {
+        return Ok(Self {
             text: xml_element.text.clone(),
-        }
+        });
     }
 
     fn render<'a>(
@@ -66,27 +72,22 @@ impl ElementBase for Label {
         return text_element.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let mut query_response = QueryResponse::new(true);
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::PropertyChange(property, new_val) => {
+            DomInternalMessageType::PropertyChange(property, new_val) => {
                 return match property.as_str() {
                     "text" => {
                         self.text = new_val.clone();
-                        Some((query_response, Vec::new(), Vec::new()))
+                        Some(ElementEventResponse::success())
                     }
                     _ => None,
                 };
             }
-            XmlChangeEvent::GetProperty(property) => {
+            DomInternalMessageType::GetProperty(property) => {
                 return match property.as_str() {
-                    "text" => {
-                        query_response.data_str = Some(self.text.clone());
-                        Some((query_response, Vec::new(), Vec::new()))
-                    }
+                    "text" => Some(ElementEventResponse::new(
+                        QueryResponse::success().with_data_str(self.text.clone()),
+                    )),
                     _ => None,
                 };
             }

@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 iced-xml = { path = "../../", features = ["css-watcher"] }
+julep-iced-test = "0.6.2"

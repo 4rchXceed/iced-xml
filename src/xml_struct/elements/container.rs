@@ -2,12 +2,11 @@ use iced::{Border, Shadow};
 
 // Copy-paste template
 use crate::{
-    dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+        elements::{element_base::ElementBase, library::ElementError},
+        parser::XmlElement,
     },
 };
 
@@ -16,17 +15,20 @@ pub struct Container {
 }
 
 impl ElementBase for Container {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        renderer: &mut ElementRenderer,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         if xml_element.children.len() != 1 {
-            panic!(
-                "Container MUST have one and only one child (currently has {})",
-                xml_element.children.len()
-            );
+            return Err(ElementError::ContainerElementNotOneChildren(
+                xml_element.clone(),
+            ));
         }
 
-        Self {
+        return Ok(Self {
             child: renderer.init_element_from_xml(&xml_element.children[0], self_uid),
-        }
+        });
     }
 
     fn render<'a>(
@@ -76,14 +78,5 @@ impl ElementBase for Container {
             container = container.center_y(theme.height);
         }
         return container.into();
-    }
-
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        match event {
-            _ => None,
-        }
     }
 }

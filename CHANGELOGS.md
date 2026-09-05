@@ -224,3 +224,41 @@ Pretty big commit here.
 
 ### Commit msg: "Added component system, and updated a lot the code to support it"
 ### Other: -m "+ Added 'component' system, allows for embedding a window as a element in another window. The component's engine is 100% independent from the parent engine, and can have it's own state, events, and elements." -m "~ Updated a lot the code to support the new component system" -m "+ Added a new 'DEFAULT_ENGINE_SETTINGS' variable that needs to be passed to the engine." -m "+ Added 4 new functions in window_manager! macro: render_component, update_component, subscribe_component, on_close_component" -m "+ Added add_component() and remove_component() methods to the WindowTemplate struct, allows for adding/removing components to/from a window." -m "~ Removed Clone dependency from the app state, now instead of passing AppState, we pass a function that returns a new AppState." -m "-- Note on poor code quality: The window_system! macro is a mess, I know. I will *try* to 100% remove it, but for now I'll keep it until V0.1.0"
+
+## Last commit: a2ebb20937073391971681fa75459ca2f7581151
++ Code rewrite
+
+### Commit msg: "Code rewrite (3): made another part of the code rewrite"
+
+## Last commit. 79b51f49e2cea0664f702156f6aab1ae6c412d97
++ Code rewrite ended
+- Main changes:
+  + Commented every function and struct (except for elements, as these are repetitive)
+  + Added a SelectorType for CSS pre-process selectors, instead of using a String
+  + get for CssReader instead of pub fields
+  + Moves parts of the DOM to a new file, making it more readable
+  - Removed TODO, and made everything with DomInternalMessageType/DomMessage
+  - Removed every call to panic!(), replace with either Result, or a fallback (with a log message)
+  + Switched from String to CustomElementEvent for the library user-called events
+  + Switched from String to EventListenerTypes for the user-made events (add_event_listener)
+  + Created a new Error enum for the elements: ElementError
+  + I probably forgot some other changes, but these are the main ones.
+
+TODO:
+- Better logging system
+- Unittests
+- Performance tests
+- Documentation for the library user
+
+### Commit msg: "Code rewrite (4): finished the code rewrite"
+
+## Last commit: b75ed3e283703e165d1b26dddc83463b4e5b8e2f
++ Unittests for every functions in parse_utils.rs
+
+## Last commit: b75ed3e283703e165d1b26dddc83463b4e5b8e2f
++ Added comments where I forgot to add them (in xml_struct)
++ Moved the big hot reload code to a separate file (hot_reload.rs)
++ Added unittests for the parse_utils.rs file
+
+TODO:
+- Unittests with iced_test

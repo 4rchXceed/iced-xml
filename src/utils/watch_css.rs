@@ -1,6 +1,5 @@
 use notify::RecommendedWatcher;
 use notify::{Event, Result, Watcher};
-use std::panic;
 use std::{path::Path, sync::mpsc};
 
 use crate::window_wrapper::WindowTemplate;
@@ -29,7 +28,8 @@ pub fn watch_css_file<T: WindowTemplate<T, AppState> + 'static, AppState: 'stati
 
     objects.qb.set_interval(interval).with_callback(|me, _, _| {
         if me.get_objects().css_watcher_rx.is_none() {
-            panic!("css_watcher_rx is None. Make sure to correctly implement set_css_watcher_rx in your AppTemplate implementation.");
+            println!("css_watcher_rx is None. Make sure to correctly implement set_css_watcher_rx in your AppTemplate implementation.");
+            return;
         }
         let ev = me.get_objects().css_watcher_rx.unwrap().try_recv();
         if let Ok(ev) = ev {

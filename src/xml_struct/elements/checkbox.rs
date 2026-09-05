@@ -1,11 +1,16 @@
 // Copy-paste template
 use crate::{
-    dom::query::{EventResponse, QueryResponse},
+    dom::{
+        events::{DomInternalMessageType, EventListenerTypes},
+        query_builder::{EventResponse, QueryResponse},
+    },
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
+        elements::{element_base::ElementBase, library::ElementError},
+        parser::XmlElement,
     },
 };
 
@@ -17,7 +22,11 @@ pub struct Checkbox {
 }
 
 impl ElementBase for Checkbox {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        _: &mut ElementRenderer,
+        _: i32,
+    ) -> Result<Self, ElementError> {
         // If it supports children, initialize them here with renderer.init_element
         // let mut children: Vec<i32> = Vec::new();
         // for child in &xml_element.children {
@@ -29,10 +38,10 @@ impl ElementBase for Checkbox {
         if !text.is_empty() {
             maybe_text = Some(text);
         }
-        Self {
+        return Ok(Self {
             checked: checked,
             text: maybe_text,
-        }
+        });
     }
 
     fn render<'a>(
@@ -93,14 +102,14 @@ impl ElementBase for Checkbox {
         // Register any events here
         let me = self_uid.clone();
         checkbox = checkbox.on_toggle(move |_| {
-            return Message::DomEvent(-1, EventResponse::new(me, "checked".to_string()));
+            return Message::DomEvent(None, EventResponse::new(me, EventListenerTypes::Checked));
         });
         for event in events {
-            match event.event_type.as_str() {
-                "checked" => {
+            match event.event_type {
+                EventListenerTypes::Checked => {
                     checkbox = checkbox.on_toggle(move |_| {
                         return Message::DomEvent(
-                            event.event_uid,
+                            Some(event.event_uid),
                             EventResponse::new(me, event.event_type.clone()),
                         );
                     });
@@ -112,38 +121,41 @@ impl ElementBase for Checkbox {
         return checkbox.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::PropertyChange(key, newval) => {
+            DomInternalMessageType::PropertyChange(key, newval) => {
                 if key == "text" {
                     self.text = Some(newval.clone());
-                    return Some((QueryResponse::new(true), Vec::new(), Vec::new()));
+                    return Some(ElementEventResponse::success());
                 } else if key == "checked" {
                     self.checked = newval == "true";
-                    return Some((QueryResponse::new(true), Vec::new(), Vec::new()));
+                    return Some(ElementEventResponse::success());
                 } else {
                     return None;
                 }
             }
-            XmlChangeEvent::GetProperty(key) => {
+            DomInternalMessageType::GetProperty(key) => {
                 if key == "checked" {
-                    let mut qr = QueryResponse::new(true);
-                    qr.data_bool = Some(self.checked);
-                    return Some((qr, Vec::new(), Vec::new()));
+                    return Some(ElementEventResponse::new(
+                        QueryResponse::success().with_data_bool(self.checked),
+                    ));
                 } else {
                     return None;
                 }
             }
-            XmlChangeEvent::EventFired(event_type, _) => {
-                if event_type == "checked" {
-                    self.checked = !self.checked;
-                    return Some((QueryResponse::new(true), Vec::new(), Vec::new()));
-                } else {
-                    return None;
-                }
+            _ => None,
+        }
+    }
+
+    fn event_callback(
+        &mut self,
+        event_type: &EventListenerTypes,
+        _: &EventResponse,
+    ) -> Option<ElementEventResponse> {
+        match event_type {
+            EventListenerTypes::Checked => {
+                self.checked = !self.checked;
+                return Some(ElementEventResponse::success());
             }
             _ => None,
         }

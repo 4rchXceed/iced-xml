@@ -15,6 +15,7 @@ pub type WindowSettings = window::Settings;
 pub fn open_window(settings: WindowSettings) -> (WindowId, Task<WindowId>) {
     return window::open(settings);
 }
+
 pub fn close_event_messages() -> Subscription<Message> {
     return window::close_events().map(|id| Message::WindowClosed(id));
 }
@@ -27,6 +28,7 @@ pub fn close_window(id: WindowId) -> Task<Message> {
     return window::close(id);
 }
 
+/// ComponentFunctions is a struct that holds the functions for rendering, updating, subscribing and handling window close events
 #[derive(Debug, Clone)]
 pub struct ComponentFunctions {
     pub render: fn(&Box<dyn Any>) -> IcedElement<'_>,
@@ -35,6 +37,7 @@ pub struct ComponentFunctions {
     pub on_close: fn(&mut Box<dyn Any>, &mut dyn Any),
 }
 
+/// Run the application with the given boot, update, view and subscribe functions
 pub fn run_app_internal<State: 'static>(
     boot: impl application::BootFn<State, Message> + 'static,
     update: impl application::UpdateFn<State, Message> + 'static,
@@ -46,10 +49,12 @@ pub fn run_app_internal<State: 'static>(
         .run();
 }
 
+/// Create a text element with the given text
 pub fn text(text: &str) -> IcedElement<'_> {
     return iced::widget::text(text).into();
 }
 
+/// App is a wrapper for the app's State with a few utility functions
 pub struct App<State> {
     pub state: State,
     window_params: Vec<Box<dyn Any>>, // This is used to store the creation parameters for each window
@@ -57,6 +62,7 @@ pub struct App<State> {
 }
 
 impl<State> App<State> {
+    /// Create a new App with the given state
     pub fn new(state: State) -> Self {
         return Self {
             state: state,
@@ -65,14 +71,17 @@ impl<State> App<State> {
         };
     }
 
+    /// Opens a new window with the specified parameters.
     pub fn open_window(&mut self, params: Box<dyn Any>) {
         self.window_params.push(params);
     }
 
+    /// Closes the window with the specified ID.
     pub fn close_window(&mut self, id: WindowId) {
         self.window_closure_queue.push(id);
     }
 
+    /// Gets all of the window params
     pub fn get_window_params(&mut self) -> Vec<Box<dyn Any>> {
         let mut window_params = Vec::new();
         for params in self.window_params.drain(..) {
@@ -94,6 +103,10 @@ impl<State> App<State> {
     }
 }
 
+/// The window_manager macro is the mess of code that generates the nessary structure to manage multiple windows.
+/// !! This will be removed in the V0.1.0 !!
+///
+/// TODO: Doc + examples
 #[macro_export]
 macro_rules! window_manager {
     (
@@ -102,7 +115,7 @@ macro_rules! window_manager {
             $state:ty;
             $window_creation_params:ty
         ) => {
-        use iced_xml::dom::query::EventResponse;
+        use iced_xml::dom::query_builder::EventResponse;
         use iced_xml::app_manager::{
             IcedSubscription,
             IcedElement,
@@ -133,7 +146,7 @@ macro_rules! window_manager {
 
         pub fn render_component(window: &Box<dyn Any>) -> IcedElement<'_> {
             if !window.is::<$windows>() {
-                panic!("Invalid window type. When you call add_component(i32, Box<dyn Any>) set the second argument to the Windows *ENUM* variant, not the struct itself. Example: add_component(1, Windows::MyWindow(...))");
+                return text("Invalid window type. When you call add_component(i32, Box<dyn Any>) set the second argument to the Windows *ENUM* variant, not the struct itself. Example: add_component(1, Windows::MyWindow(...))").into();
             }
             let window = window.downcast_ref::<$windows>().unwrap();
             return match window {
@@ -145,10 +158,12 @@ macro_rules! window_manager {
 
         pub fn update_component(window: &mut Box<dyn Any>, message: Message, state: &mut dyn Any) {
             if !window.is::<$windows>() {
-                panic!("Invalid window type");
+                println!("Invalid window type");
+                return;
             }
             if !state.is::<App<$state>>() {
-                panic!("Invalid state type");
+                println!("Invalid state type");
+                return;
             }
 
             let window = window.downcast_mut::<$windows>().unwrap();
@@ -162,7 +177,8 @@ macro_rules! window_manager {
 
         pub fn subscribe_component(window: &Box<dyn Any>) -> Vec<IcedSubscription> {
             if !window.is::<$windows>() {
-                panic!("Invalid window type");
+                println!("Invalid window type");
+                return Vec::new();
             }
             let window = window.downcast_ref::<$windows>().unwrap();
             return match window {
@@ -174,10 +190,12 @@ macro_rules! window_manager {
 
         pub fn on_close_component(window: &mut Box<dyn Any>, state: &mut dyn Any) {
             if !window.is::<$windows>() {
-                panic!("Invalid window type");
+                println!("Invalid window type");
+                return;
             }
             if !state.is::<App<$state>>() {
-                panic!("Invalid state type");
+                println!("Invalid state type");
+                return;
             }
             let window = window.downcast_mut::<$windows>().unwrap();
             let state = state.downcast_mut::<App<$state>>().unwrap();
@@ -223,14 +241,15 @@ macro_rules! window_manager {
                 let mut tasks = Vec::new();
                 for params in self.app_state.get_window_params() {
                     if !params.is::<$window_creation_params>() {
-                        panic!("Invalid window creation params type");
+                        println!("Invalid window creation params type");
+                    } else {
+                        let params = *params.downcast::<$window_creation_params>().unwrap();
+                        let params_id = get_unique_id();
+                        self.creation_params.insert(params_id, params);
+                        tasks.push(IcedTask::perform(async move { params_id }, |params_id| {
+                            Message::OpenWindow(params_id)
+                        }));
                     }
-                    let params = *params.downcast::<$window_creation_params>().unwrap();
-                    let params_id = get_unique_id();
-                    self.creation_params.insert(params_id, params);
-                    tasks.push(IcedTask::perform(async move { params_id }, |params_id| {
-                        Message::OpenWindow(params_id)
-                    }));
                 }
                 for id in self.app_state.get_window_closure_queue() {
                     tasks.push(close_window(id));
@@ -238,11 +257,12 @@ macro_rules! window_manager {
                 let msg_task = match message {
                     Message::WindowOpened(id, params_id) => {
                         if !self.creation_params.contains_key(&params_id) {
-                            panic!("Window creation params not found for id: {}", params_id);
+                            println!("Window creation params not found for id: {}", params_id);
+                        } else {
+                            let window =
+                                create_window(self.creation_params.get(&params_id).unwrap().clone(), &mut self.app_state, id);
+                            self.windows.insert(id, window);
                         }
-                        let window =
-                            create_window(self.creation_params.get(&params_id).unwrap().clone(), &mut self.app_state, id);
-                        self.windows.insert(id, window);
                         IcedTask::none()
                     }
                     Message::WindowClosed(id) => {
@@ -263,10 +283,12 @@ macro_rules! window_manager {
                     }
                     Message::OpenWindow(params_id) => {
                         if !self.creation_params.contains_key(&params_id) {
-                            panic!("Window creation params not found for id: {}", params_id);
+                            println!("Window creation params not found for id: {}", params_id);
+                            IcedTask::none()
+                        } else {
+                            let (_, open) = open_window(WindowSettings::default());
+                            open.map(move |id| Message::WindowOpened(id, params_id))
                         }
-                        let (_, open) = open_window(WindowSettings::default());
-                        open.map(move |id| Message::WindowOpened(id, params_id))
                     }
                     _ => {
                         for (_, window) in self.windows.iter_mut() {

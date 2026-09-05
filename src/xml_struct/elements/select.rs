@@ -4,12 +4,17 @@ use iced::{Border, Shadow};
 
 // Copy-paste template
 use crate::{
-    dom::query::{EventResponse, QueryResponse},
+    dom::{
+        events::{DomInternalMessageType, EventListenerTypes},
+        query_builder::{CustomElementEvent, EventResponse, QueryResponse},
+    },
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
+        elements::{element_base::ElementBase, library::ElementError},
+        parser::XmlElement,
     },
 };
 
@@ -34,7 +39,11 @@ pub struct Select {
 }
 
 impl ElementBase for Select {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        _: &mut ElementRenderer,
+        _: i32,
+    ) -> Result<Self, ElementError> {
         // If it supports children, initialize them here with renderer.init_element
         let mut options: Vec<SelectEntry> = Vec::new();
         let mut selected_id: Option<usize> = None;
@@ -68,10 +77,10 @@ impl ElementBase for Select {
                 }
                 options.push(entry);
             } else {
-                panic!(
-                    "Only <Option selected=\"true|false\">text</Option> are allowed to be children of ComboBox, not <{} />",
-                    child.tag
-                );
+                return Err(ElementError::OnlyOptionElementAllowedInComboBox(
+                    xml_element.clone(),
+                    child.clone(),
+                ));
             }
         }
 
@@ -89,11 +98,11 @@ impl ElementBase for Select {
             selected = options.get(selected_id.unwrap());
         }
 
-        Self {
+        return Ok(Self {
             state: iced::widget::combo_box::State::with_selection(options.clone(), selected),
             placeholder: placeholder,
             selected: selected.cloned(),
-        }
+        });
     }
 
     fn render<'a>(
@@ -106,8 +115,8 @@ impl ElementBase for Select {
         let theme = datas.default_theme.clone();
         let mut select_event_uid: Option<i32> = None;
         for event in &events {
-            match event.event_type.as_str() {
-                "selected" => {
+            match event.event_type {
+                EventListenerTypes::Selected => {
                     select_event_uid = Some(event.event_uid);
                 }
                 _ => (),
@@ -120,12 +129,13 @@ impl ElementBase for Select {
                 &self.placeholder,
                 self.selected.as_ref(),
                 move |selected_entry| {
-                    let mut event_response = EventResponse::new(self_uid, "selected".to_string());
+                    let mut event_response =
+                        EventResponse::new(self_uid, EventListenerTypes::Selected);
                     event_response.data_str = Some(selected_entry.id);
                     if select_event_uid.is_some() {
-                        return Message::DomEvent(select_event_uid.unwrap(), event_response);
+                        return Message::DomEvent(Some(select_event_uid.unwrap()), event_response);
                     } else {
-                        return Message::DomEvent(-1, event_response);
+                        return Message::DomEvent(None, event_response);
                     }
                 },
             );
@@ -145,7 +155,7 @@ impl ElementBase for Select {
         if datas.flag_themes.get("input").is_some() {
             let theme = datas.flag_themes.get("input").cloned().unwrap();
             combo_box = combo_box.input_style(move |_, _| iced::widget::text_input::Style {
-                background: theme.background, // TODO: Add support for gradient backgrounds
+                background: theme.background,
                 border: Border {
                     color: theme.border_color,
                     radius: theme.border_radius,
@@ -183,21 +193,21 @@ impl ElementBase for Select {
         }
 
         for event in events {
-            match event.event_type.as_str() {
-                "onclose" => {
+            match event.event_type {
+                EventListenerTypes::OnClose => {
                     combo_box = combo_box.on_close(Message::DomEvent(
-                        event.event_uid,
+                        Some(event.event_uid),
                         EventResponse::new(self_uid, event.event_type.clone()),
                     ));
                 }
-                "onopen" => {
+                EventListenerTypes::OnOpen => {
                     combo_box = combo_box.on_open(Message::DomEvent(
-                        event.event_uid,
+                        Some(event.event_uid),
                         EventResponse::new(self_uid, event.event_type.clone()),
                     ));
                 }
-                "oninput" => {
-                    let event_uid = event.event_uid;
+                EventListenerTypes::OnInput => {
+                    let event_uid = Some(event.event_uid);
                     let event_type = event.event_type.clone();
                     combo_box = combo_box.on_input(move |d| {
                         let mut event_response = EventResponse::new(self_uid, event_type.clone());
@@ -225,30 +235,72 @@ impl ElementBase for Select {
         return combo_box.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            // Process PropertyChange / GetProperty / Custom events
-            // The second parameter is a list of element IDs to forward the event to
-            // For example, if you want to forward the event to your "virtual label element", so it changes text,
-            // you would use `Some(..., vec![virtual_text])`
-            XmlChangeEvent::EventFired(event_name, response) => {
-                if event_name == "selected" {
-                    let id_op = response.data_str.clone();
-                    if id_op.is_some() {
-                        let id = id_op.unwrap();
-                        let correct_entry =
-                            self.state.options().iter().find(|entry| entry.id == id);
-                        if correct_entry.is_some() {
-                            self.selected = Some(correct_entry.unwrap().clone());
-                        }
-                    }
-                    None
-                } else {
-                    None
+            DomInternalMessageType::PropertyChange(key, value) => match key.as_str() {
+                "placeholder" => {
+                    self.placeholder = value.clone();
+                    return Some(ElementEventResponse::success());
                 }
+                _ => None,
+            },
+            DomInternalMessageType::GetProperty(key) => match key.as_str() {
+                "placeholder" => {
+                    return Some(ElementEventResponse::new(
+                        QueryResponse::success().with_data_str(self.placeholder.clone()),
+                    ));
+                }
+                _ => None,
+            },
+            DomInternalMessageType::FireEvent(event) => match event {
+                CustomElementEvent::AddSelectOption(key, value) => {
+                    let entry = SelectEntry {
+                        text: value.clone(),
+                        id: key.clone(),
+                    };
+                    self.state.push(entry);
+                    return Some(ElementEventResponse::success());
+                }
+                // We unfortunately cannot remove an option, so we need to recreate the state with the remaining options
+                CustomElementEvent::RemoveSelectOption(key) => {
+                    let options = self.state.options();
+                    let new_options: Vec<SelectEntry> = options
+                        .iter()
+                        .filter(|entry| entry.id != *key)
+                        .cloned()
+                        .collect();
+                    // If the selected option is the one being removed, we need to clear the selection
+                    if self.selected.is_some() && self.selected.as_ref().unwrap().id == *key {
+                        self.selected = None;
+                    }
+                    self.state = iced::widget::combo_box::State::with_selection(
+                        new_options,
+                        self.selected.as_ref(),
+                    );
+                    return Some(ElementEventResponse::success());
+                }
+                _ => None,
+            },
+            _ => None,
+        }
+    }
+
+    fn event_callback(
+        &mut self,
+        event_type: &EventListenerTypes,
+        event_response: &EventResponse,
+    ) -> Option<ElementEventResponse> {
+        match event_type {
+            EventListenerTypes::Selected => {
+                let id_op = event_response.data_str.clone();
+                if id_op.is_some() {
+                    let id = id_op.unwrap();
+                    let correct_entry = self.state.options().iter().find(|entry| entry.id == id);
+                    if correct_entry.is_some() {
+                        self.selected = Some(correct_entry.unwrap().clone());
+                    }
+                }
+                None
             }
             _ => None,
         }

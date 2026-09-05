@@ -1,19 +1,18 @@
 // Copy-paste template
 use crate::{
-    dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+        elements::{element_base::ElementBase, library::ElementError},
+        parser::XmlElement,
     },
 };
 
 pub struct Void {}
 
 impl ElementBase for Void {
-    fn new(_: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
-        Self {}
+    fn new(_: &XmlElement, _: &mut ElementRenderer, _: i32) -> Result<Self, ElementError> {
+        return Ok(Self {});
     }
 
     fn render<'a>(
@@ -24,12 +23,5 @@ impl ElementBase for Void {
         _: i32,
     ) -> iced::Element<'a, Message> {
         return iced::widget::space().into();
-    }
-
-    fn process_event(
-        &mut self,
-        _: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        return None;
     }
 }

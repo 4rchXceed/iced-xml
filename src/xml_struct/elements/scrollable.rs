@@ -2,13 +2,18 @@ use iced::widget::scrollable::AutoScroll;
 
 // Copy-paste template
 use crate::{
-    dom::query::{EventResponse, QueryResponse},
+    dom::{
+        events::{DomInternalMessageType, EventListenerTypes},
+        query_builder::{EventResponse, QueryResponse},
+    },
     rs_utils::{HashableF32, ScrollState},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
+        elements::{element_base::ElementBase, library::ElementError},
+        parser::XmlElement,
     },
 };
 
@@ -18,22 +23,25 @@ pub struct Scroll {
 }
 
 impl ElementBase for Scroll {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        renderer: &mut ElementRenderer,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         if xml_element.children.len() != 1 {
-            panic!(
-                "Scrollable MUST have one and only one child (currently has {})",
-                xml_element.children.len()
-            );
+            return Err(ElementError::ScrollableElementMustHaveOneChild(
+                xml_element.clone(),
+            ));
         }
         let mut is_horizontal = false;
         if xml_element.attributes.get("horizontal").is_some() {
             is_horizontal = true;
         }
 
-        Self {
+        return Ok(Self {
             child: renderer.init_element_from_xml(&xml_element.children[0], self_uid),
             is_horizontal,
-        }
+        });
     }
 
     fn render<'a>(
@@ -150,8 +158,8 @@ impl ElementBase for Scroll {
         // We don't need to change the state of the object when the event is triggered, so we can only create the event when the code is using the event.
 
         for event in events {
-            match event.event_type.as_str() {
-                "scroll" => {
+            match event.event_type {
+                EventListenerTypes::Scroll => {
                     scrollable = scrollable.on_scroll(move |v| {
                         let scroll_state = ScrollState {
                             scroll_height: HashableF32::new(v.bounds().height),
@@ -159,9 +167,9 @@ impl ElementBase for Scroll {
                             scroll_left: HashableF32::new(v.relative_offset().x * v.bounds().width),
                             scroll_top: HashableF32::new(v.relative_offset().y * v.bounds().height),
                         };
-                        let mut ev_response = EventResponse::new(me, "scroll".to_string());
+                        let mut ev_response = EventResponse::new(me, event.event_type.clone());
                         ev_response.scrollable_scroll_state = Some(scroll_state);
-                        return Message::DomEvent(event.event_uid, ev_response);
+                        return Message::DomEvent(Some(event.event_uid), ev_response);
                     });
                 }
                 _ => (),
@@ -171,23 +179,20 @@ impl ElementBase for Scroll {
         return scrollable.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let mut query_response = QueryResponse::new(true);
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::PropertyChange(key, value) => match key.as_str() {
+            DomInternalMessageType::PropertyChange(key, value) => match key.as_str() {
                 "horizontal" => {
                     self.is_horizontal = value == "true";
-                    return Some((QueryResponse::new(true), vec![], vec![]));
+                    return Some(ElementEventResponse::success());
                 }
                 _ => None,
             },
-            XmlChangeEvent::GetProperty(key) => {
+            DomInternalMessageType::GetProperty(key) => {
                 if key == "horizontal" {
-                    query_response.data_bool = Some(self.is_horizontal);
-                    return Some((query_response, vec![], vec![]));
+                    return Some(ElementEventResponse::new(
+                        QueryResponse::success().with_data_bool(self.is_horizontal),
+                    ));
                 }
                 None
             }

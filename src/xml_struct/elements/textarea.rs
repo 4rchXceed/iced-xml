@@ -2,20 +2,25 @@ use iced::{Point, widget::text_editor::Motion::*};
 
 // Copy-paste template
 use crate::{
-    dom::query::{EventResponse, QueryResponse},
-    rs_utils::{HashableF32, HashableTextareaEdit, VectorXY},
+    dom::{
+        events::{DomInternalMessageType, EventListenerTypes},
+        query_builder::{CustomElementEvent, EventResponse, QueryResponse},
+    },
+    rs_utils::{HashableF32, HashableTextareaEdit, Vector2},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
+        elements::{element_base::ElementBase, library::ElementError},
+        parser::XmlElement,
     },
 };
 
 #[derive(Debug, Clone, Hash)]
 pub enum TextareaEvent {
-    Click(VectorXY),
-    Drag(VectorXY),
+    Click(Vector2),
+    Drag(Vector2),
     Input((HashableTextareaEdit, String)),
     CursorMove(String),
     Scroll(i32),
@@ -97,13 +102,11 @@ fn generate_action(
     content: &iced::widget::text_editor::Content,
 ) -> TextareaEvent {
     return match action {
-        iced::widget::text_editor::Action::Click(Point { x, y }) => {
-            TextareaEvent::Click(VectorXY {
-                x: HashableF32::new(x),
-                y: HashableF32::new(y),
-            })
-        }
-        iced::widget::text_editor::Action::Drag(Point { x, y }) => TextareaEvent::Drag(VectorXY {
+        iced::widget::text_editor::Action::Click(Point { x, y }) => TextareaEvent::Click(Vector2 {
+            x: HashableF32::new(x),
+            y: HashableF32::new(y),
+        }),
+        iced::widget::text_editor::Action::Drag(Point { x, y }) => TextareaEvent::Drag(Vector2 {
             x: HashableF32::new(x),
             y: HashableF32::new(y),
         }),
@@ -124,7 +127,11 @@ fn generate_action(
 }
 
 impl ElementBase for Textarea {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        _: &mut ElementRenderer,
+        _: i32,
+    ) -> Result<Self, ElementError> {
         let content = iced::widget::text_editor::Content::with_text(&xml_element.text);
         let mut placeholder = String::new();
 
@@ -132,10 +139,10 @@ impl ElementBase for Textarea {
             placeholder = xml_element.attributes["placeholder"].clone();
         }
 
-        Self {
+        return Ok(Self {
             content: content,
             placeholder: placeholder,
-        }
+        });
     }
 
     fn render<'a>(
@@ -179,18 +186,21 @@ impl ElementBase for Textarea {
         // TODO (well maybe): Key mapping
 
         // Events
-        let mut event_uid = -1;
+        let mut event_uid = None;
 
         for event in events {
-            if event.event_type == "textarea_event" {
-                event_uid = event.event_uid;
-                break;
+            match event.event_type {
+                EventListenerTypes::TextareaEvent => {
+                    event_uid = Some(event.event_uid);
+                    break;
+                }
+                _ => (),
             }
         }
 
         let me = self_uid;
         textarea = textarea.on_action(move |action| {
-            let mut ev_response = EventResponse::new(me, String::from("textarea_event"));
+            let mut ev_response = EventResponse::new(me, EventListenerTypes::TextareaEvent);
             ev_response.textarea_event = Some(generate_action(action, &self.content));
             return Message::DomEvent(event_uid, ev_response);
         });
@@ -198,83 +208,89 @@ impl ElementBase for Textarea {
         return textarea.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let mut query_response = QueryResponse::new(true);
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::EmittedEvent(name, dom_event) => match name.as_str() {
-                "textarea_event" => {
-                    handle_event(
-                        &mut self.content,
-                        dom_event.data_textarea_event.as_ref().unwrap(),
-                    );
-                    return Some((query_response, vec![], vec![]));
+            DomInternalMessageType::FireEvent(custom_event) => match custom_event {
+                CustomElementEvent::TextareaEvent(textarea_event) => {
+                    handle_event(&mut self.content, textarea_event);
+                    return Some(ElementEventResponse::success());
                 }
-                "move_cursor" => {
-                    if dom_event.data_vector.is_some() {
-                        let pos = dom_event.data_vector.as_ref().unwrap();
-                        self.content.move_to(iced::widget::text_editor::Cursor {
-                            position: iced::widget::text_editor::Position {
-                                line: pos.x.value() as usize,
-                                column: pos.y.value() as usize,
-                            },
-                            selection: None,
-                        });
-                        return Some((query_response, vec![], vec![]));
+                CustomElementEvent::MoveCursor(to) => {
+                    self.content.move_to(iced::widget::text_editor::Cursor {
+                        position: iced::widget::text_editor::Position {
+                            line: to.x.value() as usize,
+                            column: to.y.value() as usize,
+                        },
+                        selection: None,
+                    });
+                    return Some(ElementEventResponse::success());
+                }
+                _ => None,
+            },
+            DomInternalMessageType::PropertyChange(name, new_val) => match name.as_str() {
+                "placeholder" => {
+                    self.placeholder = new_val.clone();
+                    return Some(ElementEventResponse::success());
+                }
+                "value" => {
+                    self.content = iced::widget::text_editor::Content::with_text(new_val);
+                    return Some(ElementEventResponse::success());
+                }
+                _ => None,
+            },
+            DomInternalMessageType::GetProperty(name) => match name.as_str() {
+                "placeholder" => {
+                    return Some(ElementEventResponse::new(
+                        QueryResponse::success().with_data_str(self.placeholder.clone()),
+                    ));
+                }
+                "value" => {
+                    return Some(ElementEventResponse::new(
+                        QueryResponse::success().with_data_str(self.content.text().to_string()),
+                    ));
+                }
+                "cursor_position" => {
+                    let pos = self.content.cursor().position;
+                    return Some(ElementEventResponse::new(
+                        QueryResponse::success().with_data_vector(Vector2 {
+                            x: HashableF32::new(pos.column as f32),
+                            y: HashableF32::new(pos.line as f32),
+                        }),
+                    ));
+                }
+                "selection" => {
+                    let selection = self.content.selection();
+                    if selection.is_some() {
+                        return Some(ElementEventResponse::new(
+                            QueryResponse::success().with_data_str(selection.unwrap()),
+                        ));
                     } else {
-                        return None;
+                        return Some(ElementEventResponse::success());
                     }
                 }
                 _ => None,
             },
-            XmlChangeEvent::EventFired(name, ev_response) => {
-                if name == "textarea_event" && ev_response.textarea_event.is_some() {
+            _ => None,
+        }
+    }
+
+    fn event_callback(
+        &mut self,
+        event_type: &EventListenerTypes,
+        event_response: &EventResponse,
+    ) -> Option<ElementEventResponse> {
+        match event_type {
+            EventListenerTypes::TextareaEvent => {
+                if event_response.textarea_event.is_some() {
                     handle_event(
                         &mut self.content,
-                        ev_response.textarea_event.as_ref().unwrap(),
+                        event_response.textarea_event.as_ref().unwrap(),
                     );
-                    return Some((query_response, vec![], vec![]));
+                    return Some(ElementEventResponse::success());
                 } else {
                     return None;
                 }
             }
-            XmlChangeEvent::PropertyChange(name, new_val) => match name.as_str() {
-                "placeholder" => {
-                    self.placeholder = new_val.clone();
-                    return Some((query_response, vec![], vec![]));
-                }
-                "value" => {
-                    self.content = iced::widget::text_editor::Content::with_text(new_val);
-                    return Some((query_response, vec![], vec![]));
-                }
-                _ => None,
-            },
-            XmlChangeEvent::GetProperty(name) => match name.as_str() {
-                "placeholder" => {
-                    query_response.data_str = Some(self.placeholder.clone());
-                    return Some((query_response, vec![], vec![]));
-                }
-                "value" => {
-                    query_response.data_str = Some(self.content.text().to_string());
-                    return Some((query_response, vec![], vec![]));
-                }
-                "cursor_position" => {
-                    let pos = self.content.cursor().position;
-                    query_response.data_vector = Some(VectorXY {
-                        x: HashableF32::new(pos.column as f32),
-                        y: HashableF32::new(pos.line as f32),
-                    });
-                    return Some((query_response, vec![], vec![]));
-                }
-                "selection" => {
-                    let selection = self.content.selection();
-                    query_response.data_str = selection;
-                    return Some((query_response, vec![], vec![]));
-                }
-                _ => None,
-            },
             _ => None,
         }
     }
