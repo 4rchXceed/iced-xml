@@ -86,6 +86,7 @@ impl XmlEngine {
     ///  settings: The settings to use for the engine. You can use the DEFAULT_ENGINE_SETTINGS constant given from window_manager! macro, and update it if needed.
     pub fn new(xml: String, settings: EngineSettings) -> Self {
         let self_op = Self::try_new(xml, settings);
+
         if self_op.is_err() {
             match self_op.err().unwrap() {
                 XmlEngineError::XmlParseError(e) => {
@@ -96,6 +97,7 @@ impl XmlEngine {
                 }
             }
         }
+
         return self_op.unwrap();
     }
 
@@ -107,19 +109,20 @@ impl XmlEngine {
     pub fn try_new(xml: String, settings: EngineSettings) -> Result<Self, XmlEngineError> {
         // Create a quick_xml reader from the XML string
         let reader = Reader::from_reader(Cursor::new(xml.into_bytes()));
+
         // Create a XmlParser from the quick_xml reader
-        let window_parser = XmlParser::new(&mut reader.clone(), &Fonts::new());
-        // Checks
-        if window_parser.is_err() {
-            return Err(XmlEngineError::XmlParseError(window_parser.err().unwrap()));
-        }
-        let root = window_parser.unwrap().root;
+        let window_parser = XmlParser::new(&mut reader.clone(), &Fonts::new())
+            .map_err(|e| XmlEngineError::XmlParseError(e))?;
+
+        let root = window_parser.root;
+
         if root.tag != "Window" {
             return Err(XmlEngineError::InvalidRootElement(root));
         }
 
         // Create the element renderer and initialize it with the root element
         let mut element_renderer = ElementRenderer::new(settings.fonts, settings.functions);
+
         let uid = element_renderer.init_element_from_xml(&root, get_unique_id());
 
         return Ok(Self {
@@ -133,11 +136,13 @@ impl XmlEngine {
     pub fn update(&mut self, message: Message) -> Vec<(Option<i32>, EventResponse)> {
         // Clear the fired events vector, since we are going to fill it with the new events that have been fired.
         self.fired_events.clear();
+
         match message {
             // This is the only event that is meant to be handled by the engine. It is used to handle events that are fired by the UI or dynamic events.
             Message::DomEvent(event_uid, mut event_data) => {
                 // If the event has a next_timeout, it means that it is a dynamic event, so we need to set the event type to Dynamic.
                 let mut event_type = event_data.event_type;
+
                 if event_data.next_timeout.is_some() {
                     event_type = EventType::Dynamic;
                 }
@@ -147,32 +152,12 @@ impl XmlEngine {
                     // Dynamic events are events that are triggered by the subscribtion system.
                     EventType::Dynamic => {
                         event_data.timer_id = event_uid;
+
                         self.fired_events.push((event_uid, event_data.clone()));
                     }
                     // User events are events that are triggered by the user, such as clicks, key presses, etc.
                     EventType::User => {
-                        // If the event_uid is Some, it means that the event is from a registered event listener, so we need to find the event listener and call its handlers.
-                        if event_uid.is_some() {
-                            let event_listener = self
-                                .element_renderer
-                                .get_event_listeners()
-                                .iter_mut()
-                                .find(|e| e.event_uid == event_uid.unwrap());
-                            if event_listener.is_some() {
-                                for handler in event_listener.unwrap().handlers.iter() {
-                                    self.fired_events
-                                        .push((Some(handler.clone()), event_data.clone()));
-                                }
-                            }
-                        }
-                        // If it's none, it means that the event is a direct event from the program, so we need to pass it to the element renderer to handle it.
-                        if event_data.target_uid.is_none() {
-                            self.element_renderer.pass_event_to_element(
-                                event_data.target_uid.unwrap(),
-                                event_data.event_name.clone(),
-                                event_data.clone(),
-                            );
-                        }
+                        self.process_user_event(event_uid, event_data);
                     }
                 }
             }
@@ -180,6 +165,33 @@ impl XmlEngine {
         };
 
         return self.fired_events.clone();
+    }
+
+    fn process_user_event(&mut self, event_uid: Option<i32>, event_data: EventResponse) {
+        // If the event_uid is Some, it means that the event is from a registered event listener, so we need to find the event listener and call its handlers.
+        if let Some(event_uid) = event_uid {
+            let event_listener = self
+                .element_renderer
+                .get_event_listeners()
+                .iter_mut()
+                .find(|e| e.event_uid == event_uid);
+
+            if let Some(event_listener) = event_listener {
+                for handler in event_listener.handlers.iter() {
+                    self.fired_events
+                        .push((Some(handler.clone()), event_data.clone()));
+                }
+            }
+        }
+
+        // If the target_uid is some, it means that the event is a direct event from the program, so we need to pass it to the element renderer to handle it.
+        if let Some(target_uid) = event_data.target_uid {
+            self.element_renderer.pass_event_to_element(
+                target_uid,
+                event_data.event_name.clone(),
+                event_data.clone(),
+            );
+        }
     }
 
     ///  This function returns the Iced Element that represents the root of the DOM tree. This is used to render the UI in Iced.
@@ -226,15 +238,15 @@ impl XmlEngine {
         return match &event.message {
             // If the event is a SubscribeDynamicEvent (EventType::Dynamic), we add it to the dyn_events vector, so that it can be handled later when the dynamic event is triggered.
             DomInternalMessageType::SubscribeDynamicEvent(dynamic_event) => {
-                if event.uid.is_some() {
+                if let Some(event_uid) = event.uid {
                     match dynamic_event {
                         DynamicEvent::SetInterval(time) => {
                             self.dyn_events
-                                .push((event.uid.unwrap(), DynamicEvent::SetInterval(*time)));
+                                .push((event_uid, DynamicEvent::SetInterval(*time)));
                         }
                         DynamicEvent::SetTimeout(time) => self
                             .dyn_events
-                            .push((event.uid.unwrap(), DynamicEvent::SetTimeout(*time))),
+                            .push((event_uid, DynamicEvent::SetTimeout(*time))),
                     };
                     return vec![QueryResponse::success()];
                 } else {
@@ -249,7 +261,9 @@ impl XmlEngine {
                     self.element_renderer.load_css(&css, for_hot_reload.clone());
 
                 let mut query_response = QueryResponse::new(success);
+
                 query_response.error_message = Some(message);
+
                 return vec![query_response];
             }
             _ => vec![QueryResponse::fail(
@@ -269,16 +283,19 @@ impl XmlEngine {
     ///  - QueryResponse: The response of the event handling. It contains information about the success and other data that might be needed by the program.
     fn handle_element_specific_event(&mut self, query: &DomMessage) -> Vec<QueryResponse> {
         let mut responses = Vec::new();
+
         let elements = self.element_renderer.element_query(&query.selector);
+
         for element in elements {
-            let status = match query.message {
+            let mut status = match query.message {
                 DomInternalMessageType::RegisterEventListener(ref event_type) => {
-                    if query.uid.is_some() {
+                    if let Some(query_uid) = query.uid {
                         self.element_renderer.register_event(
                             event_type.clone(),
                             element,
-                            query.uid.unwrap(),
+                            query_uid,
                         );
+
                         QueryResponse::success()
                     } else {
                         QueryResponse::fail("Event listener must have a UID to be registered.")
@@ -287,8 +304,11 @@ impl XmlEngine {
                 // This removes an element from the DOM tree. It will also remove all of its children, and any event listeners that are registered on it or its children.
                 DomInternalMessageType::Remove => {
                     let source = self.element_renderer.remove_cascade(element, true);
+
                     let mut qr = QueryResponse::success();
+
                     qr.data_element = source;
+
                     qr
                 }
                 // This replaces an element in the DOM tree with another element. It will also remove all of its children, and any event listeners that are registered on it or its children.
@@ -296,22 +316,30 @@ impl XmlEngine {
                     let selector = self
                         .element_renderer
                         .replace_element(element, replacing_element.value().clone());
+
                     let mut qr = QueryResponse::success();
+
                     qr.data_selector = Some(selector);
+
                     qr
                 }
                 // This returns the "source" of the element, which is the XmlElement that represents the element in the DOM tree.
                 DomInternalMessageType::GetElement => {
                     let mut qr = QueryResponse::success();
+
                     qr.data_element = self.element_renderer.get_source(element);
+
                     qr
                 }
                 // This returns the data associated with the element, which is a key-value store that can be used to store arbitrary data on the element.
                 DomInternalMessageType::GetData(ref key) => {
                     let data = self.element_renderer.get_data(element, &key.clone());
+
                     if data.is_some() {
                         let mut qr = QueryResponse::success();
+
                         qr.data_str = data;
+
                         qr
                     } else {
                         QueryResponse::fail("Data not found for the given key.")
@@ -322,8 +350,12 @@ impl XmlEngine {
                         .emit_internal_event(element, query.message.clone(), false)
                 }
             };
+
+            status.element_uid = Some(element);
+
             responses.push(status);
         }
+
         return responses;
     }
 }

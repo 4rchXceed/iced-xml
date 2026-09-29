@@ -22,7 +22,7 @@ use crate::{
         },
         hot_reload::cleanup_for_hot_reload,
         parser::XmlElement,
-        theming::{Fonts, XmlTheme, gen_styles},
+        theming::{Fonts, XmlTheme, gen_styles_log},
     },
 };
 
@@ -642,7 +642,7 @@ impl ElementRenderer {
         if old_theme_op.is_some() {
             let mut old_theme = old_theme_op.unwrap().clone();
             if event.custom_flag.is_some() {
-                gen_styles(
+                gen_styles_log(
                     &event.key,
                     &event.value,
                     &mut old_theme
@@ -652,7 +652,7 @@ impl ElementRenderer {
                     &self.fonts,
                 );
             } else {
-                gen_styles(
+                gen_styles_log(
                     &event.key,
                     &event.value,
                     &mut old_theme.default_theme,
@@ -689,7 +689,7 @@ impl ElementRenderer {
                     .entry(flag.clone())
                     .or_insert(datas.default_theme.clone());
             }
-            gen_styles(&event.key, &event.value, flag_theme, &self.fonts);
+            gen_styles_log(&event.key, &event.value, flag_theme, &self.fonts);
         }
     }
 
@@ -709,12 +709,26 @@ impl ElementRenderer {
         event_datas: EventResponse,
     ) -> QueryResponse {
         let element = self.elements.get_mut(&target_uid);
+
         if element.is_some() {
             let (element, _) = element.unwrap();
             let element_response_op =
                 process_event_callback_for_element(element, &event_type, &event_datas);
             if element_response_op.is_some() {
-                return element_response_op.unwrap().response;
+                let element_response = element_response_op.unwrap();
+                let event_response =
+                    self.process_element_response(element_response, None, false, None);
+                if event_response.is_some() {
+                    return event_response.unwrap();
+                } else {
+                    return QueryResponse::fail(
+                        format!(
+                            "Element with uid {} didn't return a response for event {:?}",
+                            target_uid, event_type
+                        )
+                        .as_str(),
+                    );
+                }
             } else {
                 return QueryResponse::fail(
                     format!(
@@ -765,7 +779,7 @@ impl ElementRenderer {
                 // Post-process the event response
                 event_response = self.process_element_response(
                     element_response_op.unwrap(),
-                    event.clone(),
+                    Some(event.clone()),
                     comes_from_hot_reload,
                     event_response,
                 );
@@ -797,7 +811,7 @@ impl ElementRenderer {
     pub fn process_element_response(
         &mut self,
         element_response: ElementEventResponse,
-        event: DomInternalMessageType,
+        event: Option<DomInternalMessageType>,
         comes_from_hot_reload: bool,
         mut event_response: Option<QueryResponse>,
     ) -> Option<QueryResponse> {
@@ -808,9 +822,15 @@ impl ElementRenderer {
                 }
             }
         }
+        if event.is_none() {
+            return event_response;
+        }
         for target in element_response.forward_to {
-            let new_response =
-                self.emit_internal_event(target, event.clone(), comes_from_hot_reload);
+            let new_response = self.emit_internal_event(
+                target,
+                event.as_ref().unwrap().clone(),
+                comes_from_hot_reload,
+            );
             if event_response.is_some() {
                 event_response.as_mut().unwrap().concat(new_response);
             }

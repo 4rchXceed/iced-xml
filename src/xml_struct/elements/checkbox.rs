@@ -102,16 +102,15 @@ impl ElementBase for Checkbox {
         // Register any events here
         let me = self_uid.clone();
         checkbox = checkbox.on_toggle(move |_| {
-            return Message::DomEvent(None, EventResponse::new(me, EventListenerTypes::Checked));
+            return Message::DomEvent(None, EventResponse::new(me, EventListenerTypes::Check));
         });
         for event in events {
             match event.event_type {
-                EventListenerTypes::Checked => {
-                    checkbox = checkbox.on_toggle(move |_| {
-                        return Message::DomEvent(
-                            Some(event.event_uid),
-                            EventResponse::new(me, event.event_type.clone()),
-                        );
+                EventListenerTypes::Check => {
+                    checkbox = checkbox.on_toggle(move |checked| {
+                        let mut event_response = EventResponse::new(me, event.event_type.clone());
+                        event_response.data_bool = Some(checked);
+                        return Message::DomEvent(Some(event.event_uid), event_response);
                     });
                 }
                 _ => (),
@@ -153,7 +152,7 @@ impl ElementBase for Checkbox {
         _: &EventResponse,
     ) -> Option<ElementEventResponse> {
         match event_type {
-            EventListenerTypes::Checked => {
+            EventListenerTypes::Check => {
                 self.checked = !self.checked;
                 return Some(ElementEventResponse::success());
             }

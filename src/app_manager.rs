@@ -115,6 +115,7 @@ macro_rules! window_manager {
             $state:ty;
             $window_creation_params:ty
         ) => {
+        use iced_xml::window_wrapper::{AppResult};
         use iced_xml::dom::query_builder::EventResponse;
         use iced_xml::app_manager::{
             IcedSubscription,

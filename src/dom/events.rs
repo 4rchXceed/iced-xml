@@ -39,14 +39,13 @@ pub enum DomInternalMessageType {
 #[derive(Debug, Clone, Hash, PartialEq)]
 pub enum EventListenerTypes {
     Click,
-    Checked,
+    Check,
     Input,
     Paste,
     Submit,
-    Select,
     Release,
     Scroll,
-    Selected,
+    Select,
     OnClose,
     OnOpen,
     OnInput,

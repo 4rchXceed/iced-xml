@@ -5,7 +5,7 @@ use crate::{
     dom::query::DomQuery,
     xml_struct::{
         element_renderer::{ElementRenderer, HotReloadState, extract_selector_style_flag},
-        theming::gen_styles,
+        theming::gen_styles_log,
     },
 };
 
@@ -120,7 +120,7 @@ fn process_flag_element(
         let real_element = element_renderer.elements.get_mut(&element);
         if real_element.is_some() {
             let rule_to_change = old_flag_theme.clone();
-            gen_styles(&rule.name, &rule.value, &mut old_flag_theme, font_list);
+            gen_styles_log(&rule.name, &rule.value, &mut old_flag_theme, font_list);
             let (_, datas) = real_element.unwrap();
             let mut flag_theme = datas
                 .flag_themes
@@ -156,7 +156,7 @@ fn process_element(
         let real_element = element_renderer.elements.get_mut(&element);
         // Then we clone the old theme, remove the style change from a "virtual" theme
         let mut rule_to_change = old_theme.unwrap().default_theme.clone();
-        gen_styles(&rule.name, &rule.value, &mut rule_to_change, font_list);
+        gen_styles_log(&rule.name, &rule.value, &mut rule_to_change, font_list);
         if real_element.is_some() {
             let (_, datas) = real_element.unwrap();
             // And revert the style change by applying only the changes from the old theme to the new theme

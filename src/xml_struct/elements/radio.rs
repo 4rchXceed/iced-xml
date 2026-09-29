@@ -21,7 +21,7 @@ pub struct RadioButton {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RadioElement {
-    Element(i32), // Element(uid)
+    Element(i32), // Element(stringdb uid)
 }
 
 impl ElementBase for RadioButton {
@@ -35,8 +35,8 @@ impl ElementBase for RadioButton {
                 xml_element.clone(),
             ));
         }
-        if xml_element.attributes.get("selection-id").is_none() {
-            return Err(ElementError::AttributeSelectionIdRequiredForRadio(
+        if xml_element.attributes.get("radio-id").is_none() {
+            return Err(ElementError::AttributeValueRequiredForRadio(
                 xml_element.clone(),
             ));
         }
@@ -45,7 +45,7 @@ impl ElementBase for RadioButton {
             println!("Warning: created a <Radio /> element without text");
             text = String::from("No text");
         }
-        let id = xml_element.attributes.get("radio-id").unwrap();
+        let id = xml_element.attributes.get("value").unwrap();
         let choice = RadioElement::Element(renderer.register_stringdb(id.clone()));
 
         if xml_element.attributes.get("selected").is_some() {
@@ -53,7 +53,7 @@ impl ElementBase for RadioButton {
         }
 
         return Ok(Self {
-            selection_id: xml_element.attributes.get("selection-id").unwrap().clone(),
+            selection_id: xml_element.attributes.get("radio-id").unwrap().clone(),
             text: text,
             choice: choice,
         });
@@ -140,7 +140,7 @@ impl ElementBase for RadioButton {
         _: &EventResponse,
     ) -> Option<ElementEventResponse> {
         return match event_type {
-            EventListenerTypes::Selected => {
+            EventListenerTypes::Select => {
                 return Some(ElementEventResponse::success().with_renderer_events(vec![
                     RendererEvent::RadioSelectionChange(self.selection_id.clone(), self.choice),
                 ]));

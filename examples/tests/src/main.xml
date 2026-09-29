@@ -1,0 +1,197 @@
+<Window>
+    <Scroll>
+        <Col>
+            <Button id="ui-debug">"Debug" mode</Button>
+            <!-- Test 01 -->
+            <Col>
+                <Label>TEST_01:</Label>
+                <Label>Basic Label with data-* attributes</Label>
+                <Label
+                    id="test01-subject"
+                    data-value="test01-newtext"
+                >test01-defaulttext</Label>
+                <Label id="test01-result" style:fg="blue">PENDING</Label>
+            </Col>
+            <!-- Test 02 -->
+            <Col>
+                <Label>TEST_02 [MANUAL]:</Label>
+                <Label>Testing: ::for() selectors</Label>
+                <Label>Action: Click in the checkbox 2 times</Label>
+                <Label>Expected: Turning red, then green</Label>
+                <Label>Also UI: X symbol in the checkbox</Label>
+                <Checkbox id="test02-subject">Check here</Checkbox>
+                <Label id="test02-result" style:fg="green">MANUAL</Label>
+            </Col>
+            <!-- Test 03: Button -->
+            <Col>
+                <Label>TEST_03 [MANUAL]:</Label>
+                <Label>Testing: Button click</Label>
+                <Label>Action: Click in the button</Label>
+                <Label>Expected: test successful</Label>
+                <Button id="test03-subject">Click me</Button>
+                <Label id="test03-result" style:fg="green">MANUAL</Label>
+            </Col>
+            <!-- Test 04: Multiple event listeners -->
+            <Col>
+                <Label>TEST_04 [MANUAL]:</Label>
+                <Label>Testing: Multiple event listeners</Label>
+                <Label>Action: Click in the button</Label>
+                <Label>Expected: test successful</Label>
+                <Button id="test04-subject">Click me</Button>
+                <Label id="test04-result" style:fg="green">MANUAL</Label>
+            </Col>
+            <!-- Test 05: UI-Only tests -->
+            <Col>
+                <Label>TEST_05 [VIEW-ONLY]:</Label>
+                <Center>I should be centered!</Center>
+                <Checkbox checked="true">I should be checked!</Checkbox>
+                <Div id="blackwhite">
+                    <Label
+                        id="whitefg"
+                    >I should be white on black with a cyan shadow!</Label>
+                </Div>
+                <Space id="sep" />
+                <Grid id="grid">
+                    <Label>Label 1</Label>
+                    <Label>Label 2</Label>
+                    <Label>Label 3</Label>
+                    <Label>Label 4</Label>
+                    <Label>Label 5</Label>
+                </Grid>
+                <Label
+                >The progress should go back and forth every second</Label>
+                <Progress id="progress" value="0" max="100" min="0" />
+                <Row style:width="max">
+                    <Label>This</Label>
+                    <Label>should</Label>
+                    <Label>be</Label>
+                    <Label>on</Label>
+                    <Label>a</Label>
+                    <Label>single</Label>
+                    <Label>line.</Label>
+                </Row>
+                <Div style:height="100f">
+                    <Scroll>
+                        <Col>
+                            <Label>Long text</Label>
+                            <Space style:height="30f" />
+                            <Label>Long text</Label>
+                            <Space style:height="30f" />
+                            <Label>Long text</Label>
+                            <Space style:height="30f" />
+                            <Label>Long text</Label>
+                            <Space style:height="30f" />
+                            <Label>Long text</Label>
+                        </Col>
+                    </Scroll>
+                </Div>
+                <Label>Table - test (some VocaSynths - list)</Label>
+                <Table id="vsynth-table" style:width="max">
+                    <TableColumn classes="col-nonlast">
+                        <ColumnName>
+                            <Label style:width="min">Name</Label>
+                        </ColumnName>
+                        <ColumnTemplate>
+                            <Var var-key="name" fallback="Unknown" />
+                        </ColumnTemplate>
+                    </TableColumn>
+                    <TableColumn>
+                        <ColumnName>
+                            <Label>Provider</Label>
+                        </ColumnName>
+                        <ColumnTemplate>
+                            <Var
+                                var-key="provider"
+                                style:fg="green"
+                                fallback="Unknown"
+                            />
+                        </ColumnTemplate>
+                    </TableColumn>
+                </Table>
+                <Input
+                    id="add-vsynth"
+                    placeholder="Add VocaSynth: name,provider..."
+                >Miku Hatsune,Vocaloid</Input>
+                <Button id="add-vsynth-btn">Add VocaSynth</Button>
+            </Col>
+            <!-- Test 06: Input -->
+            <Col>
+                <Label>TEST_06 [MANUAL]:</Label>
+                <Label>Testing: Input text</Label>
+                <Label>Action: Type "ok" in the input field</Label>
+                <Label
+                >UI: input should have nok as value and Enter ok as placeholder</Label>
+                <Label>Expected: test successful</Label>
+                <Input id="test06-subject" placeholder="Enter ok...">nok</Input>
+                <Label id="test06-result" style:fg="green">MANUAL</Label>
+            </Col>
+            <!-- Test 07: Radio -->
+            <Col>
+                <Label>TEST_07 [MANUAL]:</Label>
+                <Label>Testing: Radio buttons</Label>
+                <Label>Action: Select the second radio button</Label>
+                <Label>Expected: test successful</Label>
+                <Radio
+                    classes="radio-group-1"
+                    radio-id="radio-group-1"
+                    value="1"
+                    selected="true"
+                >Option 1</Radio>
+                <Radio
+                    classes="radio-group-1"
+                    radio-id="radio-group-1"
+                    value="2"
+                >Option 2</Radio>
+                <Radio
+                    classes="radio-group-1"
+                    radio-id="radio-group-1"
+                    value="3"
+                >Option 3</Radio>
+                <Radio
+                    radio-id="radio-group-2"
+                    value="not"
+                >Not from the group</Radio>
+                <Label id="test07-result" style:fg="green">MANUAL</Label>
+            </Col>
+            <!-- Test 08: Range -->
+            <Col>
+                <Label>TEST_08 [MANUAL]:</Label>
+                <Label>Testing: Range input</Label>
+                <Label>Action: Move the range to 100%</Label>
+                <Range
+                    id="test08-subject"
+                    step="5"
+                    value="0"
+                    max="100"
+                    min="0"
+                />
+                <Label id="test08-result" style:fg="green">MANUAL</Label>
+            </Col>
+            <!-- Test 09: Select -->
+            <Col>
+                <Label>TEST_09 [MANUAL]:</Label>
+                <Label>Testing: Select input</Label>
+                <Label>Action: Select the second option</Label>
+                <Label>Expected: test successful</Label>
+                <Select
+                    placeholder="Please choose an option"
+                    id="test09-subject"
+                >
+                    <Option value="1">Option 1</Option>
+                    <Option value="2">Option 2</Option>
+                    <Option value="3">Option 3</Option>
+                </Select>
+                <Label id="test09-result" style:fg="green">MANUAL</Label>
+            </Col>
+            <!-- Test 10: Textarea -->
+            <Col>
+                <Label>TEST_10 [MANUAL]:</Label>
+                <Label>Testing: Textarea input</Label>
+                <Label>Action: Type ok in the textarea</Label>
+                <Label>Expected: test successful</Label>
+                <Textarea id="test10-subject" placeholder="Type ok here..." />
+                <Label id="test10-result" style:fg="blue">PENDING</Label>
+            </Col>
+        </Col>
+    </Scroll>
+</Window>

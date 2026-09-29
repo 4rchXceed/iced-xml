@@ -7,7 +7,7 @@ use quick_xml::{
 
 use crate::{
     css_reader::CssReader,
-    xml_struct::theming::{Fonts, XmlTheme, gen_styles},
+    xml_struct::theming::{Fonts, XmlTheme, gen_styles_log},
 };
 
 /// This struct represents an XML element.
@@ -120,7 +120,7 @@ impl XmlElement {
     /// element.apply_css("bg", "red");
     /// ```
     pub fn apply_css(&mut self, key: &str, value: &str) {
-        gen_styles(
+        gen_styles_log(
             &String::from(key),
             &String::from(value),
             &mut self.theme,
@@ -263,12 +263,12 @@ impl std::fmt::Display for XmlElement {
 
 /// Utility function to create a new XmlElement from a BytesStart event.
 /// Used by the XmlParser to create XmlElements from the XML document.
-fn new_element(last_theme: &mut XmlTheme, e: BytesStart<'_>, fonts: &Fonts) -> XmlElement {
+fn new_element(e: BytesStart<'_>, fonts: &Fonts) -> XmlElement {
     // last_theme = last_theme.clone();
     let mut id: Option<String> = None;
     let mut classes_string: String = String::new();
     let mut datas: HashMap<String, String> = HashMap::new();
-
+    let mut theme = XmlTheme::default();
     let attributes = e
         .attributes()
         .map(|a| {
@@ -276,10 +276,10 @@ fn new_element(last_theme: &mut XmlTheme, e: BytesStart<'_>, fonts: &Fonts) -> X
             let k = String::from_utf8(b.key.as_ref().to_vec()).unwrap();
             let v = String::from_utf8(b.value.to_vec()).unwrap();
             if k.starts_with("style:") {
-                gen_styles(
+                gen_styles_log(
                     &k.strip_prefix("style:").unwrap().to_string(),
                     &v,
-                    last_theme,
+                    &mut theme,
                     fonts,
                 );
             }
@@ -307,7 +307,7 @@ fn new_element(last_theme: &mut XmlTheme, e: BytesStart<'_>, fonts: &Fonts) -> X
         attributes: attributes,
         children: Vec::new(),
         text: String::new(),
-        theme: last_theme.clone(),
+        theme: theme.clone(),
         id: id,
         classes: classes,
         datas: datas,
@@ -333,7 +333,6 @@ impl XmlParser {
         let mut buf = Vec::new();
         let mut stack: Vec<XmlElement> = Vec::new();
         let mut root: Option<XmlElement> = None;
-        let mut last_theme: XmlTheme = XmlTheme::default();
 
         loop {
             match reader.read_event_into(&mut buf) {
@@ -342,7 +341,7 @@ impl XmlParser {
                 }
                 Ok(Event::Eof) => break,
                 Ok(Event::Start(e)) => {
-                    let new_element = new_element(&mut last_theme, e, fonts);
+                    let new_element = new_element(e, fonts);
                     stack.push(new_element);
                 }
                 Ok(Event::Text(e)) => {
@@ -351,7 +350,7 @@ impl XmlParser {
                     }
                 }
                 Ok(Event::Empty(e)) => {
-                    let new_element = new_element(&mut last_theme, e, fonts);
+                    let new_element = new_element(e, fonts);
                     if let Some(parent) = stack.last_mut() {
                         parent.children.push(new_element);
                     } else {
@@ -360,9 +359,6 @@ impl XmlParser {
                 }
                 Ok(Event::End(_)) => {
                     let node = stack.pop().unwrap();
-
-                    let theme = node.theme.clone();
-                    last_theme = theme;
 
                     if let Some(parent) = stack.last_mut() {
                         parent.children.push(node);

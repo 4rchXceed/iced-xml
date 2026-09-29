@@ -11,7 +11,7 @@ use crate::{
         events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{CustomElementEvent, EventResponse, QueryResponse},
     },
-    parse_utils::parse_pane_axis,
+    parse_utils::parsers::pane_axis::parse_pane_axis,
     rs_utils::{HashableF32, HashableGridTarget},
     xml_engine::Message,
     xml_struct::{
@@ -143,7 +143,8 @@ fn preprocess_pane_state(
             children.insert(child_id.clone(), child_datas.clone());
             if child.children.len() > 0 && child.attributes.get("window-closed").is_none() {
                 let pane = state.split(
-                    parse_pane_axis(child.attributes.get("split-method").unwrap().as_str()),
+                    parse_pane_axis(child.attributes.get("split-method").unwrap().as_str())
+                        .unwrap_or(widget::pane_grid::Axis::Horizontal),
                     parent_pane,
                     InternalPane(child_id, child_datas),
                 );
@@ -546,7 +547,8 @@ impl ElementBase for WindowSystem {
                     if window.is_some() {
                         let parent_window = self.window_id_to_pane(&open_params.parent_window_id);
                         if parent_window.is_some() {
-                            let split_method = parse_pane_axis(&open_params.split_method);
+                            let split_method = parse_pane_axis(&open_params.split_method)
+                                .unwrap_or(widget::pane_grid::Axis::Horizontal);
                             let pane = self.panes.split(
                                 split_method,
                                 parent_window.unwrap(),

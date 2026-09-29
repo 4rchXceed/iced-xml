@@ -1,6 +1,5 @@
 use iced::{Point, widget::text_editor::Motion::*};
 
-// Copy-paste template
 use crate::{
     dom::{
         events::{DomInternalMessageType, EventListenerTypes},
@@ -29,6 +28,8 @@ pub enum TextareaEvent {
     SelectLine,
     SelectWord,
 }
+
+pub type TextareaEdit = iced::widget::text_editor::Edit;
 
 pub struct Textarea {
     content: iced::widget::text_editor::Content,
@@ -202,6 +203,7 @@ impl ElementBase for Textarea {
         textarea = textarea.on_action(move |action| {
             let mut ev_response = EventResponse::new(me, EventListenerTypes::TextareaEvent);
             ev_response.textarea_event = Some(generate_action(action, &self.content));
+            ev_response.data_str = Some(self.content.text().to_string());
             return Message::DomEvent(event_uid, ev_response);
         });
 

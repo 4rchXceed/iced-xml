@@ -2,7 +2,7 @@ use iced_xml::{
     dom::{api::Dom, events::EventListenerTypes, query_builder::QueryBuilder},
     utils::watch_css::watch_css_file,
     window_manager,
-    window_wrapper::{AppResult, CssRx, CssWatcher, Objects, ObjectsReadOnly, WindowTemplate},
+    window_wrapper::{CssRx, CssWatcher, Objects, ObjectsReadOnly, WindowTemplate},
     xml_engine::XmlEngine,
 };
 
@@ -133,7 +133,7 @@ impl MainWindow {
     }
 
     fn post_construct(&mut self) {
-        let watcher_result = watch_css_file(self, 500);
+        let watcher_result = watch_css_file(self, 100);
         if watcher_result.is_ok() {
             self.watcher = Some(watcher_result.unwrap());
         }
@@ -146,7 +146,6 @@ impl MainWindow {
                         .b(Dom::from(datas.target.unwrap()).get_property("text"))
                         .then(|this, datas| {
                             if datas.success {
-                                println!("datas data_str: {:?}", datas);
                                 this.add_nbr(datas.data_str.unwrap());
                             }
                         });

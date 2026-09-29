@@ -163,24 +163,25 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
         // Get the engine and query builder
         let me = self.get_objects();
         let elem_renderer = &mut me.engine.element_renderer;
+
         // Remove the component
         let component = elem_renderer.components.remove(&component_uid);
         if component.is_none() {
             return Err(ComponentRemoveError::ComponentUidNotFound(component_uid));
         }
+
         // Call the on_close callback when closing
         (elem_renderer.functions.on_close)(&mut component.unwrap(), app_state);
+
         // The create an empty element replacing the old component, so it's parent doesn't crash
-        let element = generate_element_from_tag(&XmlElement::void(), elem_renderer, component_uid);
-        // If the element has been created
-        if element.is_ok() {
-            let element_uid = element.unwrap();
-            // Add the element to the DOM
-            elem_renderer.init_element(element_uid, Some(XmlElement::void()), None, component_uid);
-            return Ok(component_uid);
-        } else {
-            return Err(ComponentRemoveError::ElementError(element.err().unwrap()));
-        }
+        let element_uid =
+            generate_element_from_tag(&XmlElement::void(), elem_renderer, component_uid)
+                .map_err(|e| ComponentRemoveError::ElementError(e))?;
+
+        // Add the element to the DOM
+        elem_renderer.init_element(element_uid, Some(XmlElement::void()), None, component_uid);
+
+        return Ok(component_uid);
     }
     ///  This is processes all the query builder queries and execute them
     ///
@@ -190,12 +191,15 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
     fn process(&mut self) -> QueryResponse {
         // Returns the objects
         let me = self.get_objects();
+
         // Execute all queries
         for query in me.qb.execute(me.engine) {
             let me = self.get_self();
+
             // Run the callbacks
             (query.0)(me, query.1);
         }
+
         let me = self.get_objects();
         // Returns the last query, so we can use this, without using then and loosing access to local variables
         return me.qb.last.clone();
@@ -204,6 +208,7 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
     // Basically renders the elements into an Iced Element
     fn render(&self) -> iced::Element<'_, crate::xml_engine::Message> {
         let me = self.get_objects_read_only();
+
         return me.engine.view();
     }
     // Subscription logic (for set_timeout and set_interval)
@@ -212,8 +217,10 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
     fn subscription(&self) -> Vec<iced::Subscription<Message>> {
         // Get the engine
         let engine = self.get_objects_read_only().engine;
+
         // Get the builder
         let query_builder = self.get_objects_read_only().qb;
+
         // Run the query builder's subscribe function
         return query_builder.subscribe(engine);
     }

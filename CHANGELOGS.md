@@ -262,3 +262,13 @@ TODO:
 
 TODO:
 - Unittests with iced_test
+
+## Last commit: 0933c98a3d313292d7fe4169d83ddab5b37f1936
++ Did a lot of the unittests (but manual, I didn't like how iced_test manages things)
++ Started rewrite V2:
+  - removing any usage of unwrap()
+  - not more than 4 nested, without including the function
+  - Overall better rust-specific code
++ Really improved parse_utils, by splitting to files, and made a good error handling (thiserror)
+
+### Commit msg: "Code rewrite (V2) (1) + examples / 'unittests' + improved parse_utils.rs"

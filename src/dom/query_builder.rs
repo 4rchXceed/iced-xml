@@ -5,6 +5,7 @@ use iced::{Subscription, time};
 use crate::{
     app_manager::{App, WindowId},
     dom::{
+        api::Dom,
         events::{DomInternalMessageType, DomMessage, DomQueryBuilder, EventListenerTypes},
         query::{DomQuery, DomQueryType},
     },
@@ -152,6 +153,14 @@ impl QueryResponse {
             data_vector: None,
             data_element: None,
             data_selector: None,
+        }
+    }
+
+    pub fn selector(&self) -> Option<DomQueryBuilder> {
+        if self.element_uid.is_some() {
+            return Some(Dom::get_element(self.element_uid.unwrap()));
+        } else {
+            return None;
         }
     }
 

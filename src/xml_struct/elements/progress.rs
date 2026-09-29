@@ -46,10 +46,10 @@ impl ElementBase for Progress {
         let max = max_op.unwrap().parse::<f32>().unwrap_or(100.0);
 
         return Ok(Self {
-            progress,
-            min,
-            max,
-            vertical,
+            progress: progress,
+            min: min,
+            max: max,
+            vertical: vertical,
         });
     }
 

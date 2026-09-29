@@ -116,7 +116,7 @@ impl ElementBase for Select {
         let mut select_event_uid: Option<i32> = None;
         for event in &events {
             match event.event_type {
-                EventListenerTypes::Selected => {
+                EventListenerTypes::Select => {
                     select_event_uid = Some(event.event_uid);
                 }
                 _ => (),
@@ -130,7 +130,7 @@ impl ElementBase for Select {
                 self.selected.as_ref(),
                 move |selected_entry| {
                     let mut event_response =
-                        EventResponse::new(self_uid, EventListenerTypes::Selected);
+                        EventResponse::new(self_uid, EventListenerTypes::Select);
                     event_response.data_str = Some(selected_entry.id);
                     if select_event_uid.is_some() {
                         return Message::DomEvent(Some(select_event_uid.unwrap()), event_response);
@@ -291,7 +291,7 @@ impl ElementBase for Select {
         event_response: &EventResponse,
     ) -> Option<ElementEventResponse> {
         match event_type {
-            EventListenerTypes::Selected => {
+            EventListenerTypes::Select => {
                 let id_op = event_response.data_str.clone();
                 if id_op.is_some() {
                     let id = id_op.unwrap();

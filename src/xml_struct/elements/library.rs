@@ -40,8 +40,8 @@ pub enum ElementError {
     ProgressElementMustHaveMinMaxAttributes(XmlElement),
     #[error("Attribute id is required on <Radio />. Element: {0}")]
     AttributeIdRequiredForRadio(XmlElement),
-    #[error("Attribute selection-id is required on <Radio />. Element: {0}")]
-    AttributeSelectionIdRequiredForRadio(XmlElement),
+    #[error("Attribute value is required on <Radio />. Element: {0}")]
+    AttributeValueRequiredForRadio(XmlElement),
     #[error("Scrollable element must have exactly one child. Element: {0}")]
     ScrollableElementMustHaveOneChild(XmlElement),
     #[error(

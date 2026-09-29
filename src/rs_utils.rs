@@ -22,8 +22,10 @@ pub fn get_unique_id() -> i32 {
     CURRENT_UID.with(|id| {
         // Get
         let current_id = id.get();
+
         // Set
         id.set(current_id + 1);
+
         // Return
         return current_id;
     })
@@ -221,7 +223,9 @@ impl<K: std::hash::Hash, V: std::hash::Hash> std::hash::Hash for HashableHashMap
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         // Get the items in the HashMap, sort them by key, and then hash them in order
         let mut items: Vec<(&K, &V)> = self.0.iter().collect();
+
         items.sort_by(|a, b| a.0.hash(state).cmp(&b.0.hash(state)));
+
         // Then hash the items in order
         for (k, v) in items {
             k.hash(state);
@@ -352,13 +356,19 @@ impl std::hash::Hash for HashableXmlElement {
         // Hash the underlying XmlElement by hashing its tag, attributes, text, children, id, classes, and datas
         // !! Here we ignore the Style, since it would be too complex to hash, like literally hours of work
         self.0.tag.hash(state);
+
         HashableHashMap::new(self.0.attributes.clone()).hash(state);
+
         self.0.text.hash(state);
+
         for child in &self.0.children {
             HashableXmlElement::new(child.clone()).hash(state);
         }
+
         self.0.id.hash(state);
+
         self.0.classes.hash(state);
+
         HashableHashMap::new(self.0.datas.clone()).hash(state);
     }
 }
