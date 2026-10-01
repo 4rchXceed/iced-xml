@@ -1,13 +1,18 @@
 use std::time::Duration;
 
 use crate::{
-    dom::query::{EventResponse, QueryResponse},
-    rs_utils::{HashableF32, VectorWH},
+    dom::{
+        events::{DomInternalMessageType, EventListenerTypes},
+        query_builder::{EventResponse, QueryResponse},
+    },
+    rs_utils::{HashableF32, Vector2},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
+        elements::{element_base::ElementBase, library::ElementError},
+        parser::XmlElement,
     },
 };
 
@@ -18,9 +23,15 @@ pub struct Trigger {
 }
 
 impl ElementBase for Trigger {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        renderer: &mut ElementRenderer,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         if xml_element.children.len() > 1 {
-            panic!("Trigger element can only have zero or one child");
+            return Err(ElementError::TriggerElementHasMoreThanOneChild(
+                xml_element.clone(),
+            ));
         }
         let mut child: Option<i32> = None;
         if xml_element.children.len() == 1 {
@@ -34,7 +45,7 @@ impl ElementBase for Trigger {
                 .get("anticipated_pixels")
                 .unwrap()
                 .parse::<f32>()
-                .unwrap();
+                .unwrap_or(0.0);
         }
         if xml_element.attributes.contains_key("time_trigger") {
             time_to_trigger = xml_element
@@ -42,14 +53,14 @@ impl ElementBase for Trigger {
                 .get("time_to_trigger")
                 .unwrap()
                 .parse::<u64>()
-                .unwrap();
+                .unwrap_or(0);
         }
 
-        Self {
+        return Ok(Self {
             child: child,
             anticipated_pixels: anticipated_pixels,
             time_trigger: time_to_trigger,
-        }
+        });
     }
 
     fn render<'a>(
@@ -73,31 +84,31 @@ impl ElementBase for Trigger {
         let me = self_uid;
 
         for event in events {
-            match event.event_type.as_str() {
-                "hidden" => {
+            match event.event_type {
+                EventListenerTypes::Hidden => {
                     trigger = trigger.on_hide(Message::DomEvent(
-                        event.event_uid,
-                        EventResponse::new(me, String::from("hidden")),
+                        Some(event.event_uid),
+                        EventResponse::new(me, event.event_type.clone()),
                     ))
                 }
-                "shown" => {
+                EventListenerTypes::Shown => {
                     trigger = trigger.on_show(move |size| {
-                        let mut ev_res = EventResponse::new(me, String::from("shown"));
-                        ev_res.data_vectorwh = Some(VectorWH {
-                            width: HashableF32::new(size.width),
-                            height: HashableF32::new(size.height),
+                        let mut ev_res = EventResponse::new(me, event.event_type.clone());
+                        ev_res.data_vector = Some(Vector2 {
+                            x: HashableF32::new(size.width),
+                            y: HashableF32::new(size.height),
                         });
-                        Message::DomEvent(event.event_uid, ev_res)
+                        Message::DomEvent(Some(event.event_uid), ev_res)
                     })
                 }
-                "resize" => {
+                EventListenerTypes::Resize => {
                     trigger = trigger.on_resize(move |size| {
-                        let mut ev_res = EventResponse::new(me, String::from("resize"));
-                        ev_res.data_vectorwh = Some(VectorWH {
-                            width: HashableF32::new(size.width),
-                            height: HashableF32::new(size.height),
+                        let mut ev_res = EventResponse::new(me, event.event_type.clone());
+                        ev_res.data_vector = Some(Vector2 {
+                            x: HashableF32::new(size.width),
+                            y: HashableF32::new(size.height),
                         });
-                        Message::DomEvent(event.event_uid, ev_res)
+                        Message::DomEvent(Some(event.event_uid), ev_res)
                     })
                 }
                 _ => (),
@@ -107,19 +118,29 @@ impl ElementBase for Trigger {
         return trigger.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::PropertyChange(key, val) => match key.as_str() {
+            DomInternalMessageType::PropertyChange(key, val) => match key.as_str() {
                 "anticipated_pixels" => {
                     self.anticipated_pixels = val.parse::<f32>().unwrap();
-                    return Some((QueryResponse::new(true), Vec::new(), Vec::new()));
+                    return Some(ElementEventResponse::success());
                 }
                 "time_trigger" => {
                     self.time_trigger = val.parse::<u64>().unwrap();
-                    return Some((QueryResponse::new(true), Vec::new(), Vec::new()));
+                    return Some(ElementEventResponse::success());
+                }
+                _ => None,
+            },
+            DomInternalMessageType::GetProperty(name) => match name.as_str() {
+                "anticipated_pixels" => {
+                    return Some(ElementEventResponse::new(
+                        QueryResponse::success().with_data_float(self.anticipated_pixels),
+                    ));
+                }
+                "time_trigger" => {
+                    return Some(ElementEventResponse::new(
+                        QueryResponse::success().with_data_float(self.time_trigger as f32),
+                    ));
                 }
                 _ => None,
             },

@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use iced::{
     Background, Color, Font, Length, Padding, Vector,
     alignment::{Horizontal, Vertical},
@@ -11,19 +9,40 @@ use iced::{
         text_input::Side,
     },
 };
+use log::error;
+use std::time::Duration;
 
 use crate::parse_utils::{
-    check_anchor, parse_align_x, parse_align_y, parse_background, parse_bool, parse_center_type,
-    parse_checkbox_icon, parse_color, parse_color_op, parse_font, parse_font_family,
-    parse_font_stretch, parse_font_style, parse_font_weight, parse_length, parse_line_height,
-    parse_padding, parse_radius, parse_select_icon, parse_shaping, parse_slider_handle_theme,
-    parse_text_alignment, parse_text_wrapping, parse_time, parse_two_f32, parse_value,
-    parse_value_int, parse_value_maybe, parse_vector,
+    errors::CssValParseError,
+    parsers::{
+        align::{parse_align_x, parse_align_y},
+        background::parse_background,
+        center_type::parse_center_type,
+        check_anchor::check_anchor,
+        checkbox_icon::parse_checkbox_icon,
+        color::{parse_color, parse_color_op},
+        font::{
+            parse_font, parse_font_family, parse_font_stretch, parse_font_style, parse_font_weight,
+        },
+        line_height::parse_line_height,
+        others::{parse_bool, parse_time, parse_value, parse_value_int, parse_value_maybe},
+        padding::parse_padding,
+        parse_length::parse_length,
+        parse_slider_handler::parse_slider_handle_theme,
+        radius::parse_radius,
+        select_icon::parse_select_icon,
+        text::{parse_shaping, parse_text_wrapping},
+        text_align::parse_text_alignment,
+        two_numbers::parse_two_f32,
+        vector::parse_vector,
+    },
 };
 
+/// A type alias for a vector of font names and their corresponding font paths.
 pub type Fonts = Vec<(String, &'static str)>;
 
-// The theme struct
+/// A struct representing the theme of the XML UI.
+/// See the documentation for more details on each field.
 #[derive(Debug, Clone)]
 pub struct XmlTheme {
     pub enable: bool,
@@ -101,7 +120,7 @@ macro_rules! check {
 
 impl XmlTheme {
     /**
-     * Changes the values of the current theme to match the values of `changes` only on the properties that are different between `first` and `second`.
+     * Changes the values of the current theme to match the values of changes only on the properties that are different between first and second.
      */
     pub fn apply_only_changes(&mut self, first: &XmlTheme, second: &XmlTheme, changes: &XmlTheme) {
         if first.select_icon.is_some() && second.select_icon.is_some() {
@@ -196,6 +215,7 @@ impl XmlTheme {
 }
 
 impl Default for XmlTheme {
+    /// Returns a default XmlTheme with predefined values for each field.
     fn default() -> Self {
         Self {
             enable: true,
@@ -263,82 +283,182 @@ impl Default for XmlTheme {
     }
 }
 
-pub fn gen_styles(key: &String, value: &String, theme: &mut XmlTheme, fonts: &Fonts) {
+// handle errors without repetition
+macro_rules! herror {
+    ($key: expr, $value: expr) => {
+        |e| CssValParseError::Value($key.clone(), $value.clone(), e.to_string())
+    };
+}
+
+pub fn gen_styles_log(key: &String, value: &String, theme: &mut XmlTheme, fonts: &Fonts) {
+    match try_gen_styles(key, value, theme, fonts) {
+        Ok(_) => {}
+        Err(e) => error!("Styling error: {e}"),
+    }
+}
+
+/// Generates styles for the given key-value pair and updates the provided XmlTheme accordingly.
+/// See parse_utils.rs for the parsing functions used to convert string values into the appropriate types.
+pub fn try_gen_styles(
+    key: &String,
+    value: &String,
+    theme: &mut XmlTheme,
+    fonts: &Fonts,
+) -> Result<(), CssValParseError> {
     match key.as_str() {
-        "enable" => theme.enable = parse_bool(value),
-        "bg" => theme.background = parse_background(value),
-        "fg-elem" => theme.foreground_element = parse_background(value),
-        "bg-color" => theme.background_color = parse_color_op(value),
-        "fg" => theme.foreground_color = parse_color(value),
-        "snap" => theme.snap = parse_bool(value),
-        "shadow-color" => theme.shadow_color = parse_color(value),
-        "shadow-blur" => theme.shadow_blur_radius = parse_value(value),
-        "shadow-offset" => theme.shadow_offset = parse_vector(value),
-        "border-color" => theme.border_color = parse_color(value),
-        "border-radius" => theme.border_radius = parse_radius(value),
-        "border-width" => theme.border_width = parse_value(value),
-        "clip" => theme.clip = parse_bool(value),
-        "height" => theme.height = parse_length(value),
-        "width" => theme.width = parse_length(value),
-        "padding" => theme.padding = parse_padding(value),
-        "max_width" => theme.max_width = parse_value(value),
-        "align-x" => theme.align_x = parse_align_x(value),
-        "spacing" => theme.spacing = parse_value(value),
-        "align-y" => theme.align_y = parse_align_y(value),
-        "wrap" => theme.wrap = parse_bool(value),
+        "enable" => theme.enable = parse_bool(value).map_err(herror!(key, value))?,
+        "snap" => theme.snap = parse_bool(value).map_err(herror!(key, value))?,
+        "wrap" => theme.wrap = parse_bool(value).map_err(herror!(key, value))?,
+        "clip" => theme.clip = parse_bool(value).map_err(herror!(key, value))?,
+        "tooltip-no-overflow" => {
+            theme.tooltip_no_overflow = parse_bool(value).map_err(herror!(key, value))?
+        }
+        "bg" => theme.background = parse_background(value).map_err(herror!(key, value))?,
+        "fg-elem" => {
+            theme.foreground_element = parse_background(value).map_err(herror!(key, value))?
+        }
+        "current-item-bg" => {
+            theme.selected_background = parse_background(value).map_err(herror!(key, value))?
+        }
+        "bg-color" => {
+            theme.background_color = parse_color_op(value).map_err(herror!(key, value))?
+        }
+        "fg" => theme.foreground_color = parse_color(value).map_err(herror!(key, value))?,
+        "shadow-color" => theme.shadow_color = parse_color(value).map_err(herror!(key, value))?,
+        "current-item-fg" => {
+            theme.selected_text_color = parse_color(value).map_err(herror!(key, value))?
+        }
+        "border-color" => theme.border_color = parse_color(value).map_err(herror!(key, value))?,
+        "icon-color" => theme.icon_color = parse_color(value).map_err(herror!(key, value))?,
+        "placeholder-color" => {
+            theme.input_placeholder_color = parse_color(value).map_err(herror!(key, value))?
+        }
+        "selection-color" => {
+            theme.selection_color = parse_color(value).map_err(herror!(key, value))?
+        }
+        "border-radius" => {
+            theme.border_radius = parse_radius(value).map_err(herror!(key, value))?
+        }
+        "shadow-offset" => {
+            theme.shadow_offset = parse_vector(value).map_err(herror!(key, value))?
+        }
+        "shadow-blur" => {
+            theme.shadow_blur_radius = parse_value(value).map_err(herror!(key, value))?
+        }
+        "border-width" => theme.border_width = parse_value(value).map_err(herror!(key, value))?,
+        "grid-width" => theme.grid_width = parse_value(value).map_err(herror!(key, value))?.into(),
+        "pane-min-size" => theme.pane_min_size = parse_value(value).map_err(herror!(key, value))?,
+        "spacing" => theme.spacing = parse_value(value).map_err(herror!(key, value))?,
+        "max_width" => theme.max_width = parse_value(value).map_err(herror!(key, value))?,
+        "slider-height" => theme.slider_height = parse_value(value).map_err(herror!(key, value))?,
+        "slider-rail-width" => {
+            theme.slider_rail_width = parse_value(value).map_err(herror!(key, value))?
+        }
+        "min-height" => {
+            theme.textarea_min_height = parse_value(value).map_err(herror!(key, value))?
+        }
+        "tooltip-gap" => theme.tooltip_gap = parse_value(value).map_err(herror!(key, value))?,
+        "tooltip-padding" => {
+            theme.tooltip_padding = parse_value(value).map_err(herror!(key, value))?
+        }
+        "vertical-slider-width" => {
+            theme.vertical_slider_width = parse_value(value).map_err(herror!(key, value))?
+        }
+        "toggle-padding-ratio" => {
+            theme.toggle_padding_ratio = parse_value(value).map_err(herror!(key, value))?
+        }
+        "max-height" => theme.max_height = parse_value(value).map_err(herror!(key, value))?,
+        "scale" => theme.scale = parse_value(value).map_err(herror!(key, value))?,
+        "editor-width" => {
+            theme.textarea_width = parse_value(value).map_err(herror!(key, value))?.into()
+        }
+        "grid-responsive-width" => {
+            theme.grid_responsive_width = parse_value(value).map_err(herror!(key, value))?.into()
+        }
+        "font-size" => theme.font_size = parse_value_maybe(value),
+        "element-size" => theme.size = parse_value_maybe(value),
+        "grid-columns" => {
+            theme.grid_columns =
+                parse_value_int(value).map_err(herror!(key, value))?.min(1) as usize
+        }
+        "height" => theme.height = parse_length(value).map_err(herror!(key, value))?,
+        "width" => theme.width = parse_length(value).map_err(herror!(key, value))?,
+        "select-menu-height" => {
+            theme.select_menu_height = parse_length(value).map_err(herror!(key, value))?
+        }
+        "progress-height" => {
+            theme.progress_height =
+                Some(parse_length(value).map_err(|e| {
+                    CssValParseError::Value(key.clone(), value.clone(), e.to_string())
+                })?)
+        }
+        "padding" => theme.padding = parse_padding(value).map_err(herror!(key, value))?,
+        "align-x" => theme.align_x = parse_align_x(value).map_err(herror!(key, value))?,
+        "align-y" => theme.align_y = parse_align_y(value).map_err(herror!(key, value))?,
+        "font" => theme.font = parse_font(value, fonts).map_err(herror!(key, value))?,
+        "font-family" => {
+            parse_font_family(&mut theme.font.family, value, fonts).map_err(herror!(key, value))?
+        }
+        "font-weight" => {
+            parse_font_weight(&mut theme.font.weight, value).map_err(herror!(key, value))?
+        }
+        "font-stretch" => {
+            parse_font_stretch(&mut theme.font.stretch, value).map_err(herror!(key, value))?
+        }
+        "font-style" => {
+            parse_font_style(&mut theme.font.style, value).map_err(herror!(key, value))?
+        }
+        "shaping" => theme.shaping = parse_shaping(value).map_err(herror!(key, value))?,
+        "text-wrapping" => {
+            theme.text_wrapping = parse_text_wrapping(value).map_err(herror!(key, value))?
+        }
+        "checkbox-icon" => {
+            theme.checkbox_icon = parse_checkbox_icon(value, &theme.font, theme.shaping)
+                .map_err(herror!(key, value))?
+        }
+        "line-height" => {
+            theme.line_height = parse_line_height(value).map_err(herror!(key, value))?
+        }
+        "select-icon" => {
+            theme.select_icon =
+                parse_select_icon(value, &theme.font).map_err(herror!(key, value))?
+        }
+        "input-icon" => {
+            theme.select_icon =
+                parse_select_icon(value, &theme.font).map_err(herror!(key, value))?
+        }
+        "scroll-anchor" => {
+            theme.scroll_anchor = Some(check_anchor(value).map_err(herror!(key, value))?)
+        }
+        "slider-handle-shape" => {
+            theme.slider_handle_shape =
+                parse_slider_handle_theme(value, theme).map_err(herror!(key, value))?
+        }
+        "table-padding" => {
+            theme.table_padding = parse_two_f32(value).map_err(herror!(key, value))?
+        }
+        "table-separator" => {
+            theme.table_separator_width = parse_two_f32(value).map_err(herror!(key, value))?
+        }
+        "center-type" => {
+            theme.center_use_align = parse_center_type(value).map_err(herror!(key, value))?
+        }
+        "toggle-text-alignment" => {
+            theme.toggle_text_alignment =
+                parse_text_alignment(value).map_err(herror!(key, value))?
+        }
+        "tooltip-delay" => {
+            theme.tooltip_delay =
+                Duration::from_secs_f32(parse_time(value).map_err(herror!(key, value))?)
+        }
         "center" => {
             theme.center_all = value == "all";
             theme.center_x = value == "x";
             theme.center_y = value == "y";
         }
-        "font-family" => parse_font_family(&mut theme.font.family, value, fonts),
-        "font-weight" => parse_font_weight(&mut theme.font.weight, value),
-        "font-stretch" => parse_font_stretch(&mut theme.font.stretch, value),
-        "font-style" => parse_font_style(&mut theme.font.style, value),
-        "font" => theme.font = parse_font(value, fonts),
-        "shaping" => theme.shaping = parse_shaping(value),
-        "element-size" => theme.size = parse_value_maybe(value),
-        "text-wrapping" => theme.text_wrapping = parse_text_wrapping(value),
-        "checkbox-icon" => {
-            theme.checkbox_icon = parse_checkbox_icon(value, &theme.font, theme.shaping)
-        }
-        "line-height" => theme.line_height = parse_line_height(value),
-        "font-size" => theme.font_size = parse_value_maybe(value),
-        "select-icon" => theme.select_icon = parse_select_icon(value, &theme.font),
-        "input-icon" => theme.select_icon = parse_select_icon(value, &theme.font),
-        "icon-color" => theme.icon_color = parse_color(value),
-        "placeholder-color" => theme.input_placeholder_color = parse_color(value),
-        "selection-color" => theme.selection_color = parse_color(value),
-        "select-menu-height" => theme.select_menu_height = parse_length(value),
-        "current-item-bg" => theme.selected_background = parse_background(value),
-        "current-item-fg" => theme.selected_text_color = parse_color(value),
-        "max-height" => theme.max_height = parse_value(value),
-        "scale" => theme.scale = parse_value(value),
-        "grid-columns" => theme.grid_columns = parse_value_int(value).min(1) as usize,
-        "grid-responsive-width" => theme.grid_responsive_width = parse_value(value).into(),
-        "grid-width" => theme.grid_width = parse_value(value).into(),
-        "pane-min-size" => theme.pane_min_size = parse_value(value),
-        "scroll-anchor" => theme.scroll_anchor = Some(check_anchor(value)),
-        "progress-height" => theme.progress_height = Some(parse_length(value)),
-        "slider-height" => theme.slider_height = parse_value(value),
-        "slider-rail-width" => theme.slider_rail_width = parse_value(value),
-        "slider-handle-shape" => {
-            theme.slider_handle_shape = parse_slider_handle_theme(value, theme)
-        }
-        "table-padding" => theme.table_padding = parse_two_f32(value),
-        "table-separator" => theme.table_separator_width = parse_two_f32(value),
-        "center-type" => theme.center_use_align = parse_center_type(value),
-        "min-height" => theme.textarea_min_height = parse_value(value),
-        "editor-width" => theme.textarea_width = parse_value(value).into(),
-        "toggle-text-alignment" => theme.toggle_text_alignment = parse_text_alignment(value),
-        "toggle-padding-ratio" => theme.toggle_padding_ratio = parse_value(value),
-        "tooltip-delay" => theme.tooltip_delay = Duration::from_secs_f32(parse_time(value)),
-        "tooltip-gap" => theme.tooltip_gap = parse_value(value),
-        "tooltip-padding" => theme.tooltip_padding = parse_value(value),
-        "tooltip-no-overflow" => theme.tooltip_no_overflow = parse_bool(value),
-        "vertical-slider-width" => theme.vertical_slider_width = parse_value(value),
         _ => {
-            println!("Unknown theme property: {} = {}", key, value);
+            return Err(CssValParseError::KeyNotFound(key.clone(), value.clone()));
         }
-    }
+    };
+    return Ok(());
 }

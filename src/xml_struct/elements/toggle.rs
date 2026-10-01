@@ -1,11 +1,16 @@
 // Copy-paste template
 use crate::{
-    dom::query::{EventResponse, QueryResponse},
+    dom::{
+        events::{DomInternalMessageType, EventListenerTypes},
+        query_builder::{EventResponse, QueryResponse},
+    },
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
+        elements::{element_base::ElementBase, library::ElementError},
+        parser::XmlElement,
     },
 };
 
@@ -15,8 +20,12 @@ pub struct Toggle {
 }
 
 impl ElementBase for Toggle {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
-        Self {
+    fn new(
+        xml_element: &XmlElement,
+        _: &mut ElementRenderer,
+        _: i32,
+    ) -> Result<Self, ElementError> {
+        return Ok(Self {
             toggled: xml_element
                 .attributes
                 .get("toggled")
@@ -27,7 +36,7 @@ impl ElementBase for Toggle {
                 .get("label")
                 .unwrap_or(&String::from(""))
                 .clone(),
-        }
+        });
     }
 
     fn render<'a>(
@@ -75,15 +84,15 @@ impl ElementBase for Toggle {
             toggle = toggle.text_size(theme.font_size.unwrap());
         }
 
-        let mut event_id = -1;
+        let mut event_id = None;
         for event in events {
-            if event.event_type == "toggle" {
-                event_id = event.event_uid;
+            if event.event_type == EventListenerTypes::Toggle {
+                event_id = Some(event.event_uid);
             }
         }
 
         toggle = toggle.on_toggle(move |toggled| {
-            let mut event_response = EventResponse::new(self_uid, String::from("toggle"));
+            let mut event_response = EventResponse::new(self_uid, EventListenerTypes::Toggle);
             event_response.data_bool = Some(toggled);
             return Message::DomEvent(event_id, event_response);
         });
@@ -91,43 +100,49 @@ impl ElementBase for Toggle {
         return toggle.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let mut query_response = QueryResponse::new(true);
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
+        let mut query_response = QueryResponse::success();
         match event {
-            XmlChangeEvent::EventFired(name, event_response) => {
-                if name == "toggle" {
-                    if let Some(toggled) = event_response.data_bool {
-                        self.toggled = toggled;
-                        return Some((query_response, Vec::new(), Vec::new()));
-                    }
-                }
-                None
-            }
-            XmlChangeEvent::PropertyChange(key, value) => match key.as_str() {
+            DomInternalMessageType::PropertyChange(key, value) => match key.as_str() {
                 "toggled" => {
                     self.toggled = value == "true";
-                    return Some((query_response, Vec::new(), Vec::new()));
+                    return Some(ElementEventResponse::success());
                 }
                 "label" => {
                     self.label = value.clone();
-                    return Some((query_response, Vec::new(), Vec::new()));
+                    return Some(ElementEventResponse::success());
                 }
                 _ => None,
             },
-            XmlChangeEvent::GetProperty(key) => match key.as_str() {
+            DomInternalMessageType::GetProperty(key) => match key.as_str() {
                 "toggled" => {
                     query_response.data_bool = Some(self.toggled);
-                    return Some((query_response, Vec::new(), Vec::new()));
+                    return Some(ElementEventResponse::success());
                 }
                 "label" => {
                     query_response.data_str = Some(self.label.clone());
-                    return Some((query_response, Vec::new(), Vec::new()));
+                    return Some(ElementEventResponse::success());
                 }
                 _ => None,
             },
+            _ => None,
+        }
+    }
+
+    fn event_callback(
+        &mut self,
+        event_type: &EventListenerTypes,
+        event_response: &EventResponse,
+    ) -> Option<ElementEventResponse> {
+        match event_type {
+            EventListenerTypes::Toggle => {
+                if event_response.data_bool.is_some() {
+                    self.toggled = event_response.data_bool.unwrap();
+                    return Some(ElementEventResponse::success());
+                } else {
+                    None
+                }
+            }
             _ => None,
         }
     }

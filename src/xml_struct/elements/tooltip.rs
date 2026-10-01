@@ -1,11 +1,13 @@
 // Copy-paste template
 use crate::{
-    dom::query::QueryResponse,
+    dom::{events::DomInternalMessageType, query_builder::QueryResponse},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        element_renderer::{
+            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
+        },
+        elements::{element_base::ElementBase, library::ElementError},
+        parser::XmlElement,
     },
 };
 
@@ -33,12 +35,15 @@ fn parse_position(pos: &str) -> iced::widget::tooltip::Position {
 }
 
 impl ElementBase for Tooltip {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        renderer: &mut ElementRenderer,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         if xml_element.children.len() != 2 {
-            panic!(
-                "<Tooltip> elements must have exactly 2 children: <Content /> and <Tip /> (currently has {})",
-                xml_element.children.len()
-            );
+            return Err(ElementError::TooltipMustHaveTwoChildren(
+                xml_element.clone(),
+            ));
         }
 
         let mut tooltip = None;
@@ -48,27 +53,20 @@ impl ElementBase for Tooltip {
             match child.tag.as_str() {
                 "Content" => {
                     if child.children.len() != 1 {
-                        panic!(
-                            "<Content> elements must have exactly one child (currently has {})",
-                            child.children.len()
-                        );
+                        return Err(ElementError::TooltipContentMustHaveOneChild(child.clone()));
                     }
                     content = Some(renderer.init_element_from_xml(&child.children[0], self_uid));
                 }
                 "Tip" => {
                     if child.children.len() != 1 {
-                        panic!(
-                            "<Tip> elements must have exactly one child (currently has {})",
-                            child.children.len()
-                        );
+                        return Err(ElementError::TooltipTipMustHaveOneChild(child.clone()));
                     }
                     tooltip = Some(renderer.init_element_from_xml(&child.children[0], self_uid));
                 }
                 _ => {
-                    panic!(
-                        "<Tooltip> elements can only have <Content /> and <Tip /> children (found {})",
-                        child.tag
-                    );
+                    return Err(ElementError::TooltipChildrenMustBeContentAndTip(
+                        child.clone(),
+                    ));
                 }
             }
         }
@@ -83,11 +81,11 @@ impl ElementBase for Tooltip {
             position = parse_position(pos);
         }
 
-        Self {
+        return Ok(Self {
             content: content.unwrap(),
             tooltip: tooltip.unwrap(),
             position: position,
-        }
+        });
     }
 
     fn render<'a>(
@@ -128,29 +126,27 @@ impl ElementBase for Tooltip {
         return tooltip.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let mut response = QueryResponse::new(true);
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::PropertyChange(name, newval) => match name.as_str() {
+            DomInternalMessageType::PropertyChange(name, newval) => match name.as_str() {
                 "tip-pos" => {
                     self.position = parse_position(newval);
-                    Some((response, vec![], vec![]))
+                    Some(ElementEventResponse::success())
                 }
                 _ => None,
             },
-            XmlChangeEvent::GetProperty(name) => match name.as_str() {
+            DomInternalMessageType::GetProperty(name) => match name.as_str() {
                 "tip-pos" => {
-                    response.data_str = Some(match self.position {
+                    let pos_string = match self.position {
                         iced::widget::tooltip::Position::Top => "top".to_string(),
                         iced::widget::tooltip::Position::Bottom => "bottom".to_string(),
                         iced::widget::tooltip::Position::Left => "left".to_string(),
                         iced::widget::tooltip::Position::Right => "right".to_string(),
                         iced::widget::tooltip::Position::FollowCursor => "cursor".to_string(),
-                    });
-                    Some((response, vec![], vec![]))
+                    };
+                    Some(ElementEventResponse::new(
+                        QueryResponse::success().with_data_str(pos_string),
+                    ))
                 }
                 _ => None,
             },

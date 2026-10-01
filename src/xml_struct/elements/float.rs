@@ -2,12 +2,11 @@ use iced::Shadow;
 
 // Copy-paste template
 use crate::{
-    dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+        elements::{element_base::ElementBase, library::ElementError},
+        parser::XmlElement,
     },
 };
 
@@ -16,13 +15,19 @@ pub struct FloatingElement {
 }
 
 impl ElementBase for FloatingElement {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        renderer: &mut ElementRenderer,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         if xml_element.children.len() != 1 {
-            panic!("FloatingElement must have exactly one child");
+            return Err(ElementError::FloatingElementMustHaveOneChild(
+                xml_element.clone(),
+            ));
         }
         let child = renderer.init_element_from_xml(&xml_element.children[0], self_uid);
 
-        Self { child: child }
+        return Ok(Self { child: child });
     }
 
     fn render<'a>(
@@ -52,18 +57,5 @@ impl ElementBase for FloatingElement {
         // TODO: What does .translate do?
 
         return float_element.into();
-    }
-
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        match event {
-            // Process PropertyChange / GetProperty / Custom events
-            // The second parameter is a list of element IDs to forward the event to
-            // For example, if you want to forward the event to your "virtual label element", so it changes text,
-            // you would use `Some(..., vec![virtual_text])`
-            _ => None,
-        }
     }
 }

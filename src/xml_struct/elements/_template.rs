@@ -3,9 +3,10 @@ use crate::{
     dom::query::QueryResponse,
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
+        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
         elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        elements::library::ElementError,
+        parser::XmlElement,
     },
 };
 
@@ -15,7 +16,11 @@ pub struct __EL__NAME {
 }
 
 impl ElementBase for __EL__NAME {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: &XmlElement,
+        renderer: &mut ElementRenderer,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         // If it supports children, initialize them here with renderer.init_element
         // let mut children: Vec<i32> = Vec::new();
         // for child in &xml_element.children {
@@ -28,7 +33,7 @@ impl ElementBase for __EL__NAME {
         //     Some(xml_element.theme.clone()),
         // );
 
-        Self { children: children }
+        return Ok(Self { children: children });
     }
 
     fn render<'a>(
@@ -67,10 +72,7 @@ impl ElementBase for __EL__NAME {
         return container.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
             // Process PropertyChange / GetProperty / Custom events
             // The second parameter is a list of element IDs to forward the event to

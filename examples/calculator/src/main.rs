@@ -1,8 +1,8 @@
 use iced_xml::{
-    dom::{api::Dom, query::QueryBuilder},
+    dom::{api::Dom, events::EventListenerTypes, query_builder::QueryBuilder},
     utils::watch_css::watch_css_file,
     window_manager,
-    window_wrapper::{AppResult, CssRx, CssWatcher, Objects, ObjectsReadOnly, WindowTemplate},
+    window_wrapper::{CssRx, CssWatcher, Objects, ObjectsReadOnly, WindowTemplate},
     xml_engine::XmlEngine,
 };
 
@@ -119,7 +119,7 @@ impl MainWindow {
         Self {
             qb: QueryBuilder::new(),
             engine: XmlEngine::new(
-                include_bytes!("main.xml").to_vec(),
+                include_str!("main.xml").to_string(),
                 DEFAULT_ENGINE_SETTINGS.clone(),
             ),
             rx: None,
@@ -138,19 +138,23 @@ impl MainWindow {
             self.watcher = Some(watcher_result.unwrap());
         }
         self.qb
-            .b(Dom::get_elements_by_class("button-nbr").add_event_listener("click"))
+            .b(Dom::get_elements_by_class("button-nbr")
+                .add_event_listener(EventListenerTypes::Click))
             .with_callback(|this, datas, _| {
                 if datas.target.is_some() {
                     this.qb
-                        .b(Dom::from(datas.target.unwrap()).get_property("text"));
+                        .b(Dom::from(datas.target.unwrap()).get_property("text"))
+                        .then(|this, datas| {
+                            if datas.success {
+                                this.add_nbr(datas.data_str.unwrap());
+                            }
+                        });
                     this.process();
-                    if this.qb.last.success {
-                        this.add_nbr(this.qb.last.data_str.as_deref().unwrap().to_string());
-                    }
                 }
             });
         self.qb
-            .b(Dom::get_elements_by_class("button-op").add_event_listener("click"))
+            .b(Dom::get_elements_by_class("button-op")
+                .add_event_listener(EventListenerTypes::Click))
             .with_callback(|this, datas, _| {
                 if datas.target.is_some() {
                     this.qb.b(Dom::from(datas.target.unwrap()).get_data("op"));
@@ -162,12 +166,16 @@ impl MainWindow {
             });
 
         self.qb
-            .b(Dom::get_element_by_id("button-calculate").add_event_listener("click"))
+            .b(Dom::get_element_by_id("button-calculate")
+                .add_event_listener(EventListenerTypes::Click))
             .with_callback(|this, _, _| {
                 this.calculate();
             });
         self.qb
-            .b(Dom::get_element_by_id("button-clear").add_event_listener("click"))
+            .b(
+                Dom::get_element_by_id("button-clear")
+                    .add_event_listener(EventListenerTypes::Click),
+            )
             .with_callback(|this, _, _| {
                 this.first_nbr = None;
                 this.second_nbr = None;
@@ -194,7 +202,6 @@ window_manager!(Windows {
 );
 
 fn main() -> AppResult {
-    let state = AppState::new();
     let params = WindowParams {};
-    return run_app(params, state);
+    return run_app(params, || AppState::new());
 }
