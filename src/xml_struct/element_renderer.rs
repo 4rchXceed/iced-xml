@@ -1,10 +1,15 @@
 use std::{any::Any, collections::HashMap};
 
 use iced::{Subscription, widget::text};
+use log::error;
 
 use crate::{
-    app_manager::ComponentFunctions,
-    css_reader::{CssReader, Rule, RuleBlock, Selector},
+    app_manager::utils::ComponentFunctions,
+    css::{
+        errors::CssParseError,
+        parser::CssReader,
+        types::{Rule, RuleBlock, Selector},
+    },
     dom::{
         events::{DomInternalMessageType, EventListenerTypes},
         query::{ComplexQuery, ComplexQueryJoinType, DomQuery, DomQueryType},
@@ -255,12 +260,14 @@ impl ElementRenderer {
     /// Parameters:
     /// - css: The CSS string to load.
     /// - hot_reload: A boolean indicating whether this is a hot-reload operation (use false by default)
-    pub fn load_css(&mut self, css: &str, hot_reload: bool) -> (bool, String) {
+    pub fn load_css(&mut self, css: &str, hot_reload: bool) -> Result<(), String> {
         let mut reader = CssReader::new(css);
-        reader.parse();
-        if reader.get_kill_switch() {
-            return (false, reader.get_kill_message());
-        }
+
+        reader
+            .parse()
+            .map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?;
+
         if hot_reload {
             if self.hot_reload_states.is_some() {
                 self.update_state(&reader.get_rules());
@@ -275,7 +282,7 @@ impl ElementRenderer {
                 self.apply_rules(selector, &rule_block.rules, hot_reload);
             }
         }
-        return (true, String::new());
+        return Ok(());
     }
 
     /// Returns the data associated with a given element UID and key, if any
@@ -460,7 +467,15 @@ impl ElementRenderer {
             DomQueryType::All => self.elements.keys().cloned().collect(),
             DomQueryType::Unused => vec![],
             DomQueryType::Complex(raw_complex_query) => {
-                return self.run_complex_query(raw_complex_query.clone());
+                match self.run_complex_query(raw_complex_query.clone()) {
+                    Err(e) => {
+                        error!("Invalid complex query: {e}");
+                        return Vec::new();
+                    }
+                    Ok(uids) => {
+                        return uids;
+                    }
+                }
             }
         };
     }
@@ -845,10 +860,12 @@ impl ElementRenderer {
     ///
     /// Returns:
     /// - A vector of elements UID that match the complex query.
-    pub fn run_complex_query(&self, raw_query: String) -> Vec<i32> {
-        let query = ComplexQuery::from(raw_query);
+    pub fn run_complex_query(&self, raw_query: String) -> Result<Vec<i32>, CssParseError> {
+        let query = ComplexQuery::from(raw_query)?;
+
         let firsts = self.raw_element_query(&query.query);
-        return self.next_complex(firsts, &Box::new(query));
+
+        return Ok(self.next_complex(firsts, &Box::new(query)));
     }
 
     /// Recursively processes the next part of a complex query, filtering elements based on their relationships.

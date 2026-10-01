@@ -3,7 +3,7 @@ use std::{any::Any, time::Duration};
 use iced::{Subscription, time};
 
 use crate::{
-    app_manager::{App, WindowId},
+    app_manager::{state_wrapper::App, utils::WindowId},
     dom::{
         api::Dom,
         events::{DomInternalMessageType, DomMessage, DomQueryBuilder, EventListenerTypes},

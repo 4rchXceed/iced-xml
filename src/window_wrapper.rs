@@ -3,7 +3,7 @@
 use std::any::Any;
 
 use crate::{
-    app_manager::App,
+    app_manager::state_wrapper::App,
     dom::{
         events::DomQueryBuilder,
         query_builder::{QueryBuilder, QueryResponse},

@@ -3,6 +3,11 @@ use std::{cell::Cell, collections::HashMap, f32::consts::PI};
 
 use crate::xml_struct::parser::XmlElement;
 
+pub trait IntoAny {
+    /// Convert the type into a Box<dyn std::any::Any>
+    fn into_any(self) -> Box<dyn std::any::Any>;
+}
+
 // Unique ID for all windows:
 // Thread-safe, since we ALWAYS work in the main thread (for the UI)
 thread_local! {
@@ -15,6 +20,7 @@ thread_local! {
 ///
 ///  Returns:
 ///
+
 ///  - a unique ID (i32)
 ///
 ///  Note: UIDs are unique ONLY within the same thread, so if you use multiple threads, you need to manage UIDs yourself.

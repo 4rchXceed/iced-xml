@@ -1,4 +1,7 @@
-use crate::css_reader::{CssReader, Selector, SelectorType, split_complex_selector};
+use crate::css::{
+    complex_query::split_complex_selector, errors::CssParseError, parser::CssReader,
+    types::SelectorType,
+};
 
 /// Complex query join types for DOM queries (refer to the source code's comments for more details)
 #[derive(Debug)]
@@ -49,29 +52,25 @@ impl ComplexQuery {
     ///
     /// Returns:
     /// A new instance of ComplexQuery.
-    pub fn new(mut query_part: String, link: Option<char>) -> Self {
+    pub fn new(mut query_part: String, link: Option<char>) -> Result<Self, CssParseError> {
+        // "hack" to make the query valid for parsing
         query_part.push_str(",");
-        let query: Selector = CssReader::new(query_part.as_str()).parse_selector();
+
+        let query = CssReader::new(query_part.as_str()).parse_selector()?;
+
         let query_type = gen_query_type(query.selector_type, query.content);
+
         match query_type {
             DomQueryType::Complex(_) => {
-                println!(
-                    "Complex query type is not supported in ComplexQuery: {:?}",
-                    query_type
-                );
-                return Self {
-                    query: DomQueryType::Unused,
-                    next: None,
-                    link_next: ComplexQueryJoinType::from(link),
-                };
+                return Err(CssParseError::ComplexQueryInComplexQuery(query_part));
             }
             _ => {}
         }
-        return Self {
+        return Ok(Self {
             query: query_type,
             next: None,
             link_next: ComplexQueryJoinType::from(link),
-        };
+        });
     }
 
     /// Continues parsing the complex query from a vector of query parts.
@@ -81,13 +80,16 @@ impl ComplexQuery {
     ///
     /// Returns:
     /// A new instance of ComplexQuery representing the next part of the complex query.
-    fn next(mut full: Vec<(String, Option<char>)>) -> Self {
+    fn next(mut full: Vec<(String, Option<char>)>) -> Result<ComplexQuery, CssParseError> {
         let (query_part, link_next) = full.remove(0);
-        let mut base = ComplexQuery::new(query_part, link_next);
+
+        let mut base = ComplexQuery::new(query_part, link_next)?;
+
         if full.len() > 0 {
-            base.next = Some(Box::new(ComplexQuery::next(full)));
+            base.next = Some(Box::new(ComplexQuery::next(full)?));
         }
-        return base;
+
+        return Ok(base);
     }
 
     /// Parses a full complex query string into a ComplexQuery structure.
@@ -97,9 +99,11 @@ impl ComplexQuery {
     ///
     /// Returns:
     /// A new instance of ComplexQuery representing the parsed complex query.
-    pub fn from(full_query: String) -> Self {
-        let full = split_complex_selector(full_query);
-        return ComplexQuery::next(full);
+    pub fn from(full_query: String) -> Result<ComplexQuery, CssParseError> {
+        let full = split_complex_selector(full_query.clone())
+            .map_err(|e| CssParseError::ComplexQueryError(e, full_query))?;
+
+        return Ok(ComplexQuery::next(full)?);
     }
 }
 

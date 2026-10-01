@@ -1,4 +1,7 @@
+use std::collections::HashMap;
+
 use iced_xml::{
+    app_manager::{app_manager::WindowManager, state_wrapper::App, utils::WindowId},
     dom::{
         api::Dom,
         events::EventListenerTypes,
@@ -7,7 +10,7 @@ use iced_xml::{
     rs_utils::HashableHashMap,
     utils::watch_css::watch_css_file,
     window_manager,
-    window_wrapper::{CssRx, Objects, ObjectsReadOnly, WindowTemplate},
+    window_wrapper::{AppResult, CssRx, Objects, ObjectsReadOnly, WindowTemplate},
     xml_engine::XmlEngine,
     xml_struct::elements::textarea::TextareaEvent,
 };
@@ -349,8 +352,13 @@ fn create_window(_: WindowParams, _: &mut App<AppState>, _: WindowId) -> Windows
 
 window_manager!(Windows {
     MainWindow
-}; create_window; AppState; WindowParams);
+}; AppState; WindowParams);
 
 pub fn main() -> AppResult {
-    return run_app(WindowParams {}, || AppState {});
+    return WindowManager::run_app(
+        WindowParams {},
+        || AppState {},
+        DEFAULT_ENGINE_SETTINGS.clone(),
+        create_window,
+    );
 }

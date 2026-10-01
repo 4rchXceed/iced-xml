@@ -2,7 +2,7 @@
 //! TODO: Doc
 use std::io::Cursor;
 
-use crate::app_manager::ComponentFunctions;
+use crate::app_manager::utils::ComponentFunctions;
 use crate::dom::events::{DomInternalMessageType, DomMessage};
 use crate::dom::query_builder::{EventResponse, EventType, QueryResponse};
 use crate::rs_utils::get_unique_id;
@@ -10,6 +10,7 @@ use crate::xml_struct::element_renderer::ElementRenderer;
 use crate::xml_struct::parser::{XmlElement, XmlParser};
 use crate::xml_struct::theming::Fonts;
 use iced::window;
+use log::warn;
 use quick_xml::Reader;
 
 ///  Message is the main event-system message for Iced.
@@ -257,14 +258,22 @@ impl XmlEngine {
             }
             // If it's an ImportCss event, we load the CSS into the element renderer, and return the success status and any error message that might have occurred during the loading process.
             DomInternalMessageType::ImportCss(css, for_hot_reload) => {
-                let (success, message) =
-                    self.element_renderer.load_css(&css, for_hot_reload.clone());
+                match self.element_renderer.load_css(&css, for_hot_reload.clone()) {
+                    Ok(_) => {
+                        let query_response = QueryResponse::success();
 
-                let mut query_response = QueryResponse::new(success);
+                        return vec![query_response];
+                    }
+                    Err(e) => {
+                        // Still print the message
+                        warn!("Failed to load CSS: {e}");
 
-                query_response.error_message = Some(message);
+                        let query_response =
+                            QueryResponse::fail(&format!("Failed to load CSS: {e}"));
 
-                return vec![query_response];
+                        return vec![query_response];
+                    }
+                }
             }
             _ => vec![QueryResponse::fail(
                 "Message supposed to be a generic event, but it is not.",

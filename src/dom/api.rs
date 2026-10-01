@@ -1,5 +1,5 @@
 use crate::{
-    css_reader::SelectorType,
+    css::types::SelectorType,
     dom::{events::DomQueryBuilder, query::DomQuery},
 };
 

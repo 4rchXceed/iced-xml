@@ -272,3 +272,8 @@ TODO:
 + Really improved parse_utils, by splitting to files, and made a good error handling (thiserror)
 
 ### Commit msg: "Code rewrite (V2) (1) + examples / 'unittests' + improved parse_utils.rs"
+
+## Last commit: 5d8796910c736e74d64575e5e978c913b32a69ba
++ (Finally?) (partially) removed the window_manager! macro. It's now "just" creating 3 functions, instead of the whole class/struct
++ Re-wrote a part of the CSS parser, the files are now splitted into multiple files, and the code is more readable
+What's next: rewriting element_renderer.rs

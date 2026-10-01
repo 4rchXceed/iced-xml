@@ -6,7 +6,7 @@ use quick_xml::{
 };
 
 use crate::{
-    css_reader::CssReader,
+    css::parser::CssReader,
     xml_struct::theming::{Fonts, XmlTheme, gen_styles_log},
 };
 

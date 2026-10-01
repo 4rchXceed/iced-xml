@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    css_reader::{Rule, RuleBlock, Selector},
+    css::types::{Rule, RuleBlock, Selector},
     dom::query::DomQuery,
     xml_struct::{
         element_renderer::{ElementRenderer, HotReloadState, extract_selector_style_flag},

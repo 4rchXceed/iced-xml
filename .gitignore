@@ -4,3 +4,4 @@ examples/test-implementation/
 examples/benchmark/target/
 tmp/
 devenv-scripts/
+/examples/benchmark

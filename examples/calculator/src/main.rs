@@ -1,18 +1,17 @@
+use std::any::Any;
+
 use iced_xml::{
+    app_manager::{app_manager::WindowManager, state_wrapper::App, utils::WindowId},
     dom::{api::Dom, events::EventListenerTypes, query_builder::QueryBuilder},
     utils::watch_css::watch_css_file,
     window_manager,
-    window_wrapper::{CssRx, CssWatcher, Objects, ObjectsReadOnly, WindowTemplate},
+    window_wrapper::{AppResult, CssRx, CssWatcher, Objects, ObjectsReadOnly, WindowTemplate},
     xml_engine::XmlEngine,
 };
 
 #[derive(Clone)]
 struct AppState {}
-impl AppState {
-    fn new() -> Self {
-        Self {}
-    }
-}
+impl AppState {}
 
 #[derive(Clone)]
 struct WindowParams {}
@@ -194,14 +193,14 @@ fn create_window(_: WindowParams, _: &mut App<AppState>, _: WindowId) -> Windows
 }
 
 window_manager!(Windows {
-        MainWindow,
-    };
-    create_window;
-    AppState;
-    WindowParams
-);
+    MainWindow
+}; AppState; WindowParams);
 
-fn main() -> AppResult {
-    let params = WindowParams {};
-    return run_app(params, || AppState::new());
+pub fn main() -> AppResult {
+    return WindowManager::run_app(
+        WindowParams {},
+        || AppState {},
+        DEFAULT_ENGINE_SETTINGS.clone(),
+        create_window,
+    );
 }

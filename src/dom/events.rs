@@ -1,5 +1,5 @@
 use crate::{
-    css_reader::SelectorType,
+    css::types::SelectorType,
     dom::{query::DomQuery, query_builder::CustomElementEvent},
     rs_utils::HashableXmlElement,
     xml_engine::DynamicEvent,

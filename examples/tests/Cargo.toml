@@ -5,3 +5,6 @@ edition = "2024"
 
 [dependencies]
 iced-xml = { path = "../../", features = ["css-watcher"] }
+
+[features]
+css-watcher=[]
