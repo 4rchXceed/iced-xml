@@ -21,7 +21,7 @@ pub struct Toggle {
 
 impl ElementBase for Toggle {
     fn new(
-        xml_element: &XmlElement,
+        xml_element: Box<XmlElement>,
         _: &mut ElementRenderer,
         _: i32,
     ) -> Result<Self, ElementError> {

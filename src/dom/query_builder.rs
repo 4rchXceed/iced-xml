@@ -135,7 +135,7 @@ pub struct QueryResponse {
     pub data_bool: Option<bool>,
     pub data_float: Option<HashableF32>,
     pub data_vector: Option<Vector2>,
-    pub data_element: Option<XmlElement>,
+    pub data_element: Option<Box<XmlElement>>,
     pub data_selector: Option<DomQuery>,
 }
 
@@ -205,7 +205,7 @@ impl QueryResponse {
     }
 
     /// Adds an XmlElement to the Query Response
-    pub fn with_data_element(mut self, data: XmlElement) -> Self {
+    pub fn with_data_element(mut self, data: Box<XmlElement>) -> Self {
         self.data_element = Some(data);
         self
     }

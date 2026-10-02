@@ -25,61 +25,61 @@ use crate::{
 #[derive(Error, Debug)]
 pub enum ElementError {
     #[error("Button with text cannot have children: {0}. Element: {1}")]
-    TextButtonHasChildren(XmlElement, String),
+    TextButtonHasChildren(Box<XmlElement>, String),
     #[error("Center element must have exactly one child or text inside. Element: {0}")]
-    CenterElementNotOneChildren(XmlElement),
+    CenterElementNotOneChildren(Box<XmlElement>),
     #[error("Center element must have either children or text, not both. Element: {0}")]
-    CenterElementHasBothChildrenAndText(XmlElement),
+    CenterElementHasBothChildrenAndText(Box<XmlElement>),
     #[error("Container element must have exactly one child. Element: {0}")]
-    ContainerElementNotOneChildren(XmlElement),
+    ContainerElementNotOneChildren(Box<XmlElement>),
     #[error("Floating element must have exactly one child. Element: {0}")]
-    FloatingElementMustHaveOneChild(XmlElement),
+    FloatingElementMustHaveOneChild(Box<XmlElement>),
     #[error("Label element cannot have children. Element: {0}")]
-    LabelHasChildren(XmlElement),
+    LabelHasChildren(Box<XmlElement>),
     #[error("Progress element must have min and max attributes. Element: {0}")]
-    ProgressElementMustHaveMinMaxAttributes(XmlElement),
+    ProgressElementMustHaveMinMaxAttributes(Box<XmlElement>),
     #[error("Attribute id is required on <Radio />. Element: {0}")]
-    AttributeIdRequiredForRadio(XmlElement),
+    AttributeIdRequiredForRadio(Box<XmlElement>),
     #[error("Attribute value is required on <Radio />. Element: {0}")]
-    AttributeValueRequiredForRadio(XmlElement),
+    AttributeValueRequiredForRadio(Box<XmlElement>),
     #[error("Scrollable element must have exactly one child. Element: {0}")]
-    ScrollableElementMustHaveOneChild(XmlElement),
+    ScrollableElementMustHaveOneChild(Box<XmlElement>),
     #[error(
         "Only <Option /> elements are allowed inside a <Select /> element. Element: {0}. Child: {1}"
     )]
-    OnlyOptionElementAllowedInComboBox(XmlElement, XmlElement),
+    OnlyOptionElementAllowedInComboBox(Box<XmlElement>, Box<XmlElement>),
     #[error(
         "<ColumnName> must have only one child element, which will be used as the column name. Element: {0}"
     )]
-    ColumnNameElementMustHaveOneChild(XmlElement),
+    ColumnNameElementMustHaveOneChild(Box<XmlElement>),
     #[error(
         "<ColumnTemplate> must have only one child element, which will be used as the column template. Element: {0}"
     )]
-    ColumnTemplateElementMustHaveOneChild(XmlElement),
+    ColumnTemplateElementMustHaveOneChild(Box<XmlElement>),
     #[error("TableColumn must have both <ColumnName> and <ColumnTemplate> children. Element: {0}")]
-    MissingChildInTableColumn(XmlElement),
+    MissingChildInTableColumn(Box<XmlElement>),
     #[error("Table can only have <TableColumn> children. Element: {0}. Child: {1}")]
-    TableCanOnlyHaveTableColumnChildren(XmlElement, XmlElement),
+    TableCanOnlyHaveTableColumnChildren(Box<XmlElement>, Box<XmlElement>),
     #[error("Table must have at least one <TableColumn> child. Element: {0}")]
-    TableHasNoChildren(XmlElement),
+    TableHasNoChildren(Box<XmlElement>),
     #[error(
         "<Tooltip> elements must have exactly 2 children: <Content /> and <Tip />. Element: {0}"
     )]
-    TooltipMustHaveTwoChildren(XmlElement),
+    TooltipMustHaveTwoChildren(Box<XmlElement>),
     #[error("<Content> elements must have exactly one child. Element: {0}")]
-    TooltipContentMustHaveOneChild(XmlElement),
+    TooltipContentMustHaveOneChild(Box<XmlElement>),
     #[error("<Tip> elements must have exactly one child. Element: {0}")]
-    TooltipTipMustHaveOneChild(XmlElement),
+    TooltipTipMustHaveOneChild(Box<XmlElement>),
     #[error("<Tooltip> elements can only have <Content /> and <Tip /> children. Element: {0}")]
-    TooltipChildrenMustBeContentAndTip(XmlElement),
+    TooltipChildrenMustBeContentAndTip(Box<XmlElement>),
     #[error("Trigger element can only have zero or one child. Element: {0}")]
-    TriggerElementHasMoreThanOneChild(XmlElement),
+    TriggerElementHasMoreThanOneChild(Box<XmlElement>),
     #[error("WindowSystem element must have exactly one child. Element: {0}")]
-    WindowSystemElementMustHaveOneChild(XmlElement),
+    WindowSystemElementMustHaveOneChild(Box<XmlElement>),
     #[error("WindowSystem element's child must be a Window element.")]
-    WindowSystemChildMustBeWindow(XmlElement, XmlElement),
+    WindowSystemChildMustBeWindow(Box<XmlElement>, Box<XmlElement>),
     #[error("Element tag not found: {0}")]
-    TagNotFound(XmlElement),
+    TagNotFound(Box<XmlElement>),
 }
 
 pub enum AnyElement {
@@ -111,7 +111,7 @@ pub enum AnyElement {
 
 #[rustfmt::skip]
 pub fn generate_element_from_tag(
-    xml_element: &XmlElement,
+    xml_element: Box<XmlElement>,
     renderer: &mut ElementRenderer,
     self_uid: i32
 ) -> Result<AnyElement, ElementError> {

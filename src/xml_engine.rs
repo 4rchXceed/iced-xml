@@ -124,7 +124,7 @@ impl XmlEngine {
         // Create the element renderer and initialize it with the root element
         let mut element_renderer = ElementRenderer::new(settings.fonts, settings.functions);
 
-        let uid = element_renderer.init_element_from_xml(&root, get_unique_id());
+        let uid = element_renderer.init_element_from_xml(Box::new(root), get_unique_id());
 
         return Ok(Self {
             dyn_events: Vec::new(),
@@ -324,7 +324,7 @@ impl XmlEngine {
                 DomInternalMessageType::Replace(ref replacing_element) => {
                     let selector = self
                         .element_renderer
-                        .replace_element(element, replacing_element.value().clone());
+                        .replace_element(element, replacing_element.value());
 
                     let mut qr = QueryResponse::success();
 

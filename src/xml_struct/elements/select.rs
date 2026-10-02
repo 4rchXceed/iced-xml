@@ -40,7 +40,7 @@ pub struct Select {
 
 impl ElementBase for Select {
     fn new(
-        xml_element: &XmlElement,
+        xml_element: Box<XmlElement>,
         _: &mut ElementRenderer,
         _: i32,
     ) -> Result<Self, ElementError> {

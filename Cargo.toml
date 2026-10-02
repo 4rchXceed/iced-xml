@@ -18,4 +18,4 @@ resolver = "3"
 members = [
     "examples/tests",
     "examples/calculator"
-]
+, "examples/perso/test-recreate"]

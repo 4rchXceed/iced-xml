@@ -279,9 +279,9 @@ impl DomQueryBuilder {
     /// self.qb.b(Dom::get_element_by_id("test").replace(new_element));
     /// self.process();
     /// ```
-    pub fn replace(&mut self, new_element: XmlElement) -> &mut Self {
+    pub fn replace(&mut self, new_element: Box<XmlElement>) -> &mut Self {
         let event = DomMessage {
-            message: DomInternalMessageType::Replace(HashableXmlElement::new(new_element.clone())),
+            message: DomInternalMessageType::Replace(HashableXmlElement::new(new_element)),
             uid: None,
             selector: self.query_event.clone(),
         };

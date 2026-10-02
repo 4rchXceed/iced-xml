@@ -16,7 +16,7 @@ pub struct FloatingElement {
 
 impl ElementBase for FloatingElement {
     fn new(
-        xml_element: &XmlElement,
+        xml_element: Box<XmlElement>,
         renderer: &mut ElementRenderer,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
@@ -25,7 +25,7 @@ impl ElementBase for FloatingElement {
                 xml_element.clone(),
             ));
         }
-        let child = renderer.init_element_from_xml(&xml_element.children[0], self_uid);
+        let child = renderer.init_element_from_xml(xml_element.children[0].clone(), self_uid);
 
         return Ok(Self { child: child });
     }

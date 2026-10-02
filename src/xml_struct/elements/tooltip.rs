@@ -36,7 +36,7 @@ fn parse_position(pos: &str) -> iced::widget::tooltip::Position {
 
 impl ElementBase for Tooltip {
     fn new(
-        xml_element: &XmlElement,
+        xml_element: Box<XmlElement>,
         renderer: &mut ElementRenderer,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
@@ -55,13 +55,15 @@ impl ElementBase for Tooltip {
                     if child.children.len() != 1 {
                         return Err(ElementError::TooltipContentMustHaveOneChild(child.clone()));
                     }
-                    content = Some(renderer.init_element_from_xml(&child.children[0], self_uid));
+                    content =
+                        Some(renderer.init_element_from_xml(child.children[0].clone(), self_uid));
                 }
                 "Tip" => {
                     if child.children.len() != 1 {
                         return Err(ElementError::TooltipTipMustHaveOneChild(child.clone()));
                     }
-                    tooltip = Some(renderer.init_element_from_xml(&child.children[0], self_uid));
+                    tooltip =
+                        Some(renderer.init_element_from_xml(child.children[0].clone(), self_uid));
                 }
                 _ => {
                     return Err(ElementError::TooltipChildrenMustBeContentAndTip(

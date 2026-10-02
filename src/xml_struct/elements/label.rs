@@ -24,12 +24,12 @@ impl Label {
 
 impl ElementBase for Label {
     fn new(
-        xml_element: &XmlElement,
+        xml_element: Box<XmlElement>,
         _: &mut ElementRenderer,
         _: i32,
     ) -> Result<Self, ElementError> {
         if xml_element.children.len() > 0 {
-            panic!("<Label> elements cannot have children");
+            return Err(ElementError::LabelHasChildren(xml_element.clone()));
         }
         return Ok(Self {
             text: xml_element.text.clone(),

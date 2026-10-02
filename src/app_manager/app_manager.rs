@@ -218,6 +218,7 @@ macro_rules! window_manager {
         }
 
         pub fn render_component(window: &Box<dyn std::any::Any>) -> iced_xml::app_manager::utils::IcedElement<'_> {
+            use iced_xml::window_wrapper::WindowTemplate;
             if let Some(window) = window.downcast_ref::<$windows>() {
                 return match window {
                     $(
@@ -230,7 +231,8 @@ macro_rules! window_manager {
         }
 
         pub fn update_component(window: &mut Box<dyn std::any::Any>, message: iced_xml::xml_engine::Message, state: &mut dyn std::any::Any) {
-            if let Some(window) = window.downcast_mut::<$windows>() && let Some(state) = state.downcast_mut::<App<$state>>() {
+            use iced_xml::window_wrapper::WindowTemplate;
+            if let Some(window) = window.downcast_mut::<$windows>() && let Some(state) = state.downcast_mut::<iced_xml::app_manager::state_wrapper::App<$state>>() {
                 match window {
                     $(
                         $windows::$variant(w) => w.update(message, state),
@@ -242,6 +244,7 @@ macro_rules! window_manager {
         }
 
         pub fn subscribe_component(window: &Box<dyn std::any::Any>) -> Vec<iced_xml::app_manager::utils::IcedSubscription> {
+            use iced_xml::window_wrapper::WindowTemplate;
             if let Some(window) = window.downcast_ref::<$windows>() {
                 return match window {
                     $(
@@ -255,7 +258,8 @@ macro_rules! window_manager {
         }
 
         pub fn on_close_component(window: &mut Box<dyn std::any::Any>, state: &mut dyn std::any::Any) {
-            if let Some(window) = window.downcast_mut::<$windows>() && let Some(state) = state.downcast_mut::<App<$state>>() {
+            use iced_xml::window_wrapper::WindowTemplate;
+            if let Some(window) = window.downcast_mut::<$windows>() && let Some(state) = state.downcast_mut::<iced_xml::app_manager::state_wrapper::App<$state>>() {
                 match window {
                     $(
                         $windows::$variant(w) => w.on_close(state),

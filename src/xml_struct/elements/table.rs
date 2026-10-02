@@ -21,7 +21,7 @@ pub struct Table {
 
 impl ElementBase for Table {
     fn new(
-        xml_element: &XmlElement,
+        xml_element: Box<XmlElement>,
         renderer: &mut ElementRenderer,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
@@ -38,20 +38,20 @@ impl ElementBase for Table {
                                 child.clone(),
                             ));
                         }
-                        column_name_elem_id = Some(
-                            renderer
-                                .init_element_from_xml(child.children.get(0).unwrap(), self_uid),
-                        );
+                        column_name_elem_id = Some(renderer.init_element_from_xml(
+                            child.children.get(0).unwrap().clone(),
+                            self_uid,
+                        ));
                     } else if child.tag == "ColumnTemplate" {
                         if child.children.len() != 1 {
                             return Err(ElementError::ColumnTemplateElementMustHaveOneChild(
                                 child.clone(),
                             ));
                         }
-                        column_template = Some(
-                            renderer
-                                .init_element_from_xml(child.children.get(0).unwrap(), self_uid),
-                        );
+                        column_template = Some(renderer.init_element_from_xml(
+                            child.children.get(0).unwrap().clone(),
+                            self_uid,
+                        ));
                     }
                 }
                 if column_name_elem_id.is_some() && column_template.is_some() {

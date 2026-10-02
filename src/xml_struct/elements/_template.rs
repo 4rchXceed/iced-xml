@@ -17,7 +17,7 @@ pub struct __EL__NAME {
 
 impl ElementBase for __EL__NAME {
     fn new(
-        xml_element: &XmlElement,
+        xml_element: Box<XmlElement>,
         renderer: &mut ElementRenderer,
         self_uid: i32,
     ) -> Result<Self, ElementError> {

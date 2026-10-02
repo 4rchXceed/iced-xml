@@ -27,7 +27,7 @@ pub struct Button {
 
 impl ElementBase for Button {
     fn new(
-        xml_element: &XmlElement,
+        xml_element: Box<XmlElement>,
         renderer: &mut ElementRenderer,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
@@ -54,7 +54,7 @@ impl ElementBase for Button {
             let children: Vec<i32> = xml_element
                 .children
                 .iter()
-                .map(|child| renderer.init_element_from_xml(child, self_uid))
+                .map(|child| renderer.init_element_from_xml(child.clone(), self_uid))
                 .collect();
 
             return Ok(Self {
@@ -144,10 +144,9 @@ impl ElementBase for Button {
             DomInternalMessageType::GetProperty(property) => {
                 return match property.as_str() {
                     "text" => {
-                        if self.text.is_some() {
+                        if let Some(text) = &self.text {
                             Some(ElementEventResponse::new(
-                                QueryResponse::success()
-                                    .with_data_str(self.text.as_ref().unwrap().clone()),
+                                QueryResponse::success().with_data_str(text.clone()),
                             ))
                         } else {
                             None

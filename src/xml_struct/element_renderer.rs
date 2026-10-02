@@ -92,7 +92,7 @@ pub struct ElementExtraData {
     /// Themes for "sub-elements" (::for(XYZ))
     pub flag_themes: HashMap<String, XmlTheme>,
     /// It's XML "Source"
-    pub xml_element: XmlElement,
+    pub xml_element: Box<XmlElement>,
     /// Parameters from parents
     pub child_data: Option<RenderChildParameters>,
 }
@@ -172,7 +172,7 @@ pub struct ElementRenderer {
     /// Maps the element's UID to its parent's UID, for quick access
     parent_map: HashMap<i32, i32>, // key: child, value: parent
     /// Maps the element's UID to its XML source, for quick access
-    sources_map: HashMap<i32, XmlElement>, // key: source name, value: XmlElement
+    sources_map: HashMap<i32, Box<XmlElement>>, // key: source name, value: XmlElement
     /// Maps the element's UID to its virtual children UIDs, for quick access
     /// Virtual childrens are elements that are not declared in the XML, but are created by an element.
     /// I'm using this system, so the sub-elements are still stylable by CSS
@@ -505,7 +505,7 @@ impl ElementRenderer {
     ///
     /// Returns:
     /// - The UID of the newly created element.
-    pub fn init_element_from_xml(&mut self, xml_element: &XmlElement, parent_uid: i32) -> i32 {
+    pub fn init_element_from_xml(&mut self, xml_element: Box<XmlElement>, parent_uid: i32) -> i32 {
         let id = get_unique_id();
         self.parent_map.insert(id, parent_uid);
         return self.create_element_safe(xml_element.clone(), id, None);
@@ -542,7 +542,7 @@ impl ElementRenderer {
     pub fn init_element(
         &mut self,
         element: AnyElement,
-        xml: Option<XmlElement>,
+        xml: Option<Box<XmlElement>>,
         parent_theme: Option<XmlTheme>,
         uid: i32,
     ) {
@@ -550,7 +550,7 @@ impl ElementRenderer {
         if let Some(xml) = xml {
             xml_element = xml;
         } else {
-            xml_element = XmlElement::virt();
+            xml_element = Box::new(XmlElement::virt());
             if parent_theme.is_some() {
                 xml_element.theme = parent_theme.unwrap();
             }
@@ -982,7 +982,7 @@ impl ElementRenderer {
     }
 
     /// Returns the XmlElement associated with a given UID, if any
-    pub fn get_source(&self, uid: i32) -> Option<XmlElement> {
+    pub fn get_source(&self, uid: i32) -> Option<Box<XmlElement>> {
         return self.sources_map.get(&uid).cloned();
     }
 
@@ -998,11 +998,11 @@ impl ElementRenderer {
     /// - The UID of the newly created element, void if an error occurred during creation, or 0 if the <Void /> element also failed to create (which should not happen).
     pub fn create_element_safe(
         &mut self,
-        xml_element: XmlElement,
+        xml_element: Box<XmlElement>,
         element_uid: i32,
         parent_theme: Option<XmlTheme>,
     ) -> i32 {
-        let element_result = generate_element_from_tag(&xml_element, self, element_uid);
+        let element_result = generate_element_from_tag(xml_element.clone(), self, element_uid);
         let element;
         if element_result.is_ok() {
             element = element_result.unwrap();
@@ -1011,8 +1011,8 @@ impl ElementRenderer {
                 "Error during element creation: {}. Generating <Void /> element instead",
                 element_result.err().unwrap().to_string()
             );
-            let void_element = XmlElement::void();
-            let element_result = generate_element_from_tag(&void_element, self, 0);
+            let void_element = Box::new(XmlElement::void());
+            let element_result = generate_element_from_tag(void_element, self, 0);
             if element_result.is_ok() {
                 element = element_result.unwrap();
             } else {
@@ -1035,7 +1035,7 @@ impl ElementRenderer {
     ///
     /// Returns:
     /// - A DomQuery that can be used to query the newly created element.
-    pub fn replace_element(&mut self, element_uid: i32, new_element: XmlElement) -> DomQuery {
+    pub fn replace_element(&mut self, element_uid: i32, new_element: Box<XmlElement>) -> DomQuery {
         self.remove_cascade(element_uid, false);
         let element_uid = self.create_element_safe(new_element, element_uid, None);
         return DomQuery {
@@ -1052,7 +1052,7 @@ impl ElementRenderer {
     ///
     /// Returns:
     /// - An Option<XmlElement> containing the source of the removed element if it was the root, or None if it was a child element.
-    pub fn remove_cascade(&mut self, element_uid: i32, is_parent: bool) -> Option<XmlElement> {
+    pub fn remove_cascade(&mut self, element_uid: i32, is_parent: bool) -> Option<Box<XmlElement>> {
         let mut children = self
             .parent_map
             .iter()
@@ -1084,7 +1084,7 @@ impl ElementRenderer {
         }
         // If the element is a parent, we need to re-add a <Void /> element to the parent, so that the parent can still render correctly
         if is_parent && old_parent.is_some() {
-            let xml_element = XmlElement::void();
+            let xml_element = Box::new(XmlElement::void());
             self.create_element_safe(xml_element, element_uid, None);
         }
         return source;

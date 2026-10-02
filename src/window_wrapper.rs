@@ -175,11 +175,16 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
 
         // The create an empty element replacing the old component, so it's parent doesn't crash
         let element_uid =
-            generate_element_from_tag(&XmlElement::void(), elem_renderer, component_uid)
+            generate_element_from_tag(Box::new(XmlElement::void()), elem_renderer, component_uid)
                 .map_err(|e| ComponentRemoveError::ElementError(e))?;
 
         // Add the element to the DOM
-        elem_renderer.init_element(element_uid, Some(XmlElement::void()), None, component_uid);
+        elem_renderer.init_element(
+            element_uid,
+            Some(Box::new(XmlElement::void())),
+            None,
+            component_uid,
+        );
 
         return Ok(component_uid);
     }

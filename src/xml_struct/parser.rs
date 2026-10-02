@@ -25,7 +25,7 @@ pub struct XmlElement {
     pub text: String,
     /// The element children as a Vec of XmlElement.
     /// Example: [XmlElement { tag: "Span", text: "Hello" }] for <Div><Span>Hello</Span></Div>.
-    pub children: Vec<XmlElement>,
+    pub children: Vec<Box<XmlElement>>,
     /// The element theme as an XmlTheme.
     /// View XmlTheme for more information.
     pub theme: XmlTheme,
@@ -109,7 +109,7 @@ impl XmlElement {
     /// let child = iced_xml::xml_struct::parser::XmlElement::void();
     /// element.set_children(vec![child]);
     /// ```
-    pub fn set_children(&mut self, children: Vec<XmlElement>) {
+    pub fn set_children(&mut self, children: Vec<Box<XmlElement>>) {
         self.children = children;
     }
 
@@ -136,7 +136,7 @@ impl XmlElement {
     /// element.append_child(child);
     /// ```
     pub fn append_child(&mut self, child: XmlElement) {
-        self.children.push(child);
+        self.children.push(Box::new(child));
     }
 
     /// Removes a child from the XmlElement by index.
@@ -352,7 +352,7 @@ impl XmlParser {
                 Ok(Event::Empty(e)) => {
                     let new_element = new_element(e, fonts);
                     if let Some(parent) = stack.last_mut() {
-                        parent.children.push(new_element);
+                        parent.children.push(Box::new(new_element));
                     } else {
                         root = Some(new_element);
                     }
@@ -361,7 +361,7 @@ impl XmlParser {
                     let node = stack.pop().unwrap();
 
                     if let Some(parent) = stack.last_mut() {
-                        parent.children.push(node);
+                        parent.children.push(Box::new(node));
                     } else {
                         root = Some(node);
                     }

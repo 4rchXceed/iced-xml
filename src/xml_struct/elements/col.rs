@@ -13,14 +13,14 @@ pub struct Col {
 
 impl ElementBase for Col {
     fn new(
-        xml_element: &XmlElement,
+        xml_element: Box<XmlElement>,
         renderer: &mut ElementRenderer,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
         let children: Vec<i32> = xml_element
             .children
             .iter()
-            .map(|child| renderer.init_element_from_xml(child, self_uid))
+            .map(|child| renderer.init_element_from_xml(child.clone(), self_uid))
             .collect();
 
         return Ok(Self { children: children });

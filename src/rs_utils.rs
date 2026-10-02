@@ -320,7 +320,7 @@ impl std::hash::Hash for HashableTextareaEdit {
 ///
 /// To get the value: HashableXmlElement.value()
 #[derive(Debug, Clone)]
-pub struct HashableXmlElement(XmlElement);
+pub struct HashableXmlElement(Box<XmlElement>);
 
 impl HashableXmlElement {
     /// Create a new HashableXmlElement from an XmlElement value
@@ -332,7 +332,7 @@ impl HashableXmlElement {
     /// Returns:
     ///
     /// - a new HashableXmlElement
-    pub fn new(value: XmlElement) -> Self {
+    pub fn new(value: Box<XmlElement>) -> Self {
         HashableXmlElement(value)
     }
 
@@ -343,8 +343,8 @@ impl HashableXmlElement {
     /// Returns:
     ///
     /// - the XmlElement value
-    pub fn value(&self) -> &XmlElement {
-        return &self.0;
+    pub fn value(&self) -> Box<XmlElement> {
+        return self.0.clone();
     }
 }
 

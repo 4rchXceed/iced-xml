@@ -11,7 +11,7 @@ use crate::{
 pub struct Void {}
 
 impl ElementBase for Void {
-    fn new(_: &XmlElement, _: &mut ElementRenderer, _: i32) -> Result<Self, ElementError> {
+    fn new(_: Box<XmlElement>, _: &mut ElementRenderer, _: i32) -> Result<Self, ElementError> {
         return Ok(Self {});
     }
 

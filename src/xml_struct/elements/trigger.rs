@@ -24,7 +24,7 @@ pub struct Trigger {
 
 impl ElementBase for Trigger {
     fn new(
-        xml_element: &XmlElement,
+        xml_element: Box<XmlElement>,
         renderer: &mut ElementRenderer,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
@@ -35,7 +35,7 @@ impl ElementBase for Trigger {
         }
         let mut child: Option<i32> = None;
         if xml_element.children.len() == 1 {
-            child = Some(renderer.init_element_from_xml(&xml_element.children[0], self_uid));
+            child = Some(renderer.init_element_from_xml(xml_element.children[0].clone(), self_uid));
         }
         let mut anticipated_pixels: f32 = 0.0;
         let mut time_to_trigger: u64 = 0;

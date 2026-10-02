@@ -26,7 +26,7 @@ pub enum RadioElement {
 
 impl ElementBase for RadioButton {
     fn new(
-        xml_element: &XmlElement,
+        xml_element: Box<XmlElement>,
         renderer: &mut ElementRenderer,
         _: i32,
     ) -> Result<Self, ElementError> {

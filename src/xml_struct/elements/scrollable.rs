@@ -24,7 +24,7 @@ pub struct Scroll {
 
 impl ElementBase for Scroll {
     fn new(
-        xml_element: &XmlElement,
+        xml_element: Box<XmlElement>,
         renderer: &mut ElementRenderer,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
@@ -39,7 +39,7 @@ impl ElementBase for Scroll {
         }
 
         return Ok(Self {
-            child: renderer.init_element_from_xml(&xml_element.children[0], self_uid),
+            child: renderer.init_element_from_xml(xml_element.children[0].clone(), self_uid),
             is_horizontal,
         });
     }

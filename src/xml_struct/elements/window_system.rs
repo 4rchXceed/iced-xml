@@ -113,7 +113,7 @@ impl WindowSystem {
 fn preprocess_pane_state(
     state: &mut iced::widget::pane_grid::State<PaneType>,
     renderer: &mut ElementRenderer,
-    elements: Vec<XmlElement>,
+    elements: Vec<Box<XmlElement>>,
     parent_pane: iced::widget::pane_grid::Pane,
     self_uid: i32,
 ) -> HashMap<String, WindowChild> {
@@ -127,13 +127,13 @@ fn preprocess_pane_state(
                 panic!("Window element must have window-id and split-method attributes."); // Note: maybe I'm going to make split-method in styling instead of attribute. We'll see
             }
             let child_id = child.attributes.get("window-id").unwrap().clone();
-            let child_uid = renderer.init_element_from_xml(&content(&child), self_uid);
-            let fullscreen_btn =
-                maximize_button(&child).map(|btn| renderer.init_element_from_xml(&btn, self_uid));
-            let close_btn =
-                close_button(&child).map(|btn| renderer.init_element_from_xml(&btn, self_uid));
-            let titlebar_content_uid =
-                titlebar_content(&child).map(|btn| renderer.init_element_from_xml(&btn, self_uid));
+            let child_uid = renderer.init_element_from_xml(content(child.clone()), self_uid);
+            let fullscreen_btn = maximize_button(child.clone())
+                .map(|btn| renderer.init_element_from_xml(btn, self_uid));
+            let close_btn = close_button(child.clone())
+                .map(|btn| renderer.init_element_from_xml(btn, self_uid));
+            let titlebar_content_uid = titlebar_content(child.clone())
+                .map(|btn| renderer.init_element_from_xml(btn, self_uid));
             let child_datas = WindowChild {
                 content_uid: child_uid,
                 fullscreen_btn: fullscreen_btn,
@@ -152,7 +152,7 @@ fn preprocess_pane_state(
                     preprocess_pane_state(
                         state,
                         renderer,
-                        window_children(&child),
+                        window_children(child),
                         pane.unwrap().0,
                         self_uid,
                     );
@@ -163,7 +163,7 @@ fn preprocess_pane_state(
     return children;
 }
 
-fn titlebar(element: &XmlElement) -> Option<XmlElement> {
+fn titlebar(element: Box<XmlElement>) -> Option<Box<XmlElement>> {
     for child in &element.children {
         if child.tag == "WindowTitlebar" {
             return Some(child.clone());
@@ -172,7 +172,7 @@ fn titlebar(element: &XmlElement) -> Option<XmlElement> {
     return None;
 }
 
-fn maximize_button(element: &XmlElement) -> Option<XmlElement> {
+fn maximize_button(element: Box<XmlElement>) -> Option<Box<XmlElement>> {
     let titlebar_op = titlebar(element);
     if titlebar_op.is_none() {
         return None;
@@ -186,7 +186,7 @@ fn maximize_button(element: &XmlElement) -> Option<XmlElement> {
     return None;
 }
 
-fn close_button(element: &XmlElement) -> Option<XmlElement> {
+fn close_button(element: Box<XmlElement>) -> Option<Box<XmlElement>> {
     let titlebar_op = titlebar(element);
     if titlebar_op.is_none() {
         return None;
@@ -200,7 +200,7 @@ fn close_button(element: &XmlElement) -> Option<XmlElement> {
     return None;
 }
 
-fn titlebar_content(element: &XmlElement) -> Option<XmlElement> {
+fn titlebar_content(element: Box<XmlElement>) -> Option<Box<XmlElement>> {
     let titlebar_op = titlebar(element);
     if titlebar_op.is_none() {
         return None;
@@ -214,8 +214,8 @@ fn titlebar_content(element: &XmlElement) -> Option<XmlElement> {
     return None;
 }
 
-fn content(element: &XmlElement) -> XmlElement {
-    let mut content: Option<XmlElement> = None;
+fn content(element: Box<XmlElement>) -> Box<XmlElement> {
+    let mut content: Option<Box<XmlElement>> = None;
     for child in &element.children {
         if child.tag == "WindowContent" {
             content = Some(child.clone());
@@ -228,8 +228,8 @@ fn content(element: &XmlElement) -> XmlElement {
     return content.unwrap();
 }
 
-fn window_children(element: &XmlElement) -> Vec<XmlElement> {
-    let mut childs: Vec<XmlElement> = Vec::new();
+fn window_children(element: Box<XmlElement>) -> Vec<Box<XmlElement>> {
+    let mut childs: Vec<Box<XmlElement>> = Vec::new();
     for child in &element.children {
         if child.tag == "WindowChildren" {
             for grandchild in &child.children {
@@ -268,7 +268,7 @@ fn transparent_btn_style() -> iced::widget::button::Style {
 
 impl ElementBase for WindowSystem {
     fn new(
-        xml_element: &XmlElement,
+        xml_element: Box<XmlElement>,
         renderer: &mut ElementRenderer,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
@@ -290,10 +290,10 @@ impl ElementBase for WindowSystem {
             drag_border_size = drag_border_size_str.parse::<f32>().unwrap_or(5.0);
         }
 
-        let first_window_content = content(&xml_element.children[0]);
-        let first_window_children = window_children(&xml_element.children[0]);
+        let first_window_content = content(xml_element.children[0].clone());
+        let first_window_children = window_children(xml_element.children[0].clone());
 
-        let first_uid = renderer.init_element_from_xml(&first_window_content, self_uid);
+        let first_uid = renderer.init_element_from_xml(first_window_content, self_uid);
         let first_id = xml_element.children[0]
             .attributes
             .get("window-id")
@@ -301,12 +301,12 @@ impl ElementBase for WindowSystem {
             .clone();
         let first_child = WindowChild {
             content_uid: first_uid,
-            fullscreen_btn: maximize_button(&xml_element.children[0])
-                .map(|btn| renderer.init_element_from_xml(&btn, self_uid)),
-            close_btn: close_button(&xml_element.children[0])
-                .map(|btn| renderer.init_element_from_xml(&btn, self_uid)),
-            titlebar_content_uid: titlebar_content(&xml_element.children[0])
-                .map(|btn| renderer.init_element_from_xml(&btn, self_uid)),
+            fullscreen_btn: maximize_button(xml_element.children[0].clone())
+                .map(|btn| renderer.init_element_from_xml(btn, self_uid)),
+            close_btn: close_button(xml_element.children[0].clone())
+                .map(|btn| renderer.init_element_from_xml(btn, self_uid)),
+            titlebar_content_uid: titlebar_content(xml_element.children[0].clone())
+                .map(|btn| renderer.init_element_from_xml(btn, self_uid)),
         };
 
         let mut state = iced::widget::pane_grid::State::new(InternalPane(

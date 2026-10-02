@@ -22,7 +22,7 @@ pub struct Center {
 
 impl ElementBase for Center {
     fn new(
-        xml_element: &XmlElement,
+        xml_element: Box<XmlElement>,
         renderer: &mut ElementRenderer,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
@@ -45,7 +45,9 @@ impl ElementBase for Center {
 
         if xml_element.text.trim().is_empty() {
             return Ok(Self {
-                children: Some(renderer.init_element_from_xml(&xml_element.children[0], self_uid)),
+                children: Some(
+                    renderer.init_element_from_xml(xml_element.children[0].clone(), self_uid),
+                ),
                 text: None,
                 virtual_label,
             });

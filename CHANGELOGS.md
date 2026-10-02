@@ -277,3 +277,9 @@ TODO:
 + (Finally?) (partially) removed the window_manager! macro. It's now "just" creating 3 functions, instead of the whole class/struct
 + Re-wrote a part of the CSS parser, the files are now splitted into multiple files, and the code is more readable
 What's next: rewriting element_renderer.rs
+
+## Last commit: 6b4cce1da9049830108fd83062f71229e72d1219
++ Switched all XmlElement to `Box<XmlElement>`, because it was making a stack-overflow on windows
+That's pretty much it
+
+### Commit msg: "Switched from XmlElement to Box<XmlElement> because of stack issue"
