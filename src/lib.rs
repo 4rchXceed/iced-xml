@@ -1,5 +1,5 @@
 pub mod app_manager;
-pub mod css_reader;
+pub mod css;
 pub mod dom;
 pub mod parse_utils;
 pub mod rs_utils;
