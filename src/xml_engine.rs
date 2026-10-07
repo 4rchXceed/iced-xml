@@ -2,6 +2,7 @@
 //! TODO: Doc
 use std::io::Cursor;
 
+use thiserror::Error;
 use crate::app_manager::utils::ComponentFunctions;
 use crate::dom::events::{DomInternalMessageType, DomMessage};
 use crate::dom::query_builder::{EventResponse, EventType, QueryResponse};
@@ -66,16 +67,18 @@ pub struct XmlEngine {
 }
 
 ///  This stores all the reason why the XmlEngine failed to be created.
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum XmlEngineError {
     ///  The XML failed to parse, this is usually due to invalid XML syntax.
     ///
     ///  The quick_xml::Error is the error that was returned by the quick_xml parser.
+	#[error("The XML failed to parse, due to invalid XML syntax")]
     XmlParseError(quick_xml::Error),
     ///
     ///  The root element is not a <Window> element. This is usually due to invalid XML structure.
     ///
     ///  The XmlElement is the root element that was parsed from the XML.
+	#[error("The root element is not a <Window> element")]
     InvalidRootElement(XmlElement),
 }
 
