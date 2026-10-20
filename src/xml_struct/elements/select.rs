@@ -113,7 +113,9 @@ impl ElementBase for Select {
         self_uid: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
+
         let mut select_event_uid: Option<i32> = None;
+
         for event in &events {
             match event.event_type {
                 EventListenerTypes::Select => {
@@ -131,7 +133,9 @@ impl ElementBase for Select {
                 move |selected_entry| {
                     let mut event_response =
                         EventResponse::new(self_uid, EventListenerTypes::Select);
+
                     event_response.data_str = Some(selected_entry.id);
+
                     if select_event_uid.is_some() {
                         return Message::DomEvent(Some(select_event_uid.unwrap()), event_response);
                     } else {
@@ -250,6 +254,13 @@ impl ElementBase for Select {
                         QueryResponse::success().with_data_str(self.placeholder.clone()),
                     ));
                 }
+                "value" => {
+                    if let Some(selected) = &self.selected {
+                        return Some(ElementEventResponse::new(QueryResponse::success().with_data_str(selected.id.clone())));
+                    } else {
+                        return Some(ElementEventResponse::success());
+                    }
+                }
                 _ => None,
             },
             DomInternalMessageType::FireEvent(event) => match event {
@@ -277,6 +288,13 @@ impl ElementBase for Select {
                         new_options,
                         self.selected.as_ref(),
                     );
+                    return Some(ElementEventResponse::success());
+                }
+                CustomElementEvent::ClearSelectOptions => {
+                    self.selected = None;
+
+                    self.state = iced::widget::combo_box::State::with_selection(Vec::new(), self.selected.as_ref());
+
                     return Some(ElementEventResponse::success());
                 }
                 _ => None,

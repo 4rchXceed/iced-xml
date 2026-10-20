@@ -72,13 +72,13 @@ pub enum XmlEngineError {
     ///  The XML failed to parse, this is usually due to invalid XML syntax.
     ///
     ///  The quick_xml::Error is the error that was returned by the quick_xml parser.
-	#[error("The XML failed to parse, due to invalid XML syntax")]
+	#[error("The XML failed to parse, due to invalid XML syntax: {0}")]
     XmlParseError(quick_xml::Error),
     ///
     ///  The root element is not a <Window> element. This is usually due to invalid XML structure.
     ///
     ///  The XmlElement is the root element that was parsed from the XML.
-	#[error("The root element is not a <Window> element")]
+	#[error("The root element is not a <Window> element: {0}")]
     InvalidRootElement(XmlElement),
 }
 

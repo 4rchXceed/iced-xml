@@ -126,7 +126,7 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
         &mut self,
         element: DomQueryBuilder,
         component: Box<dyn Any>,
-    ) -> Result<i32, &str> {
+    ) -> Result<i32, String> {
         // Get the engine and query builder
         let me = self.get_objects();
         let uid = me
@@ -136,7 +136,7 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
         // Ensure that only one element was found for the query
         if uid.len() != 1 {
             return Err(
-                "Panic: More than one element found when adding a component. Please ensure that the query is unique.",
+                String::from("Panic: More than one element found when adding a component. Please ensure that the query is unique.")
             );
         }
         // Register the component with the engine's element renderer
@@ -209,6 +209,29 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
         // Returns the last query, so we can use this, without using then and loosing access to local variables
         return me.qb.last.clone();
     }
+
+    fn process_context<F, C>(&mut self, callback: F, context: &mut C) -> QueryResponse
+    where
+        F: Fn(&mut WindowApp, QueryResponse, &mut C),
+    {
+        let me = self.get_objects();
+
+        // Execute all queries
+        for query in me.qb.execute(me.engine) {
+            let me = self.get_self();
+
+            // Run the .then normally
+            (query.0)(me, query.1.clone());
+
+            // Run the callback with the context
+            callback(me, query.1, context);
+        }
+
+        let me = self.get_objects();
+
+        return me.qb.last.clone();
+    }
+    
     // use the "render" helper
     // Basically renders the elements into an Iced Element
     fn render(&self) -> iced::Element<'_, crate::xml_engine::Message> {

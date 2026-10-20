@@ -30,6 +30,7 @@ use crate::{
 #[derive(Debug, Clone, Hash)]
 pub enum CustomElementEvent {
     AddSelectOption(String, String),                    // (key, text)
+    ClearSelectOptions,
     RemoveSelectOption(String),                         // (key)
     SetTableData(Vec<HashableHashMap<String, String>>), // (data)
     TextareaEvent(TextareaEvent),                       // (event)

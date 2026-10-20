@@ -789,8 +789,16 @@ impl ElementRenderer {
             };
 
             // Post process the event response, if any, and forward it to the renderer or other elements
-            if element_response_op.is_some() {
-                event_response = Some(element_response_op.as_ref().unwrap().response.clone());
+            if let Some(event_response_ok) = &element_response_op {
+                let mut response = event_response_ok.response.clone();
+
+                response.data_selector = Some(DomQuery {
+                    query_type: DomQueryType::ByUid(uid),
+                    flag: None,
+                });
+                    
+                event_response = Some(response);
+
                 // Post-process the event response
                 event_response = self.process_element_response(
                     element_response_op.unwrap(),
