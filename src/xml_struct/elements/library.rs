@@ -20,7 +20,7 @@ use crate::{
             toggle::Toggle, tooltip::Tooltip, trigger::Trigger, var::Var, void::Void,
             window_system::WindowSystem,
         },
-        parser::XmlElement,
+        xml_element::XmlElement,
     },
 };
 

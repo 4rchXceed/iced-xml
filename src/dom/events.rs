@@ -1,5 +1,10 @@
 use crate::{
-    css::types::SelectorType, dom::{query::DomQuery, query_builder::CustomElementEvent}, elements_manager::{elements_renderer::ElementsRenderer, utils::StyleChangeEvent}, rs_utils::HashableXmlElement, xml_engine::DynamicEvent, xml_struct::parser::XmlElement
+    css::types::SelectorType,
+    dom::{query::DomQuery, query_builder::CustomElementEvent},
+    elements_manager::{elements_renderer::ElementsRenderer, utils::StyleChangeEvent},
+    rs_utils::HashableXmlElement,
+    xml_engine::DynamicEvent,
+    xml_struct::xml_element::XmlElement,
 };
 
 /// Message to pass to the Engine / Element Renderer from the "Client" side (like the UI or the user code)

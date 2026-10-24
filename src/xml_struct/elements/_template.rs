@@ -6,7 +6,7 @@ use crate::{
         element_renderer::{ElementExtraData, ElementRenderer, EventListener},
         elements::element_base::ElementBase,
         elements::library::ElementError,
-        parser::XmlElement,
+        xml_element::XmlElement,
     },
 };
 

@@ -1,12 +1,19 @@
 use crate::{
-    dom::{events::DomInternalMessageType, query_builder::QueryResponse}, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener}}, xml_engine::Message, xml_struct::{
+    dom::{events::DomInternalMessageType, query_builder::QueryResponse},
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementEventResponse, ElementExtraData, EventListener},
+    },
+    xml_engine::Message,
+    xml_struct::{
         elements::{
             element_base::ElementBase,
             label::Label,
             library::{AnyElement, ElementError},
         },
-        parser::XmlElement,
-    }
+        xml_element::XmlElement,
+    },
 };
 
 pub struct Center {

@@ -2,10 +2,17 @@ use std::collections::HashMap;
 
 // Copy-paste template
 use crate::{
-    dom::{events::DomInternalMessageType, query_builder::CustomElementEvent::SetTableData}, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener, RenderChildParameters}}, xml_engine::Message, xml_struct::{
+    dom::{events::DomInternalMessageType, query_builder::CustomElementEvent::SetTableData},
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementEventResponse, ElementExtraData, EventListener, RenderChildParameters},
+    },
+    xml_engine::Message,
+    xml_struct::{
         elements::{element_base::ElementBase, library::ElementError},
-        parser::XmlElement,
-    }
+        xml_element::XmlElement,
+    },
 };
 
 pub struct Table {

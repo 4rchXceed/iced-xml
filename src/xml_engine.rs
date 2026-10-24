@@ -2,17 +2,18 @@
 //! TODO: Doc
 use std::io::Cursor;
 
-use thiserror::Error;
 use crate::app_manager::utils::ComponentFunctions;
 use crate::dom::events::{DomInternalMessageType, DomMessage};
 use crate::dom::query_builder::{EventResponse, EventType, QueryResponse};
 use crate::elements_manager::elements_manager::ElementsManager;
 use crate::rs_utils::get_unique_id;
-use crate::xml_struct::parser::{XmlElement, XmlParser};
+use crate::xml_struct::parser::XmlParser;
 use crate::xml_struct::theming::Fonts;
+use crate::xml_struct::xml_element::XmlElement;
 use iced::window;
 use log::warn;
 use quick_xml::Reader;
+use thiserror::Error;
 
 ///  Message is the main event-system message for Iced.
 ///
@@ -72,13 +73,13 @@ pub enum XmlEngineError {
     ///  The XML failed to parse, this is usually due to invalid XML syntax.
     ///
     ///  The quick_xml::Error is the error that was returned by the quick_xml parser.
-	#[error("The XML failed to parse, due to invalid XML syntax")]
+    #[error("The XML failed to parse, due to invalid XML syntax")]
     XmlParseError(quick_xml::Error),
     ///
     ///  The root element is not a <Window> element. This is usually due to invalid XML structure.
     ///
     ///  The XmlElement is the root element that was parsed from the XML.
-	#[error("The root element is not a <Window> element")]
+    #[error("The root element is not a <Window> element")]
     InvalidRootElement(XmlElement),
 }
 
@@ -127,7 +128,9 @@ impl XmlEngine {
         // Create the element renderer and initialize it with the root element
         let mut elements_manager = ElementsManager::new(settings.fonts, settings.functions);
 
-        let uid = elements_manager.get_mappings_mut().init_element_from_xml(Box::new(root), get_unique_id());
+        let uid = elements_manager
+            .get_mappings_mut()
+            .init_element_from_xml(Box::new(root), get_unique_id());
 
         return Ok(Self {
             dyn_events: Vec::new(),
@@ -296,7 +299,10 @@ impl XmlEngine {
     fn handle_element_specific_event(&mut self, query: &DomMessage) -> Vec<QueryResponse> {
         let mut responses = Vec::new();
 
-        let elements = self.elements_manager.get_mappings().element_query(&query.selector);
+        let elements = self
+            .elements_manager
+            .get_mappings()
+            .element_query(&query.selector);
 
         for element in elements {
             let mut status = match query.message {
@@ -326,7 +332,7 @@ impl XmlEngine {
                 // This replaces an element in the DOM tree with another element. It will also remove all of its children, and any event listeners that are registered on it or its children.
                 DomInternalMessageType::Replace(ref replacing_element) => {
                     let selector = self
-                        .elements_manager 
+                        .elements_manager
                         .replace_element(element, replacing_element.value());
 
                     let mut qr = QueryResponse::success();
@@ -357,10 +363,11 @@ impl XmlEngine {
                         QueryResponse::fail("Data not found for the given key.")
                     }
                 }
-                _ => {
-                    self.elements_manager
-                        .process_element_event(element, query.message.clone(), false)
-                }
+                _ => self.elements_manager.process_element_event(
+                    element,
+                    query.message.clone(),
+                    false,
+                ),
             };
 
             status.element_uid = Some(element);

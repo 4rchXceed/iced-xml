@@ -15,7 +15,7 @@ use crate::{
     xml_engine::{DynamicEvent, Message, XmlEngine},
     xml_struct::{
         elements::{textarea::TextareaEvent, window_system::TWMWindowOpenParams},
-        parser::XmlElement,
+        xml_element::XmlElement,
     },
 };
 

@@ -7,8 +7,8 @@ use crate::dom::query::{ComplexQuery, ComplexQueryJoinType, DomQuery, DomQueryTy
 use crate::rs_utils::get_unique_id;
 use crate::xml_struct::elements::library::{AnyElement, generate_element_from_tag};
 use crate::xml_struct::elements::radio::RadioElement;
-use crate::xml_struct::parser::XmlElement;
 use crate::xml_struct::theming::XmlTheme;
+use crate::xml_struct::xml_element::XmlElement;
 
 use super::elements_renderer::ElementsRenderer;
 use super::utils::{ElementExtraData, EventListener};
@@ -486,13 +486,12 @@ impl ElementMappings {
         return source;
     }
 
-    
     /// Returns the XmlElement associated with a given UID, if any
     pub fn get_source(&self, uid: i32) -> Option<Box<XmlElement>> {
         return self.sources_map.get(&uid).cloned();
     }
 
-        /// Initializes an element from its XML representation and associates it with a parent element.
+    /// Initializes an element from its XML representation and associates it with a parent element.
     ///
     /// Parameters:
     /// - xml_element: The XmlElement to initialize.
@@ -503,8 +502,7 @@ impl ElementMappings {
     pub fn init_element_from_xml(&mut self, xml_element: Box<XmlElement>, parent_uid: i32) -> i32 {
         let id = get_unique_id();
         self.parent_map.insert(id, parent_uid);
-        return self
-            .create_element_safe(xml_element.clone(), id, None);
+        return self.create_element_safe(xml_element.clone(), id, None);
     }
 
     /// Initializes a virtual element (not declared in the XML) and associates it with a parent element.

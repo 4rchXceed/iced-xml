@@ -2,10 +2,17 @@ use crate::{
     dom::{
         events::{DomInternalMessageType, EventListenerTypes},
         query_builder::EventResponse,
-    }, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener, RendererEvent}}, xml_engine::Message::{self}, xml_struct::{
+    },
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementEventResponse, ElementExtraData, EventListener, RendererEvent},
+    },
+    xml_engine::Message::{self},
+    xml_struct::{
         elements::{element_base::ElementBase, library::ElementError},
-        parser::XmlElement,
-    }
+        xml_element::XmlElement,
+    },
 };
 
 pub struct RadioButton {
@@ -73,7 +80,9 @@ impl ElementBase for RadioButton {
             }
         }
 
-        let current_choice = renderer.get_mappings().get_radio_selection(self.selection_id.clone());
+        let current_choice = renderer
+            .get_mappings()
+            .get_radio_selection(self.selection_id.clone());
 
         let mut radio = iced::widget::radio::Radio::new(
             self.text.clone(),

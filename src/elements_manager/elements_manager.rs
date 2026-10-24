@@ -13,8 +13,8 @@ use crate::xml_engine::Message;
 use crate::xml_struct::elements::library::{
     process_event_callback_for_element, process_event_for_element, render_element,
 };
-use crate::xml_struct::parser::XmlElement;
-use crate::xml_struct::theming::{Fonts};
+use crate::xml_struct::theming::Fonts;
+use crate::xml_struct::xml_element::XmlElement;
 
 use super::elements_renderer::ElementsRenderer;
 use super::mappings::ElementMappings;
@@ -85,7 +85,8 @@ impl ElementsManager {
     /// - uid: The unique identifier for the component.
     /// - component: The component to register, as a boxed trait object (Box<dyn
     pub fn register_component(&mut self, uid: i32, component: Box<dyn Any>) {
-        self.mappings.remove_cascade(uid, false, &mut self.event_listeners);
+        self.mappings
+            .remove_cascade(uid, false, &mut self.event_listeners);
 
         self.components.insert(uid, component);
     }
@@ -335,14 +336,17 @@ impl ElementsManager {
     }
 
     pub fn remove_cascade(&mut self, uid: i32) -> Option<Box<XmlElement>> {
-        return self.mappings.remove_cascade(uid, true, &mut self.event_listeners);
+        return self
+            .mappings
+            .remove_cascade(uid, true, &mut self.event_listeners);
     }
 
     pub fn replace_element(&mut self, uid: i32, new_element: Box<XmlElement>) -> DomQuery {
-        return self.mappings.replace_element(uid, new_element, &mut self.event_listeners);
+        return self
+            .mappings
+            .replace_element(uid, new_element, &mut self.event_listeners);
     }
 
-    
     pub fn raw_element_query(&self, query: &DomQueryType) -> Vec<i32> {
         return self.mappings.raw_element_query(query);
     }
@@ -359,4 +363,3 @@ impl ElementsManager {
         return &mut self.event_listeners;
     }
 }
-

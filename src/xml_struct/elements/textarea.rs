@@ -4,10 +4,18 @@ use crate::{
     dom::{
         events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{CustomElementEvent, EventResponse, QueryResponse},
-    }, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener}}, rs_utils::{HashableF32, HashableTextareaEdit, Vector2}, xml_engine::Message, xml_struct::{
+    },
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementEventResponse, ElementExtraData, EventListener},
+    },
+    rs_utils::{HashableF32, HashableTextareaEdit, Vector2},
+    xml_engine::Message,
+    xml_struct::{
         elements::{element_base::ElementBase, library::ElementError},
-        parser::XmlElement,
-    }
+        xml_element::XmlElement,
+    },
 };
 
 #[derive(Debug, Clone, Hash)]

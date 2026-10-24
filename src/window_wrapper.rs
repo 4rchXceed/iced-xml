@@ -11,7 +11,7 @@ use crate::{
     xml_engine::{Message, XmlEngine},
     xml_struct::{
         elements::library::{ElementError, generate_element_from_tag},
-        parser::XmlElement,
+        xml_element::XmlElement,
     },
 };
 
@@ -175,9 +175,12 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
         (elem_renderer.functions.on_close)(&mut component.unwrap(), app_state);
 
         // The create an empty element replacing the old component, so it's parent doesn't crash
-        let element_uid =
-            generate_element_from_tag(Box::new(XmlElement::void()), elem_renderer.get_mappings_mut(), component_uid)
-                .map_err(|e| ComponentRemoveError::ElementError(e))?;
+        let element_uid = generate_element_from_tag(
+            Box::new(XmlElement::void()),
+            elem_renderer.get_mappings_mut(),
+            component_uid,
+        )
+        .map_err(|e| ComponentRemoveError::ElementError(e))?;
 
         // Add the element to the DOM
         elem_renderer.get_mappings_mut().add_element(

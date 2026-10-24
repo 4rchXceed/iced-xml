@@ -2,10 +2,14 @@ use crate::{
     dom::{
         events::{DomInternalMessageType, EventListenerTypes},
         query_builder::EventResponse,
-    }, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener}}, xml_engine::Message, xml_struct::{
-        elements::library::ElementError,
-        parser::XmlElement,
-    }
+    },
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementEventResponse, ElementExtraData, EventListener},
+    },
+    xml_engine::Message,
+    xml_struct::{elements::library::ElementError, xml_element::XmlElement},
 };
 
 pub trait ElementBase

@@ -1,9 +1,15 @@
 // Copy-paste template
 use crate::{
-    elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementExtraData, EventListener}}, xml_engine::Message, xml_struct::{
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementExtraData, EventListener},
+    },
+    xml_engine::Message,
+    xml_struct::{
         elements::{element_base::ElementBase, library::ElementError},
-        parser::XmlElement,
-    }
+        xml_element::XmlElement,
+    },
 };
 
 pub struct Space {}

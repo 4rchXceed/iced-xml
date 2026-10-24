@@ -294,3 +294,7 @@ That's pretty much it
 
 Changes a lot of code to match the new structure.
 
+## Last commit: 803bb16dfcf0727f3ea2769224b292a7dfebcec5
++ Moved XmlElement to a separate file (xml_element.rs)
+
+Changed a lot of code to match the new structure.

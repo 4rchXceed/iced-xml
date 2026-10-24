@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use crate::{
     css::types::{Rule, RuleBlock, Selector},
     dom::query::DomQuery,
-    xml_struct::{
-        theming::{Fonts, gen_styles_log},
-    },
+    xml_struct::theming::{Fonts, gen_styles_log},
 };
 
-use super::{elements_renderer::ElementsRenderer, mappings::ElementMappings, utils::HotReloadState};
+use super::{
+    elements_renderer::ElementsRenderer, mappings::ElementMappings, utils::HotReloadState,
+};
 
 /// Cleans up the styles for hot reload by reverting any removed rules to their previous state.
 ///

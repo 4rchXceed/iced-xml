@@ -6,8 +6,8 @@ use crate::dom::events::EventListenerTypes;
 use crate::dom::query_builder::QueryResponse;
 use crate::xml_engine::Message;
 use crate::xml_struct::elements::radio::RadioElement;
-use crate::xml_struct::parser::XmlElement;
 use crate::xml_struct::theming::XmlTheme;
+use crate::xml_struct::xml_element::XmlElement;
 
 /// Datas that can be passed as "parameters" to children elements
 #[derive(Clone, Debug)]

@@ -10,12 +10,21 @@ use crate::{
     dom::{
         events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{CustomElementEvent, EventResponse, QueryResponse},
-    }, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener}}, parse_utils::parsers::pane_axis::parse_pane_axis, rs_utils::{HashableF32, HashableGridTarget}, xml_engine::Message, xml_struct::{
+    },
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementEventResponse, ElementExtraData, EventListener},
+    },
+    parse_utils::parsers::pane_axis::parse_pane_axis,
+    rs_utils::{HashableF32, HashableGridTarget},
+    xml_engine::Message,
+    xml_struct::{
         elements::{
             element_base::ElementBase, library::ElementError, window_system::PaneType::InternalPane,
         },
-        parser::XmlElement,
-    }
+        xml_element::XmlElement,
+    },
 };
 
 #[derive(Debug, Clone, Hash)]
