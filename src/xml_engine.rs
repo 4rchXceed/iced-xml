@@ -5,8 +5,8 @@ use std::io::Cursor;
 use crate::app_manager::utils::ComponentFunctions;
 use crate::dom::events::{DomInternalMessageType, DomMessage};
 use crate::dom::query_builder::{EventResponse, EventType, QueryResponse};
+use crate::elements_manager::elements_manager::ElementsManager;
 use crate::rs_utils::get_unique_id;
-use crate::xml_struct::element_renderer::ElementRenderer;
 use crate::xml_struct::parser::{XmlElement, XmlParser};
 use crate::xml_struct::theming::Fonts;
 use iced::window;
@@ -58,7 +58,7 @@ pub struct XmlEngine {
     ///  The UID of the element renderer root element. This is the root of the DOM tree. Used as "entrypoint"
     root_uid: i32,
     ///  The element renderer is the main component that handles the rendering of the DOM tree. It is responsible for managing the elements, their properties, and their events.
-    pub element_renderer: ElementRenderer,
+    pub elements_manager: ElementsManager,
     ///  The fired events are the events that have been fired by the UI or dynamic events, they are stored and then their IDs are used to identify the callbacks.
     pub fired_events: Vec<(Option<i32>, EventResponse)>,
     ///  The dynamic events are the events that are created using "Subscribe" in Iced. This is used to store the dynamic events that needs to be "subscribed"
@@ -122,13 +122,13 @@ impl XmlEngine {
         }
 
         // Create the element renderer and initialize it with the root element
-        let mut element_renderer = ElementRenderer::new(settings.fonts, settings.functions);
+        let mut elements_manager = ElementsManager::new(settings.fonts, settings.functions);
 
-        let uid = element_renderer.init_element_from_xml(Box::new(root), get_unique_id());
+        let uid = elements_manager.get_mappings_mut().init_element_from_xml(Box::new(root), get_unique_id());
 
         return Ok(Self {
             dyn_events: Vec::new(),
-            element_renderer: element_renderer,
+            elements_manager,
             root_uid: uid,
             fired_events: Vec::new(),
         });
@@ -172,7 +172,7 @@ impl XmlEngine {
         // If the event_uid is Some, it means that the event is from a registered event listener, so we need to find the event listener and call its handlers.
         if let Some(event_uid) = event_uid {
             let event_listener = self
-                .element_renderer
+                .elements_manager
                 .get_event_listeners()
                 .iter_mut()
                 .find(|e| e.event_uid == event_uid);
@@ -187,7 +187,7 @@ impl XmlEngine {
 
         // If the target_uid is some, it means that the event is a direct event from the program, so we need to pass it to the element renderer to handle it.
         if let Some(target_uid) = event_data.target_uid {
-            self.element_renderer.pass_event_to_element(
+            self.elements_manager.forwards_event_to_element(
                 target_uid,
                 event_data.event_name.clone(),
                 event_data.clone(),
@@ -198,7 +198,7 @@ impl XmlEngine {
     ///  This function returns the Iced Element that represents the root of the DOM tree. This is used to render the UI in Iced.
     pub fn view(&self) -> iced::Element<'_, Message> {
         return self
-            .element_renderer
+            .elements_manager
             .render_element(self.root_uid, None)
             .into();
     }
@@ -258,7 +258,7 @@ impl XmlEngine {
             }
             // If it's an ImportCss event, we load the CSS into the element renderer, and return the success status and any error message that might have occurred during the loading process.
             DomInternalMessageType::ImportCss(css, for_hot_reload) => {
-                match self.element_renderer.load_css(&css, for_hot_reload.clone()) {
+                match self.elements_manager.load_css(&css, for_hot_reload.clone()) {
                     Ok(_) => {
                         let query_response = QueryResponse::success();
 
@@ -293,13 +293,13 @@ impl XmlEngine {
     fn handle_element_specific_event(&mut self, query: &DomMessage) -> Vec<QueryResponse> {
         let mut responses = Vec::new();
 
-        let elements = self.element_renderer.element_query(&query.selector);
+        let elements = self.elements_manager.get_mappings().element_query(&query.selector);
 
         for element in elements {
             let mut status = match query.message {
                 DomInternalMessageType::RegisterEventListener(ref event_type) => {
                     if let Some(query_uid) = query.uid {
-                        self.element_renderer.register_event(
+                        self.elements_manager.register_event(
                             event_type.clone(),
                             element,
                             query_uid,
@@ -312,7 +312,7 @@ impl XmlEngine {
                 }
                 // This removes an element from the DOM tree. It will also remove all of its children, and any event listeners that are registered on it or its children.
                 DomInternalMessageType::Remove => {
-                    let source = self.element_renderer.remove_cascade(element, true);
+                    let source = self.elements_manager.remove_cascade(element);
 
                     let mut qr = QueryResponse::success();
 
@@ -323,7 +323,7 @@ impl XmlEngine {
                 // This replaces an element in the DOM tree with another element. It will also remove all of its children, and any event listeners that are registered on it or its children.
                 DomInternalMessageType::Replace(ref replacing_element) => {
                     let selector = self
-                        .element_renderer
+                        .elements_manager 
                         .replace_element(element, replacing_element.value());
 
                     let mut qr = QueryResponse::success();
@@ -336,13 +336,13 @@ impl XmlEngine {
                 DomInternalMessageType::GetElement => {
                     let mut qr = QueryResponse::success();
 
-                    qr.data_element = self.element_renderer.get_source(element);
+                    qr.data_element = self.elements_manager.get_mappings().get_source(element);
 
                     qr
                 }
                 // This returns the data associated with the element, which is a key-value store that can be used to store arbitrary data on the element.
                 DomInternalMessageType::GetData(ref key) => {
-                    let data = self.element_renderer.get_data(element, &key.clone());
+                    let data = self.elements_manager.get_data(element, &key.clone());
 
                     if data.is_some() {
                         let mut qr = QueryResponse::success();
@@ -355,8 +355,8 @@ impl XmlEngine {
                     }
                 }
                 _ => {
-                    self.element_renderer
-                        .emit_internal_event(element, query.message.clone(), false)
+                    self.elements_manager
+                        .process_element_event(element, query.message.clone(), false)
                 }
             };
 

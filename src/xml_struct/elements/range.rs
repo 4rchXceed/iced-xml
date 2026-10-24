@@ -5,17 +5,11 @@ use crate::{
     dom::{
         events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{EventResponse, QueryResponse},
-    },
-    rs_utils::HashableF32,
-    xml_engine::Message,
-    xml_struct::{
-        element_renderer::{
-            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
-        },
+    }, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener}}, rs_utils::HashableF32, xml_engine::Message, xml_struct::{
         elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
         theming::XmlTheme,
-    },
+    }
 };
 
 pub fn parse_property(val: String) -> (QueryResponse, Option<f32>) {
@@ -110,7 +104,7 @@ impl Range {
 impl ElementBase for Range {
     fn new(
         xml_element: Box<XmlElement>,
-        _: &mut ElementRenderer,
+        _: &mut ElementMappings,
         _: i32,
     ) -> Result<Self, ElementError> {
         let mut min = 0.0;
@@ -161,7 +155,7 @@ impl ElementBase for Range {
 
     fn render<'a>(
         &self,
-        _: &'a ElementRenderer,
+        _: &'a ElementsManager,
         datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,

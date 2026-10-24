@@ -2,15 +2,10 @@ use crate::{
     dom::{
         events::{DomInternalMessageType, EventListenerTypes},
         query_builder::EventResponse,
-    },
-    xml_engine::Message::{self},
-    xml_struct::{
-        element_renderer::{
-            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener, RendererEvent,
-        },
+    }, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener, RendererEvent}}, xml_engine::Message::{self}, xml_struct::{
         elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
-    },
+    }
 };
 
 pub struct RadioButton {
@@ -27,7 +22,7 @@ pub enum RadioElement {
 impl ElementBase for RadioButton {
     fn new(
         xml_element: Box<XmlElement>,
-        renderer: &mut ElementRenderer,
+        renderer: &mut ElementMappings,
         _: i32,
     ) -> Result<Self, ElementError> {
         if xml_element.attributes.get("radio-id").is_none() {
@@ -61,7 +56,7 @@ impl ElementBase for RadioButton {
 
     fn render<'a>(
         &self,
-        renderer: &'a ElementRenderer,
+        renderer: &'a ElementsManager,
         datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,
@@ -78,14 +73,14 @@ impl ElementBase for RadioButton {
             }
         }
 
-        let current_choice = renderer.get_radio_selection(self.selection_id.clone());
+        let current_choice = renderer.get_mappings().get_radio_selection(self.selection_id.clone());
 
         let mut radio = iced::widget::radio::Radio::new(
             self.text.clone(),
             self.choice,
             current_choice,
             |choice| {
-                ev_response.data_str = renderer.get_stringdb(match choice {
+                ev_response.data_str = renderer.get_mappings().get_stringdb(match choice {
                     RadioElement::Element(id) => id,
                 });
                 return Message::DomEvent(id, ev_response);

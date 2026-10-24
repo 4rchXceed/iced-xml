@@ -10,19 +10,12 @@ use crate::{
     dom::{
         events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{CustomElementEvent, EventResponse, QueryResponse},
-    },
-    parse_utils::parsers::pane_axis::parse_pane_axis,
-    rs_utils::{HashableF32, HashableGridTarget},
-    xml_engine::Message,
-    xml_struct::{
-        element_renderer::{
-            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
-        },
+    }, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener}}, parse_utils::parsers::pane_axis::parse_pane_axis, rs_utils::{HashableF32, HashableGridTarget}, xml_engine::Message, xml_struct::{
         elements::{
             element_base::ElementBase, library::ElementError, window_system::PaneType::InternalPane,
         },
         parser::XmlElement,
-    },
+    }
 };
 
 #[derive(Debug, Clone, Hash)]
@@ -112,7 +105,7 @@ impl WindowSystem {
 
 fn preprocess_pane_state(
     state: &mut iced::widget::pane_grid::State<PaneType>,
-    renderer: &mut ElementRenderer,
+    renderer: &mut ElementMappings,
     elements: Vec<Box<XmlElement>>,
     parent_pane: iced::widget::pane_grid::Pane,
     self_uid: i32,
@@ -269,7 +262,7 @@ fn transparent_btn_style() -> iced::widget::button::Style {
 impl ElementBase for WindowSystem {
     fn new(
         xml_element: Box<XmlElement>,
-        renderer: &mut ElementRenderer,
+        renderer: &mut ElementMappings,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
         // If it supports children, initialize them here with renderer.init_element
@@ -334,7 +327,7 @@ impl ElementBase for WindowSystem {
 
     fn render<'a>(
         &'a self,
-        renderer: &'a ElementRenderer,
+        renderer: &'a ElementsManager,
         datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,

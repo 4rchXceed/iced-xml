@@ -1,11 +1,9 @@
 // Copy-paste template
 use crate::{
-    xml_engine::Message,
-    xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+    elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementExtraData, EventListener}}, xml_engine::Message, xml_struct::{
         elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
-    },
+    }
 };
 
 pub struct Grid {
@@ -15,20 +13,20 @@ pub struct Grid {
 impl ElementBase for Grid {
     fn new(
         xml_element: Box<XmlElement>,
-        renderer: &mut ElementRenderer,
+        mappings: &mut ElementMappings,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
         let children: Vec<i32> = xml_element
             .children
             .iter()
-            .map(|child| renderer.init_element_from_xml(child.clone(), self_uid))
+            .map(|child| mappings.init_element_from_xml(child.clone(), self_uid))
             .collect();
         return Ok(Self { children: children });
     }
 
     fn render<'a>(
         &self,
-        renderer: &'a ElementRenderer,
+        manager: &'a ElementsManager,
         datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
@@ -37,7 +35,7 @@ impl ElementBase for Grid {
         let mut grid: iced::widget::grid::Grid<'a, Message> = iced::widget::grid::Grid::new();
 
         for child_uid in &self.children {
-            grid = grid.push(renderer.render_element(child_uid.clone(), datas.child_data.clone()));
+            grid = grid.push(manager.render_element(child_uid.clone(), datas.child_data.clone()));
         }
 
         grid = grid

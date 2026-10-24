@@ -3,15 +3,10 @@ use crate::{
     dom::{
         events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{EventResponse, QueryResponse},
-    },
-    xml_engine::Message,
-    xml_struct::{
-        element_renderer::{
-            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
-        },
+    }, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener}}, xml_engine::Message, xml_struct::{
         elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
-    },
+    }
 };
 
 pub struct Checkbox {
@@ -24,7 +19,7 @@ pub struct Checkbox {
 impl ElementBase for Checkbox {
     fn new(
         xml_element: Box<XmlElement>,
-        _: &mut ElementRenderer,
+        _: &mut ElementMappings,
         _: i32,
     ) -> Result<Self, ElementError> {
         // If it supports children, initialize them here with renderer.init_element
@@ -46,7 +41,7 @@ impl ElementBase for Checkbox {
 
     fn render<'a>(
         &self,
-        _: &'a ElementRenderer,
+        _: &'a ElementsManager,
         datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,

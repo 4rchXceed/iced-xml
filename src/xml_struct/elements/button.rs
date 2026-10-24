@@ -4,19 +4,14 @@ use crate::{
     dom::{
         events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{EventResponse, QueryResponse},
-    },
-    xml_engine::Message,
-    xml_struct::{
-        element_renderer::{
-            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
-        },
+    }, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener}}, xml_engine::Message, xml_struct::{
         elements::{
             element_base::ElementBase,
             label::Label,
             library::{AnyElement, ElementError},
         },
         parser::XmlElement,
-    },
+    }
 };
 
 pub struct Button {
@@ -28,10 +23,10 @@ pub struct Button {
 impl ElementBase for Button {
     fn new(
         xml_element: Box<XmlElement>,
-        renderer: &mut ElementRenderer,
+        mappings: &mut ElementMappings,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
-        let virtual_text = renderer.init_element_virt(
+        let virtual_text = mappings.init_element_virt(
             AnyElement::Label(Label::virt(xml_element.text.clone())),
             Some(xml_element.theme.clone()),
             self_uid,
@@ -54,7 +49,7 @@ impl ElementBase for Button {
             let children: Vec<i32> = xml_element
                 .children
                 .iter()
-                .map(|child| renderer.init_element_from_xml(child.clone(), self_uid))
+                .map(|child| mappings.init_element_from_xml(child.clone(), self_uid))
                 .collect();
 
             return Ok(Self {
@@ -66,7 +61,7 @@ impl ElementBase for Button {
     }
     fn render<'a>(
         &self,
-        renderer: &'a ElementRenderer,
+        renderer: &'a ElementsManager,
         datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,

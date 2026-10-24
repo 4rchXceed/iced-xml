@@ -283,3 +283,14 @@ What's next: rewriting element_renderer.rs
 That's pretty much it
 
 ### Commit msg: "Switched from XmlElement to Box<XmlElement> because of stack issue"
+
+## Last commit: d43fb10ad405c0da71396ace4654c64c80b63e2d
++ Refactored and improved the element_renderer.rs to an element_renderer module:
+    - elements_manager.rs -> renders, and manages the elements
+    - elements_renderer.rs -> renders the elements (mostly utils)
+    - mappings.rs -> manages the elements with their IDs, and resolves the selectors
+    - hot_reload.rs -> manages (a part of) the hot reload system
+    - utils.rs -> utils for the element_renderer module
+
+Changes a lot of code to match the new structure.
+

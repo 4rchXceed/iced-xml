@@ -7,15 +7,10 @@ use crate::{
     dom::{
         events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{CustomElementEvent, EventResponse, QueryResponse},
-    },
-    xml_engine::Message,
-    xml_struct::{
-        element_renderer::{
-            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
-        },
+    }, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener}}, xml_engine::Message, xml_struct::{
         elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
-    },
+    }
 };
 
 #[derive(Clone, Debug, Hash)]
@@ -41,7 +36,7 @@ pub struct Select {
 impl ElementBase for Select {
     fn new(
         xml_element: Box<XmlElement>,
-        _: &mut ElementRenderer,
+        _: &mut ElementMappings,
         _: i32,
     ) -> Result<Self, ElementError> {
         // If it supports children, initialize them here with renderer.init_element
@@ -107,7 +102,7 @@ impl ElementBase for Select {
 
     fn render<'a>(
         &'a self,
-        _: &'a ElementRenderer,
+        _: &'a ElementsManager,
         datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,

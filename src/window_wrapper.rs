@@ -109,8 +109,8 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
         // Get the engine
         let me = self.get_objects();
         // Update all components with the new message
-        for (_, component) in me.engine.element_renderer.components.iter_mut() {
-            (me.engine.element_renderer.functions.update)(component, message.clone(), app_state);
+        for (_, component) in me.engine.elements_manager.components.iter_mut() {
+            (me.engine.elements_manager.functions.update)(component, message.clone(), app_state);
         }
         // Update the engine and get the responses
         let responses = me.engine.update(message);
@@ -131,8 +131,9 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
         let me = self.get_objects();
         let uid = me
             .engine
-            .element_renderer
+            .elements_manager
             .raw_element_query(&element.get_query().query_type);
+
         // Ensure that only one element was found for the query
         if uid.len() != 1 {
             return Err(
@@ -141,7 +142,7 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
         }
         // Register the component with the engine's element renderer
         me.engine
-            .element_renderer
+            .elements_manager
             .register_component(uid[0], component);
         return Ok(uid[0]);
     }
@@ -162,7 +163,7 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
     ) -> Result<i32, ComponentRemoveError> {
         // Get the engine and query builder
         let me = self.get_objects();
-        let elem_renderer = &mut me.engine.element_renderer;
+        let elem_renderer = &mut me.engine.elements_manager;
 
         // Remove the component
         let component = elem_renderer.components.remove(&component_uid);
@@ -175,11 +176,11 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
 
         // The create an empty element replacing the old component, so it's parent doesn't crash
         let element_uid =
-            generate_element_from_tag(Box::new(XmlElement::void()), elem_renderer, component_uid)
+            generate_element_from_tag(Box::new(XmlElement::void()), elem_renderer.get_mappings_mut(), component_uid)
                 .map_err(|e| ComponentRemoveError::ElementError(e))?;
 
         // Add the element to the DOM
-        elem_renderer.init_element(
+        elem_renderer.get_mappings_mut().add_element(
             element_uid,
             Some(Box::new(XmlElement::void())),
             None,

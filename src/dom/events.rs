@@ -1,12 +1,5 @@
 use crate::{
-    css::types::SelectorType,
-    dom::{query::DomQuery, query_builder::CustomElementEvent},
-    rs_utils::HashableXmlElement,
-    xml_engine::DynamicEvent,
-    xml_struct::{
-        element_renderer::{StyleChangeEvent, extract_selector_style_flag},
-        parser::XmlElement,
-    },
+    css::types::SelectorType, dom::{query::DomQuery, query_builder::CustomElementEvent}, elements_manager::{elements_renderer::ElementsRenderer, utils::StyleChangeEvent}, rs_utils::HashableXmlElement, xml_engine::DynamicEvent, xml_struct::parser::XmlElement
 };
 
 /// Message to pass to the Engine / Element Renderer from the "Client" side (like the UI or the user code)
@@ -92,7 +85,7 @@ impl DomQueryBuilder {
 
     /// Adds a flag to the query,if  it's a ::for() flag, it will be added to the event instead of the query
     pub fn with_flag(&mut self, flag: String) -> &mut Self {
-        let style_flag = extract_selector_style_flag(&flag);
+        let style_flag = ElementsRenderer::extract_selector_style_flag(&flag);
         if style_flag.is_some() {
             if self.event.is_some() {
                 self.event = Some(DomMessage {

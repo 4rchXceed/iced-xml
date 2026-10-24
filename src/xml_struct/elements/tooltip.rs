@@ -1,14 +1,9 @@
 // Copy-paste template
 use crate::{
-    dom::{events::DomInternalMessageType, query_builder::QueryResponse},
-    xml_engine::Message,
-    xml_struct::{
-        element_renderer::{
-            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
-        },
+    dom::{events::DomInternalMessageType, query_builder::QueryResponse}, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener}}, xml_engine::Message, xml_struct::{
         elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
-    },
+    }
 };
 
 pub struct Tooltip {
@@ -37,7 +32,7 @@ fn parse_position(pos: &str) -> iced::widget::tooltip::Position {
 impl ElementBase for Tooltip {
     fn new(
         xml_element: Box<XmlElement>,
-        renderer: &mut ElementRenderer,
+        renderer: &mut ElementMappings,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
         if xml_element.children.len() != 2 {
@@ -92,7 +87,7 @@ impl ElementBase for Tooltip {
 
     fn render<'a>(
         &self,
-        renderer: &'a ElementRenderer,
+        renderer: &'a ElementsManager,
         datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,

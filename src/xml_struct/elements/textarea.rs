@@ -4,16 +4,10 @@ use crate::{
     dom::{
         events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{CustomElementEvent, EventResponse, QueryResponse},
-    },
-    rs_utils::{HashableF32, HashableTextareaEdit, Vector2},
-    xml_engine::Message,
-    xml_struct::{
-        element_renderer::{
-            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
-        },
+    }, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener}}, rs_utils::{HashableF32, HashableTextareaEdit, Vector2}, xml_engine::Message, xml_struct::{
         elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
-    },
+    }
 };
 
 #[derive(Debug, Clone, Hash)]
@@ -130,7 +124,7 @@ fn generate_action(
 impl ElementBase for Textarea {
     fn new(
         xml_element: Box<XmlElement>,
-        _: &mut ElementRenderer,
+        _: &mut ElementMappings,
         _: i32,
     ) -> Result<Self, ElementError> {
         let content = iced::widget::text_editor::Content::with_text(&xml_element.text);
@@ -148,7 +142,7 @@ impl ElementBase for Textarea {
 
     fn render<'a>(
         &'a self,
-        _: &'a ElementRenderer,
+        _: &'a ElementsManager,
         datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,

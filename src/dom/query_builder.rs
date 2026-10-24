@@ -170,6 +170,7 @@ impl QueryResponse {
     }
 
     /// Creates a new QueryResponse representing a failed query with the given reason.
+    /// TODO: Make the message an enum
     pub fn fail(reason: &str) -> Self {
         Self::new(false).with_error_message(reason)
     }
@@ -496,7 +497,7 @@ impl<Window, AppState> QueryBuilder<Window, AppState> {
                 }
             }
         }
-        subscriptions.append(&mut engine.element_renderer.subscribe_components());
+        subscriptions.append(&mut engine.elements_manager.subscribe_components());
         return subscriptions;
     }
 

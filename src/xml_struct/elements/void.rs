@@ -1,23 +1,21 @@
 // Copy-paste template
 use crate::{
-    xml_engine::Message,
-    xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+    elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementExtraData, EventListener}}, xml_engine::Message, xml_struct::{
         elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
-    },
+    }
 };
 
 pub struct Void {}
 
 impl ElementBase for Void {
-    fn new(_: Box<XmlElement>, _: &mut ElementRenderer, _: i32) -> Result<Self, ElementError> {
+    fn new(_: Box<XmlElement>, _: &mut ElementMappings, _: i32) -> Result<Self, ElementError> {
         return Ok(Self {});
     }
 
     fn render<'a>(
         &self,
-        _: &'a ElementRenderer,
+        _: &'a ElementsManager,
         _: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,

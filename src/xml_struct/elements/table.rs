@@ -2,16 +2,10 @@ use std::collections::HashMap;
 
 // Copy-paste template
 use crate::{
-    dom::{events::DomInternalMessageType, query_builder::CustomElementEvent::SetTableData},
-    xml_engine::Message,
-    xml_struct::{
-        element_renderer::{
-            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
-            RenderChildParameters,
-        },
+    dom::{events::DomInternalMessageType, query_builder::CustomElementEvent::SetTableData}, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener, RenderChildParameters}}, xml_engine::Message, xml_struct::{
         elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
-    },
+    }
 };
 
 pub struct Table {
@@ -22,7 +16,7 @@ pub struct Table {
 impl ElementBase for Table {
     fn new(
         xml_element: Box<XmlElement>,
-        renderer: &mut ElementRenderer,
+        renderer: &mut ElementMappings,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
         // If it supports children, initialize them here with renderer.init_element
@@ -80,7 +74,7 @@ impl ElementBase for Table {
 
     fn render<'a>(
         &self,
-        renderer: &'a ElementRenderer,
+        renderer: &'a ElementsManager,
         datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,

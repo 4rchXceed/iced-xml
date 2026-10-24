@@ -5,16 +5,10 @@ use crate::{
     dom::{
         events::{DomInternalMessageType, EventListenerTypes},
         query_builder::{EventResponse, QueryResponse},
-    },
-    rs_utils::{HashableF32, ScrollState},
-    xml_engine::Message,
-    xml_struct::{
-        element_renderer::{
-            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
-        },
+    }, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener}}, rs_utils::{HashableF32, ScrollState}, xml_engine::Message, xml_struct::{
         elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
-    },
+    }
 };
 
 pub struct Scroll {
@@ -25,7 +19,7 @@ pub struct Scroll {
 impl ElementBase for Scroll {
     fn new(
         xml_element: Box<XmlElement>,
-        renderer: &mut ElementRenderer,
+        renderer: &mut ElementMappings,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
         if xml_element.children.len() != 1 {
@@ -46,7 +40,7 @@ impl ElementBase for Scroll {
 
     fn render<'a>(
         &self,
-        renderer: &'a ElementRenderer,
+        renderer: &'a ElementsManager,
         datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,

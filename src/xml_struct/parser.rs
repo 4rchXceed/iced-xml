@@ -107,7 +107,7 @@ impl XmlElement {
     /// ```rust
     /// let mut element = iced_xml::xml_struct::parser::XmlElement::void();
     /// let child = iced_xml::xml_struct::parser::XmlElement::void();
-    /// element.set_children(vec![child]);
+    /// element.set_children(vec![Box::new(child)]);
     /// ```
     pub fn set_children(&mut self, children: Vec<Box<XmlElement>>) {
         self.children = children;

@@ -2,12 +2,10 @@ use iced::{Border, Shadow};
 
 // Copy-paste template
 use crate::{
-    xml_engine::Message,
-    xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+    elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementExtraData, EventListener}}, xml_engine::Message, xml_struct::{
         elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
-    },
+    }
 };
 
 pub struct Container {
@@ -17,7 +15,7 @@ pub struct Container {
 impl ElementBase for Container {
     fn new(
         xml_element: Box<XmlElement>,
-        renderer: &mut ElementRenderer,
+        mappings: &mut ElementMappings,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
         if xml_element.children.len() != 1 {
@@ -27,13 +25,13 @@ impl ElementBase for Container {
         }
 
         return Ok(Self {
-            child: renderer.init_element_from_xml(xml_element.children[0].clone(), self_uid),
+            child: mappings.init_element_from_xml(xml_element.children[0].clone(), self_uid),
         });
     }
 
     fn render<'a>(
         &self,
-        renderer: &'a ElementRenderer,
+        manager: &'a ElementsManager,
         datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
@@ -41,7 +39,7 @@ impl ElementBase for Container {
         let theme = datas.default_theme.clone();
 
         let mut container: iced::widget::Container<'a, Message> = iced::widget::Container::new(
-            renderer.render_element(self.child, datas.child_data.clone()),
+            manager.render_element(self.child, datas.child_data.clone()),
         );
 
         container = container

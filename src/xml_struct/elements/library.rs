@@ -5,11 +5,13 @@ use crate::{
         events::{DomInternalMessageType, EventListenerTypes},
         query_builder::EventResponse,
     },
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementEventResponse, ElementExtraData, EventListener},
+    },
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{
-            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
-        },
         elements::{
             button::Button, center::Center, checkbox::Checkbox, col::Col, container::Container,
             element_base::ElementBase, float::FloatingElement, grid::Grid, input::Input,
@@ -112,7 +114,7 @@ pub enum AnyElement {
 #[rustfmt::skip]
 pub fn generate_element_from_tag(
     xml_element: Box<XmlElement>,
-    renderer: &mut ElementRenderer,
+    renderer: &mut ElementMappings,
     self_uid: i32
 ) -> Result<AnyElement, ElementError> {
     return match xml_element.tag.as_str() {
@@ -151,40 +153,40 @@ pub fn generate_element_from_tag(
 
 pub fn render_element<'a>(
     element: &'a AnyElement,
-    renderer: &'a ElementRenderer,
+    elements_manager: &'a ElementsManager,
     datas: ElementExtraData,
     events: Vec<&'a EventListener>,
     uid: i32,
 ) -> iced::Element<'a, Message> {
     return match element {
-        AnyElement::Label(label) => label.render(renderer, datas, events, uid),
-        AnyElement::Col(col) => col.render(renderer, datas, events, uid),
-        AnyElement::Button(button) => button.render(renderer, datas, events, uid),
-        AnyElement::Row(row) => row.render(renderer, datas, events, uid),
-        AnyElement::Center(center) => center.render(renderer, datas, events, uid),
-        AnyElement::Checkbox(checkbox) => checkbox.render(renderer, datas, events, uid),
-        AnyElement::Select(select) => select.render(renderer, datas, events, uid),
-        AnyElement::Container(container) => container.render(renderer, datas, events, uid),
+        AnyElement::Label(label) => label.render(elements_manager, datas, events, uid),
+        AnyElement::Col(col) => col.render(elements_manager, datas, events, uid),
+        AnyElement::Button(button) => button.render(elements_manager, datas, events, uid),
+        AnyElement::Row(row) => row.render(elements_manager, datas, events, uid),
+        AnyElement::Center(center) => center.render(elements_manager, datas, events, uid),
+        AnyElement::Checkbox(checkbox) => checkbox.render(elements_manager, datas, events, uid),
+        AnyElement::Select(select) => select.render(elements_manager, datas, events, uid),
+        AnyElement::Container(container) => container.render(elements_manager, datas, events, uid),
         AnyElement::FloatingElement(floating_element) => {
-            floating_element.render(renderer, datas, events, uid)
+            floating_element.render(elements_manager, datas, events, uid)
         }
-        AnyElement::Grid(grid) => grid.render(renderer, datas, events, uid),
+        AnyElement::Grid(grid) => grid.render(elements_manager, datas, events, uid),
         AnyElement::WindowSystem(window_system) => {
-            window_system.render(renderer, datas, events, uid)
+            window_system.render(elements_manager, datas, events, uid)
         }
-        AnyElement::Radio(radio) => radio.render(renderer, datas, events, uid),
-        AnyElement::Scroll(scroll) => scroll.render(renderer, datas, events, uid),
-        AnyElement::Progress(progress) => progress.render(renderer, datas, events, uid),
-        AnyElement::Space(space) => space.render(renderer, datas, events, uid),
-        AnyElement::Trigger(trigger) => trigger.render(renderer, datas, events, uid),
-        AnyElement::Table(table) => table.render(renderer, datas, events, uid),
-        AnyElement::Var(var) => var.render(renderer, datas, events, uid),
-        AnyElement::Input(input) => input.render(renderer, datas, events, uid),
-        AnyElement::Textarea(textarea) => textarea.render(renderer, datas, events, uid),
-        AnyElement::Toggle(toggle) => toggle.render(renderer, datas, events, uid),
-        AnyElement::Tooltip(tooltip) => tooltip.render(renderer, datas, events, uid),
-        AnyElement::Range(range) => range.render(renderer, datas, events, uid),
-        AnyElement::Void(void) => void.render(renderer, datas, events, uid),
+        AnyElement::Radio(radio) => radio.render(elements_manager, datas, events, uid),
+        AnyElement::Scroll(scroll) => scroll.render(elements_manager, datas, events, uid),
+        AnyElement::Progress(progress) => progress.render(elements_manager, datas, events, uid),
+        AnyElement::Space(space) => space.render(elements_manager, datas, events, uid),
+        AnyElement::Trigger(trigger) => trigger.render(elements_manager, datas, events, uid),
+        AnyElement::Table(table) => table.render(elements_manager, datas, events, uid),
+        AnyElement::Var(var) => var.render(elements_manager, datas, events, uid),
+        AnyElement::Input(input) => input.render(elements_manager, datas, events, uid),
+        AnyElement::Textarea(textarea) => textarea.render(elements_manager, datas, events, uid),
+        AnyElement::Toggle(toggle) => toggle.render(elements_manager, datas, events, uid),
+        AnyElement::Tooltip(tooltip) => tooltip.render(elements_manager, datas, events, uid),
+        AnyElement::Range(range) => range.render(elements_manager, datas, events, uid),
+        AnyElement::Void(void) => void.render(elements_manager, datas, events, uid),
     };
 }
 

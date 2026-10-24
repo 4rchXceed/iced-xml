@@ -1,6 +1,7 @@
 pub mod app_manager;
 pub mod css;
 pub mod dom;
+pub mod elements_manager;
 pub mod parse_utils;
 pub mod rs_utils;
 pub mod utils;

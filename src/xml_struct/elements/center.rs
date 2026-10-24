@@ -1,17 +1,12 @@
 use crate::{
-    dom::{events::DomInternalMessageType, query_builder::QueryResponse},
-    xml_engine::Message,
-    xml_struct::{
-        element_renderer::{
-            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
-        },
+    dom::{events::DomInternalMessageType, query_builder::QueryResponse}, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener}}, xml_engine::Message, xml_struct::{
         elements::{
             element_base::ElementBase,
             label::Label,
             library::{AnyElement, ElementError},
         },
         parser::XmlElement,
-    },
+    }
 };
 
 pub struct Center {
@@ -23,7 +18,7 @@ pub struct Center {
 impl ElementBase for Center {
     fn new(
         xml_element: Box<XmlElement>,
-        renderer: &mut ElementRenderer,
+        mappings: &mut ElementMappings,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
         if xml_element.children.len() != 1 && xml_element.text.trim().is_empty() {
@@ -37,7 +32,7 @@ impl ElementBase for Center {
             ));
         }
 
-        let virtual_label = renderer.init_element_virt(
+        let virtual_label = mappings.init_element_virt(
             AnyElement::Label(Label::virt(xml_element.text.clone())),
             Some(xml_element.theme.clone()),
             self_uid,
@@ -46,7 +41,7 @@ impl ElementBase for Center {
         if xml_element.text.trim().is_empty() {
             return Ok(Self {
                 children: Some(
-                    renderer.init_element_from_xml(xml_element.children[0].clone(), self_uid),
+                    mappings.init_element_from_xml(xml_element.children[0].clone(), self_uid),
                 ),
                 text: None,
                 virtual_label,
@@ -62,7 +57,7 @@ impl ElementBase for Center {
 
     fn render<'a>(
         &self,
-        renderer: &'a ElementRenderer,
+        manager: &'a ElementsManager,
         datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
@@ -71,7 +66,7 @@ impl ElementBase for Center {
         let mut center;
         if self.children.is_some() {
             center = iced::widget::center(
-                renderer.render_element(self.children.unwrap(), datas.child_data.clone()),
+                manager.render_element(self.children.unwrap(), datas.child_data.clone()),
             );
         } else {
             center = iced::widget::center(iced::widget::text(self.text.clone().unwrap()));

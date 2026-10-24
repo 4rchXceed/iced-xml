@@ -320,7 +320,7 @@ impl WindowTemplate<MainWindow, AppState> for MainWindow {
             engine: &mut self.engine,
             qb: &mut self.qb,
             css_watcher_rx: self.css_watcher_rx.as_mut(),
-            css_path: "src/style.css",
+            css_path: "examples/tests/src/style.css",
         };
     }
 

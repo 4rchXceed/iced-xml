@@ -2,15 +2,10 @@ use crate::{
     dom::{
         events::{DomInternalMessageType, EventListenerTypes},
         query_builder::EventResponse,
-    },
-    xml_engine::Message,
-    xml_struct::{
-        element_renderer::{
-            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
-        },
+    }, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener}}, xml_engine::Message, xml_struct::{
         elements::library::ElementError,
         parser::XmlElement,
-    },
+    }
 };
 
 pub trait ElementBase
@@ -19,12 +14,12 @@ where
 {
     fn new(
         xml_element: Box<XmlElement>,
-        renderer: &mut ElementRenderer,
+        mappings: &mut ElementMappings,
         self_uid: i32,
     ) -> Result<Self, ElementError>;
     fn render<'a>(
         &'a self,
-        renderer: &'a ElementRenderer,
+        mappings: &'a ElementsManager,
         datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,

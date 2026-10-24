@@ -1,10 +1,8 @@
 use crate::{
-    xml_engine::Message,
-    xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener},
+    elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementExtraData, EventListener}}, xml_engine::Message, xml_struct::{
         elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
-    },
+    }
 };
 
 pub struct Row {
@@ -14,7 +12,7 @@ pub struct Row {
 impl ElementBase for Row {
     fn new(
         xml_element: Box<XmlElement>,
-        renderer: &mut ElementRenderer,
+        renderer: &mut ElementMappings,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
         let children: Vec<i32> = xml_element
@@ -27,7 +25,7 @@ impl ElementBase for Row {
 
     fn render<'a>(
         &self,
-        renderer: &'a ElementRenderer,
+        renderer: &'a ElementsManager,
         datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,

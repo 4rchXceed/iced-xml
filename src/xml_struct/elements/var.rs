@@ -1,14 +1,9 @@
 // Copy-paste template
 use crate::{
-    dom::{events::DomInternalMessageType, query_builder::QueryResponse},
-    xml_engine::Message,
-    xml_struct::{
-        element_renderer::{
-            ElementEventResponse, ElementExtraData, ElementRenderer, EventListener,
-        },
+    dom::{events::DomInternalMessageType, query_builder::QueryResponse}, elements_manager::{elements_manager::ElementsManager, mappings::ElementMappings, utils::{ElementEventResponse, ElementExtraData, EventListener}}, xml_engine::Message, xml_struct::{
         elements::{element_base::ElementBase, library::ElementError},
         parser::XmlElement,
-    },
+    }
 };
 
 pub struct Var {
@@ -19,7 +14,7 @@ pub struct Var {
 impl ElementBase for Var {
     fn new(
         xml_element: Box<XmlElement>,
-        _: &mut ElementRenderer,
+        _: &mut ElementMappings,
         _: i32,
     ) -> Result<Self, ElementError> {
         if !xml_element.attributes.contains_key("var-key") {
@@ -37,7 +32,7 @@ impl ElementBase for Var {
 
     fn render<'a>(
         &self,
-        _: &'a ElementRenderer,
+        _: &'a ElementsManager,
         datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
