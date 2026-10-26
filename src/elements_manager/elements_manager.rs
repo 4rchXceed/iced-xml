@@ -228,7 +228,13 @@ impl ElementsManager {
 
             // Post process the event response, if any, and forward it to the renderer or other elements
             if let Some(element_response) = element_response_op {
-                let event_response = element_response.response.clone();
+                let mut event_response = element_response.response.clone();
+
+
+                event_response.data_selector = Some(DomQuery {
+                    query_type: DomQueryType::ByUid(uid),
+                    flag: None,
+                });
 
                 // Post-process the event response
                 let response = self.process_element_response(

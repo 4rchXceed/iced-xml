@@ -40,6 +40,7 @@ pub enum CustomElementEvent {
     TWMFocusWindow(String),                             // (window)
     TWMDragWindow(String, HashableGridTarget),          // (window, position)
     TWMOpenWindow(TWMWindowOpenParams),                 // (window)
+    ClearSelectOptions(),                                     // (no data)
 }
 
 /// Two (internal) event types are possible:

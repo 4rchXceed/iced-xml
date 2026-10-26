@@ -252,6 +252,13 @@ impl ElementBase for Select {
                         QueryResponse::success().with_data_str(self.placeholder.clone()),
                     ));
                 }
+                "value" => {
+                    if let Some(selected) = &self.selected {
+                        return Some(ElementEventResponse::new(QueryResponse::success().with_data_str(selected.id.clone())));
+                    } else {
+                        return Some(ElementEventResponse::success());
+                    }
+                }
                 _ => None,
             },
             DomInternalMessageType::FireEvent(event) => match event {
@@ -279,6 +286,11 @@ impl ElementBase for Select {
                         new_options,
                         self.selected.as_ref(),
                     );
+                    return Some(ElementEventResponse::success());
+                }
+                CustomElementEvent::ClearSelectOptions() => {
+                    self.state = iced::widget::combo_box::State::with_selection(Vec::new(), None);
+                    self.selected = None;
                     return Some(ElementEventResponse::success());
                 }
                 _ => None,
