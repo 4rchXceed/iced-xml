@@ -1,10 +1,13 @@
 use crate::{
-    dom::query::QueryResponse,
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementExtraData, EventListener},
+    },
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        elements::{element_base::ElementBase, library::ElementError},
+        xml_element::XmlElement,
     },
 };
 
@@ -13,17 +16,22 @@ pub struct Row {
 }
 
 impl ElementBase for Row {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
-        let mut children: Vec<i32> = Vec::new();
-        for child in &xml_element.children {
-            children.push(renderer.init_element_from_xml(child, self_uid));
-        }
-        Self { children: children }
+    fn new(
+        xml_element: Box<XmlElement>,
+        renderer: &mut ElementMappings,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
+        let children: Vec<i32> = xml_element
+            .children
+            .iter()
+            .map(|child| renderer.init_element_from_xml(child.clone(), self_uid))
+            .collect();
+        return Ok(Self { children: children });
     }
 
     fn render<'a>(
         &self,
-        renderer: &'a ElementRenderer,
+        renderer: &'a ElementsManager,
         datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
@@ -47,14 +55,5 @@ impl ElementBase for Row {
         }
 
         return container.into();
-    }
-
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        match event {
-            _ => None,
-        }
     }
 }

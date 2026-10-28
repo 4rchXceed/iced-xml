@@ -1,24 +1,47 @@
 use crate::{
-    dom::query::QueryResponse,
-    xml_engine::Message,
-    xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        parser::{XmlChangeEvent, XmlElement},
+    dom::{
+        types::EventResponse,
+        types::{DomInternalMessageType, EventListenerTypes},
     },
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementEventResponse, ElementExtraData, EventListener},
+    },
+    xml_engine::Message,
+    xml_struct::{elements::library::ElementError, xml_element::XmlElement},
 };
 
-pub trait ElementBase {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self;
+pub trait ElementBase
+where
+    Self: Sized,
+{
+    fn new(
+        xml_element: Box<XmlElement>,
+        mappings: &mut ElementMappings,
+        self_uid: i32,
+    ) -> Result<Self, ElementError>;
+
     fn render<'a>(
         &'a self,
-        renderer: &'a ElementRenderer,
+        mappings: &'a ElementsManager,
         datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,
     ) -> iced::Element<'a, Message>;
+
     // returns (query_response, elementsToForwardTheEvent)
-    fn process_event(
+    #[allow(unused_variables)]
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
+        None
+    }
+
+    #[allow(unused_variables)]
+    fn event_callback(
         &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)>;
+        event_type: &EventListenerTypes,
+        event_response: &EventResponse,
+    ) -> Option<ElementEventResponse> {
+        None
+    }
 }

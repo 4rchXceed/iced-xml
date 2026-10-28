@@ -1,12 +1,16 @@
 use iced::widget::text;
 
 use crate::{
-    dom::query::QueryResponse,
+    dom::{types::DomInternalMessageType, types::QueryResponse},
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementEventResponse, ElementExtraData, EventListener},
+    },
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        elements::{element_base::ElementBase, library::ElementError},
+        xml_element::XmlElement,
     },
 };
 
@@ -21,23 +25,29 @@ impl Label {
 }
 
 impl ElementBase for Label {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
+    fn new(
+        xml_element: Box<XmlElement>,
+        _: &mut ElementMappings,
+        _: i32,
+    ) -> Result<Self, ElementError> {
         if xml_element.children.len() > 0 {
-            panic!("<Label> elements cannot have children");
+            return Err(ElementError::LabelHasChildren(xml_element.clone()));
         }
-        Self {
+
+        return Ok(Self {
             text: xml_element.text.clone(),
-        }
+        });
     }
 
     fn render<'a>(
         &self,
-        _: &'a ElementRenderer,
+        _: &'a ElementsManager,
         datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
+
         let text_element = text(self.text.clone());
 
         let text_element = text_element.style(move |_| iced::widget::text::Style {
@@ -66,27 +76,23 @@ impl ElementBase for Label {
         return text_element.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let mut query_response = QueryResponse::new(true);
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::PropertyChange(property, new_val) => {
+            DomInternalMessageType::PropertyChange(property, new_val) => {
                 return match property.as_str() {
                     "text" => {
                         self.text = new_val.clone();
-                        Some((query_response, Vec::new(), Vec::new()))
+
+                        Some(ElementEventResponse::success())
                     }
                     _ => None,
                 };
             }
-            XmlChangeEvent::GetProperty(property) => {
+            DomInternalMessageType::GetProperty(property) => {
                 return match property.as_str() {
-                    "text" => {
-                        query_response.data_str = Some(self.text.clone());
-                        Some((query_response, Vec::new(), Vec::new()))
-                    }
+                    "text" => Some(ElementEventResponse::new(
+                        QueryResponse::success().with_data_str(self.text.clone()),
+                    )),
                     _ => None,
                 };
             }

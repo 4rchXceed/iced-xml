@@ -1,10 +1,13 @@
 use crate::{
-    dom::query::QueryResponse,
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementExtraData, EventListener},
+    },
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        elements::{element_base::ElementBase, library::ElementError},
+        xml_element::XmlElement,
     },
 };
 
@@ -13,26 +16,33 @@ pub struct Col {
 }
 
 impl ElementBase for Col {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
-        let mut children: Vec<i32> = Vec::new();
-        for child in &xml_element.children {
-            children.push(renderer.init_element_from_xml(child, self_uid));
-        }
-        Self { children: children }
+    fn new(
+        xml_element: Box<XmlElement>,
+        mappings: &mut ElementMappings,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
+        let children: Vec<i32> = xml_element
+            .children
+            .iter()
+            .map(|child| mappings.init_element_from_xml(child.clone(), self_uid))
+            .collect();
+
+        return Ok(Self { children: children });
     }
 
     fn render<'a>(
         &self,
-        renderer: &'a ElementRenderer,
+        manager: &'a ElementsManager,
         datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
+
         let mut container: iced::widget::Column<'a, Message> = iced::widget::Column::new();
 
         for child in &self.children {
-            container = container.push(renderer.render_element(*child, datas.child_data.clone()));
+            container = container.push(manager.render_element(*child, datas.child_data.clone()));
         }
 
         container = container
@@ -43,19 +53,11 @@ impl ElementBase for Col {
             .max_width(theme.max_width)
             .spacing(theme.spacing)
             .align_x(theme.align_x);
+
         if theme.wrap {
             return container.wrap().into();
         }
 
         return container.into();
-    }
-
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        match event {
-            _ => None,
-        }
     }
 }

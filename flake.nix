@@ -28,6 +28,7 @@
         libxkbcommon
         rustc
         cargo
+        kdiff3
       ];
     in
     {

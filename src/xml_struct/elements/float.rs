@@ -1,13 +1,15 @@
 use iced::Shadow;
 
-// Copy-paste template
 use crate::{
-    dom::query::QueryResponse,
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementExtraData, EventListener},
+    },
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        elements::{element_base::ElementBase, library::ElementError},
+        xml_element::XmlElement,
     },
 };
 
@@ -16,18 +18,25 @@ pub struct FloatingElement {
 }
 
 impl ElementBase for FloatingElement {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: Box<XmlElement>,
+        mappings: &mut ElementMappings,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         if xml_element.children.len() != 1 {
-            panic!("FloatingElement must have exactly one child");
+            return Err(ElementError::FloatingElementMustHaveOneChild(
+                xml_element.clone(),
+            ));
         }
-        let child = renderer.init_element_from_xml(&xml_element.children[0], self_uid);
 
-        Self { child: child }
+        let child = mappings.init_element_from_xml(xml_element.children[0].clone(), self_uid);
+
+        return Ok(Self { child: child });
     }
 
     fn render<'a>(
         &self,
-        renderer: &'a ElementRenderer,
+        manager: &'a ElementsManager,
         datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
@@ -35,7 +44,7 @@ impl ElementBase for FloatingElement {
         let theme = datas.default_theme.clone();
         let mut float_element: iced::widget::float::Float<'a, Message> =
             iced::widget::float::Float::new(
-                renderer.render_element(self.child, datas.child_data.clone()),
+                manager.render_element(self.child, datas.child_data.clone()),
             );
 
         float_element =
@@ -52,18 +61,5 @@ impl ElementBase for FloatingElement {
         // TODO: What does .translate do?
 
         return float_element.into();
-    }
-
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        match event {
-            // Process PropertyChange / GetProperty / Custom events
-            // The second parameter is a list of element IDs to forward the event to
-            // For example, if you want to forward the event to your "virtual label element", so it changes text,
-            // you would use `Some(..., vec![virtual_text])`
-            _ => None,
-        }
     }
 }

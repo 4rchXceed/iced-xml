@@ -1,65 +1,85 @@
 use crate::{
-    dom::query::QueryResponse,
+    dom::{types::DomInternalMessageType, types::QueryResponse},
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementEventResponse, ElementExtraData, EventListener},
+    },
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::{element_base::ElementBase, label::Label, library::AnyElement},
-        parser::{XmlChangeEvent, XmlElement},
+        elements::{
+            element_base::ElementBase,
+            label::Label,
+            library::{AnyElement, ElementError},
+        },
+        xml_element::XmlElement,
     },
 };
 
+pub enum Content {
+    Children(i32),
+    Text(String, i32),
+}
+
 pub struct Center {
-    children: Option<i32>,
-    text: Option<String>,
-    virtual_label: i32,
+    content: Content,
 }
 
 impl ElementBase for Center {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: Box<XmlElement>,
+        mappings: &mut ElementMappings,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         if xml_element.children.len() != 1 && xml_element.text.trim().is_empty() {
-            panic!("Center element must have exactly one child (or text inside)");
-        }
-        if xml_element.children.len() == 1 && !xml_element.text.trim().is_empty() {
-            panic!("Center element must have either children or text, not both");
+            return Err(ElementError::CenterElementNotOneChildren(
+                xml_element.clone(),
+            ));
         }
 
-        let virtual_label = renderer.init_element_virt(
-            AnyElement::Label(Label::virt(xml_element.text.clone())),
-            Some(xml_element.theme.clone()),
-            self_uid,
-        );
+        if xml_element.children.len() == 1 && !xml_element.text.trim().is_empty() {
+            return Err(ElementError::CenterElementHasBothChildrenAndText(
+                xml_element.clone(),
+            ));
+        }
 
         if xml_element.text.trim().is_empty() {
-            Self {
-                children: Some(renderer.init_element_from_xml(&xml_element.children[0], self_uid)),
-                text: None,
-                virtual_label,
-            }
+            let child_id =
+                mappings.init_element_from_xml(xml_element.children[0].clone(), self_uid);
+
+            return Ok(Self {
+                content: Content::Children(child_id),
+            });
         } else {
-            Self {
-                children: None,
-                text: Some(xml_element.text.clone()),
-                virtual_label,
-            }
+            let virtual_label = mappings.init_element_virt(
+                AnyElement::Label(Label::virt(xml_element.text.clone())),
+                Some(xml_element.theme.clone()),
+                self_uid,
+            );
+
+            return Ok(Self {
+                content: Content::Text(xml_element.text.clone(), virtual_label),
+            });
         }
     }
 
     fn render<'a>(
         &self,
-        renderer: &'a ElementRenderer,
+        manager: &'a ElementsManager,
         datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
-        let mut center;
-        if self.children.is_some() {
-            center = iced::widget::center(
-                renderer.render_element(self.children.unwrap(), datas.child_data.clone()),
-            );
-        } else {
-            center = iced::widget::center(iced::widget::text(self.text.clone().unwrap()));
-        }
+
+        let child_id = match &self.content {
+            Content::Children(child) => *child,
+            Content::Text(_, virtual_label) => *virtual_label,
+        };
+
+        let mut center =
+            iced::widget::center(manager.render_element(child_id, datas.child_data.clone()));
+
         center = center
             .clip(theme.clip)
             .max_height(theme.max_height)
@@ -81,44 +101,56 @@ impl ElementBase for Center {
                 },
                 snap: theme.snap,
             });
+
         if theme.center_use_align {
             center = center.align_y(theme.align_y).align_x(theme.align_x);
         }
+
         if theme.center_x {
             center = center.center_x(theme.width);
         }
+
         if theme.center_y {
             center = center.center_y(theme.height);
         }
+
         if theme.center_all {
             center = center.center(theme.width);
         }
+
         return center.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let mut result = QueryResponse::new(true);
-        let mut elements_to_forward = Vec::new();
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::PropertyChange(key, newval) => {
+            DomInternalMessageType::PropertyChange(key, newval) => {
                 if key == "text" {
-                    self.text = Some(newval.clone());
-                    elements_to_forward.push(self.virtual_label);
-                    Some((result, elements_to_forward, Vec::new()))
+                    match &mut self.content {
+                        Content::Text(text, virtual_label) => {
+                            *text = newval.clone();
+
+                            Some(
+                                ElementEventResponse::success()
+                                    .with_forward_to(vec![*virtual_label]),
+                            )
+                        }
+                        _ => Some(ElementEventResponse::new(QueryResponse::fail(
+                            "Wanted to change text, but <Center /> has a child, not text, as content",
+                        ))),
+                    }
                 } else {
                     None
                 }
             }
-            XmlChangeEvent::GetProperty(key) => {
+            DomInternalMessageType::GetProperty(key) => {
                 if key == "text" {
-                    if self.text.is_some() {
-                        result.data_str = self.text.clone();
-                        Some((result, elements_to_forward, Vec::new()))
-                    } else {
-                        None
+                    match &self.content {
+                        Content::Text(text, _) => Some(ElementEventResponse::new(
+                            QueryResponse::success().with_data_str(text.clone()),
+                        )),
+                        _ => Some(ElementEventResponse::new(QueryResponse::fail(
+                            "Wanted to get text, but <Center /> has a child, not text, as content",
+                        ))),
                     }
                 } else {
                     None

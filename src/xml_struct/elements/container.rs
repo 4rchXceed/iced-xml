@@ -1,13 +1,15 @@
 use iced::{Border, Shadow};
 
-// Copy-paste template
 use crate::{
-    dom::query::QueryResponse,
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementExtraData, EventListener},
+    },
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        elements::{element_base::ElementBase, library::ElementError},
+        xml_element::XmlElement,
     },
 };
 
@@ -16,22 +18,25 @@ pub struct Container {
 }
 
 impl ElementBase for Container {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
+    fn new(
+        xml_element: Box<XmlElement>,
+        mappings: &mut ElementMappings,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
         if xml_element.children.len() != 1 {
-            panic!(
-                "Container MUST have one and only one child (currently has {})",
-                xml_element.children.len()
-            );
+            return Err(ElementError::ContainerElementNotOneChildren(
+                xml_element.clone(),
+            ));
         }
 
-        Self {
-            child: renderer.init_element_from_xml(&xml_element.children[0], self_uid),
-        }
+        return Ok(Self {
+            child: mappings.init_element_from_xml(xml_element.children[0].clone(), self_uid),
+        });
     }
 
     fn render<'a>(
         &self,
-        renderer: &'a ElementRenderer,
+        manager: &'a ElementsManager,
         datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
@@ -39,7 +44,7 @@ impl ElementBase for Container {
         let theme = datas.default_theme.clone();
 
         let mut container: iced::widget::Container<'a, Message> = iced::widget::Container::new(
-            renderer.render_element(self.child, datas.child_data.clone()),
+            manager.render_element(self.child, datas.child_data.clone()),
         );
 
         container = container
@@ -66,24 +71,19 @@ impl ElementBase for Container {
                 snap: theme.snap,
                 text_color: Some(theme.foreground_color),
             });
+
         if theme.center_all {
             container = container.center(theme.width); // FOR_DOC: This will only use the width
         }
+
         if theme.center_x {
             container = container.center_x(theme.width);
         }
+
         if theme.center_y {
             container = container.center_y(theme.height);
         }
-        return container.into();
-    }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        match event {
-            _ => None,
-        }
+        return container.into();
     }
 }
