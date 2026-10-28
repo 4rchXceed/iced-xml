@@ -207,8 +207,8 @@ impl QueryResponse {
     }
 
     pub fn selector(&self) -> Option<DomQueryBuilder> {
-        if self.element_uid.is_some() {
-            return Some(Dom::get_element(self.element_uid.unwrap()));
+        if let Some(element_uid) = self.element_uid {
+            return Some(Dom::get_element(element_uid));
         } else {
             return None;
         }

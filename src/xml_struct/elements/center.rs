@@ -16,10 +16,13 @@ use crate::{
     },
 };
 
+pub enum Content {
+    Children(i32),
+    Text(String, i32),
+}
+
 pub struct Center {
-    children: Option<i32>,
-    text: Option<String>,
-    virtual_label: i32,
+    content: Content,
 }
 
 impl ElementBase for Center {
@@ -33,31 +36,29 @@ impl ElementBase for Center {
                 xml_element.clone(),
             ));
         }
+
         if xml_element.children.len() == 1 && !xml_element.text.trim().is_empty() {
             return Err(ElementError::CenterElementHasBothChildrenAndText(
                 xml_element.clone(),
             ));
         }
 
-        let virtual_label = mappings.init_element_virt(
-            AnyElement::Label(Label::virt(xml_element.text.clone())),
-            Some(xml_element.theme.clone()),
-            self_uid,
-        );
-
         if xml_element.text.trim().is_empty() {
+            let child_id =
+                mappings.init_element_from_xml(xml_element.children[0].clone(), self_uid);
+
             return Ok(Self {
-                children: Some(
-                    mappings.init_element_from_xml(xml_element.children[0].clone(), self_uid),
-                ),
-                text: None,
-                virtual_label,
+                content: Content::Children(child_id),
             });
         } else {
+            let virtual_label = mappings.init_element_virt(
+                AnyElement::Label(Label::virt(xml_element.text.clone())),
+                Some(xml_element.theme.clone()),
+                self_uid,
+            );
+
             return Ok(Self {
-                children: None,
-                text: Some(xml_element.text.clone()),
-                virtual_label,
+                content: Content::Text(xml_element.text.clone(), virtual_label),
             });
         }
     }
@@ -70,14 +71,15 @@ impl ElementBase for Center {
         _: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
-        let mut center;
-        if self.children.is_some() {
-            center = iced::widget::center(
-                manager.render_element(self.children.unwrap(), datas.child_data.clone()),
-            );
-        } else {
-            center = iced::widget::center(iced::widget::text(self.text.clone().unwrap()));
-        }
+
+        let child_id = match &self.content {
+            Content::Children(child) => *child,
+            Content::Text(_, virtual_label) => *virtual_label,
+        };
+
+        let mut center =
+            iced::widget::center(manager.render_element(child_id, datas.child_data.clone()));
+
         center = center
             .clip(theme.clip)
             .max_height(theme.max_height)
@@ -99,18 +101,23 @@ impl ElementBase for Center {
                 },
                 snap: theme.snap,
             });
+
         if theme.center_use_align {
             center = center.align_y(theme.align_y).align_x(theme.align_x);
         }
+
         if theme.center_x {
             center = center.center_x(theme.width);
         }
+
         if theme.center_y {
             center = center.center_y(theme.height);
         }
+
         if theme.center_all {
             center = center.center(theme.width);
         }
+
         return center.into();
     }
 
@@ -118,21 +125,32 @@ impl ElementBase for Center {
         match event {
             DomInternalMessageType::PropertyChange(key, newval) => {
                 if key == "text" {
-                    self.text = Some(newval.clone());
-                    Some(ElementEventResponse::success().with_forward_to(vec![self.virtual_label]))
+                    match &mut self.content {
+                        Content::Text(text, virtual_label) => {
+                            *text = newval.clone();
+
+                            Some(
+                                ElementEventResponse::success()
+                                    .with_forward_to(vec![*virtual_label]),
+                            )
+                        }
+                        _ => Some(ElementEventResponse::new(QueryResponse::fail(
+                            "Wanted to change text, but <Center /> has a child, not text, as content",
+                        ))),
+                    }
                 } else {
                     None
                 }
             }
             DomInternalMessageType::GetProperty(key) => {
                 if key == "text" {
-                    if self.text.is_some() {
-                        Some(ElementEventResponse::new(
-                            QueryResponse::success()
-                                .with_data_str(self.text.as_ref().unwrap().clone()),
-                        ))
-                    } else {
-                        None
+                    match &self.content {
+                        Content::Text(text, _) => Some(ElementEventResponse::new(
+                            QueryResponse::success().with_data_str(text.clone()),
+                        )),
+                        _ => Some(ElementEventResponse::new(QueryResponse::fail(
+                            "Wanted to get text, but <Center /> has a child, not text, as content",
+                        ))),
                     }
                 } else {
                     None

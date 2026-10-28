@@ -1,4 +1,3 @@
-// Copy-paste template
 use crate::{
     dom::{
         types::{DomInternalMessageType, EventListenerTypes},
@@ -33,7 +32,9 @@ impl ElementBase for Input {
             .get("placeholder")
             .unwrap_or(&String::from("Enter something here..."))
             .to_string();
+
         let value = xml_element.text.clone();
+
         let is_secured = xml_element.attributes.contains_key("secure");
 
         return Ok(Self {
@@ -93,12 +94,12 @@ impl ElementBase for Input {
                 EventResponse::new(me, EventListenerTypes::Submit),
             ));
 
-        if theme.select_icon.is_some() {
-            input = input.icon(theme.select_icon.unwrap());
+        if let Some(select_icon) = theme.select_icon {
+            input = input.icon(select_icon);
         }
 
-        if theme.size.is_some() {
-            input = input.size(theme.size.unwrap());
+        if let Some(size) = theme.size {
+            input = input.size(size);
         }
 
         for event in events {
@@ -106,14 +107,18 @@ impl ElementBase for Input {
                 EventListenerTypes::Input => {
                     input = input.on_input(move |input| {
                         let mut event_response = EventResponse::new(me, event.event_type.clone());
+
                         event_response.data_str = Some(input);
+
                         return Message::DomEvent(Some(event.event_uid), event_response);
                     });
                 }
                 EventListenerTypes::Paste => {
                     input = input.on_paste(move |input| {
                         let mut event_response = EventResponse::new(me, event.event_type.clone());
+
                         event_response.data_str = Some(input);
+
                         return Message::DomEvent(Some(event.event_uid), event_response);
                     });
                 }
@@ -135,14 +140,17 @@ impl ElementBase for Input {
             DomInternalMessageType::PropertyChange(key, value) => match key.as_str() {
                 "placeholder" => {
                     self.placeholder = value.clone();
+
                     return Some(ElementEventResponse::success());
                 }
                 "value" => {
                     self.value = value.clone();
+
                     return Some(ElementEventResponse::success());
                 }
                 "secure" => {
                     self.is_secured = value == "true";
+
                     return Some(ElementEventResponse::success());
                 }
                 _ => None,
@@ -170,16 +178,17 @@ impl ElementBase for Input {
     ) -> Option<ElementEventResponse> {
         match event_type {
             EventListenerTypes::Input => {
-                if event_response.data_str.is_some() {
-                    self.value = event_response.data_str.as_ref().unwrap().clone();
+                if let Some(data) = &event_response.data_str {
+                    self.value = data.clone();
+
                     Some(ElementEventResponse::success())
                 } else {
                     None
                 }
             }
             EventListenerTypes::Paste => {
-                if event_response.data_str.is_some() {
-                    self.value = event_response.data_str.as_ref().unwrap().clone();
+                if let Some(data) = &event_response.data_str {
+                    self.value = data.clone();
                     Some(ElementEventResponse::success())
                 } else {
                     None

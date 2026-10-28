@@ -1,6 +1,5 @@
 use iced::widget::scrollable::AutoScroll;
 
-// Copy-paste template
 use crate::{
     dom::{
         types::{DomInternalMessageType, EventListenerTypes},

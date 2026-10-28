@@ -1,4 +1,3 @@
-// Copy-paste template
 use crate::{
     elements_manager::{
         elements_manager::ElementsManager,

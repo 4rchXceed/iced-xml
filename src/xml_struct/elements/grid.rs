@@ -1,4 +1,3 @@
-// Copy-paste template
 use crate::{
     elements_manager::{
         elements_manager::ElementsManager,
@@ -27,6 +26,7 @@ impl ElementBase for Grid {
             .iter()
             .map(|child| mappings.init_element_from_xml(child.clone(), self_uid))
             .collect();
+
         return Ok(Self { children: children });
     }
 
@@ -38,6 +38,7 @@ impl ElementBase for Grid {
         _: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
+
         let mut grid: iced::widget::grid::Grid<'a, Message> = iced::widget::grid::Grid::new();
 
         for child_uid in &self.children {

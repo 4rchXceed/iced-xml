@@ -1,6 +1,5 @@
 use iced::{Border, Shadow};
 
-// Copy-paste template
 use crate::{
     elements_manager::{
         elements_manager::ElementsManager,
@@ -72,15 +71,19 @@ impl ElementBase for Container {
                 snap: theme.snap,
                 text_color: Some(theme.foreground_color),
             });
+
         if theme.center_all {
             container = container.center(theme.width); // FOR_DOC: This will only use the width
         }
+
         if theme.center_x {
             container = container.center_x(theme.width);
         }
+
         if theme.center_y {
             container = container.center_y(theme.height);
         }
+
         return container.into();
     }
 }

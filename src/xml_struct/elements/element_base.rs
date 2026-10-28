@@ -21,6 +21,7 @@ where
         mappings: &mut ElementMappings,
         self_uid: i32,
     ) -> Result<Self, ElementError>;
+
     fn render<'a>(
         &'a self,
         mappings: &'a ElementsManager,
@@ -28,6 +29,7 @@ where
         events: Vec<&'a EventListener>,
         self_uid: i32,
     ) -> iced::Element<'a, Message>;
+
     // returns (query_response, elementsToForwardTheEvent)
     #[allow(unused_variables)]
     fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {

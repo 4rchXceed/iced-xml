@@ -1,6 +1,5 @@
 use std::ops::RangeInclusive;
 
-// Copy-paste template
 use crate::{
     dom::{
         types::{DomInternalMessageType, EventListenerTypes},
@@ -22,13 +21,14 @@ use crate::{
 
 pub fn parse_property(val: String) -> (QueryResponse, Option<f32>) {
     let new_value = val.parse::<f32>();
-    if new_value.is_err() {
-        return (
+
+    match new_value {
+        Ok(v) => (QueryResponse::success(), Some(v)),
+        Err(_) => (
             QueryResponse::fail(format!("Property: {} isn't a valid float", val).as_str()),
             None,
-        );
+        ),
     }
-    return (QueryResponse::success(), Some(new_value.unwrap()));
 }
 
 pub struct Range {
@@ -54,22 +54,23 @@ impl Range {
             self.value,
             on_input,
         );
+
         slider = slider
             .height(theme.slider_height)
             .width(theme.width)
             .step(self.step)
             .style(move |_, _| style);
 
-        if on_release.is_some() {
-            slider = slider.on_release(on_release.unwrap());
+        if let Some(on_release) = on_release {
+            slider = slider.on_release(on_release);
         }
 
-        if self.second_step.is_some() {
-            slider = slider.shift_step(self.second_step.unwrap());
+        if let Some(second_step) = self.second_step {
+            slider = slider.shift_step(second_step);
         }
 
-        if self.default.is_some() {
-            slider = slider.default(self.default.unwrap());
+        if let Some(default) = self.default {
+            slider = slider.default(default);
         }
 
         return slider.into();
@@ -87,22 +88,23 @@ impl Range {
             self.value,
             on_input,
         );
+
         slider = slider
             .height(theme.height)
             .width(theme.vertical_slider_width)
             .step(self.step)
             .style(move |_, _| style);
 
-        if on_release.is_some() {
-            slider = slider.on_release(on_release.unwrap());
+        if let Some(on_release) = on_release {
+            slider = slider.on_release(on_release);
         }
 
-        if self.second_step.is_some() {
-            slider = slider.shift_step(self.second_step.unwrap());
+        if let Some(second_step) = self.second_step {
+            slider = slider.shift_step(second_step);
         }
 
-        if self.default.is_some() {
-            slider = slider.default(self.default.unwrap());
+        if let Some(default) = self.default {
+            slider = slider.default(default);
         }
 
         return slider.into();
@@ -121,33 +123,29 @@ impl ElementBase for Range {
         let mut default = None;
         let mut shift_step = None;
         let mut step = 0.1;
-        if xml_element.attributes.contains_key("min") {
-            min = xml_element.attributes["min"].parse::<f32>().unwrap_or(0.0);
+
+        if let Some(min_str) = xml_element.attributes.get("min") {
+            min = min_str.parse::<f32>().unwrap_or(0.0);
         }
-        if xml_element.attributes.contains_key("max") {
-            max = xml_element.attributes["max"].parse::<f32>().unwrap_or(1.0);
+
+        if let Some(max_str) = xml_element.attributes.get("max") {
+            max = max_str.parse::<f32>().unwrap_or(1.0);
         }
-        if xml_element.attributes.contains_key("value") {
-            value = xml_element.attributes["value"]
-                .parse::<f32>()
-                .unwrap_or(0.0);
+
+        if let Some(value_str) = xml_element.attributes.get("value") {
+            value = value_str.parse::<f32>().unwrap_or(0.0);
         }
-        if xml_element.attributes.contains_key("default") {
-            default = Some(
-                xml_element.attributes["default"]
-                    .parse::<f32>()
-                    .unwrap_or(0.0),
-            );
+
+        if let Some(default_str) = xml_element.attributes.get("default") {
+            default = Some(default_str.parse::<f32>().unwrap_or(0.0));
         }
-        if xml_element.attributes.contains_key("step") {
-            step = xml_element.attributes["step"].parse::<f32>().unwrap_or(0.1);
+
+        if let Some(step_str) = xml_element.attributes.get("step") {
+            step = step_str.parse::<f32>().unwrap_or(0.1);
         }
-        if xml_element.attributes.contains_key("second-step") {
-            shift_step = Some(
-                xml_element.attributes["second-step"]
-                    .parse::<f32>()
-                    .unwrap_or(0.01),
-            );
+
+        if let Some(shift_step_str) = xml_element.attributes.get("second-step") {
+            shift_step = Some(shift_step_str.parse::<f32>().unwrap_or(0.01));
         }
 
         return Ok(Self {
@@ -169,12 +167,15 @@ impl ElementBase for Range {
         self_uid: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
+
         let mut handle_theme = theme.clone();
-        if datas.flag_themes.contains_key("handle") {
-            handle_theme = datas.flag_themes["handle"].clone();
+
+        if let Some(handle_theme_data) = datas.flag_themes.get("handle") {
+            handle_theme = handle_theme_data.clone();
         }
 
         let mut id = None;
+
         for event in &events {
             match event.event_type {
                 EventListenerTypes::Input => {
@@ -183,9 +184,12 @@ impl ElementBase for Range {
                 _ => (),
             }
         }
+
         let on_input = move |v| {
             let mut event_response = EventResponse::new(self_uid, EventListenerTypes::Input);
+
             event_response.data_float = Some(HashableF32::new(v));
+
             return Message::DomEvent(id, event_response);
         };
 
@@ -202,6 +206,7 @@ impl ElementBase for Range {
                 _ => (),
             }
         }
+
         let style = iced::widget::slider::Style {
             rail: iced::widget::slider::Rail {
                 backgrounds: (theme.background, theme.foreground_element),
@@ -219,6 +224,7 @@ impl ElementBase for Range {
                 border_color: handle_theme.border_color,
             },
         };
+
         if self.vertical {
             return self.vertical(theme, on_input, on_release_message, style);
         } else {
@@ -232,36 +238,49 @@ impl ElementBase for Range {
                 return match key.as_str() {
                     "value" => {
                         let r = parse_property(value.clone());
+
                         self.value = r.1.unwrap_or(self.value);
+
                         return Some(ElementEventResponse::new(r.0));
                     }
                     "min" => {
                         let r = parse_property(value.clone());
+
                         self.min = r.1.unwrap_or(self.min);
+
                         return Some(ElementEventResponse::new(r.0));
                     }
                     "max" => {
                         let r = parse_property(value.clone());
+
                         self.max = r.1.unwrap_or(self.max);
+
                         return Some(ElementEventResponse::new(r.0));
                     }
                     "default" => {
                         let r = parse_property(value.clone());
+
                         self.default = r.1;
+
                         return Some(ElementEventResponse::new(r.0));
                     }
                     "step" => {
                         let r = parse_property(value.clone());
+
                         self.step = r.1.unwrap_or(self.step);
+
                         return Some(ElementEventResponse::new(r.0));
                     }
                     "second-step" => {
                         let r = parse_property(value.clone());
+
                         self.second_step = r.1;
+
                         return Some(ElementEventResponse::new(r.0));
                     }
                     "vertical" => {
                         self.vertical = value == "true";
+
                         return Some(ElementEventResponse::success());
                     }
                     _ => None,
@@ -284,29 +303,25 @@ impl ElementBase for Range {
                             QueryResponse::success().with_data_float(self.max),
                         ));
                     }
-                    "default" => {
-                        if self.default.is_some() {
-                            return Some(ElementEventResponse::new(
-                                QueryResponse::success().with_data_float(self.default.unwrap()),
-                            ));
-                        } else {
-                            return Some(ElementEventResponse::new(QueryResponse::success())); // We don't fail if the default is not set, we just return success with no data
-                        }
-                    }
+                    "default" => match self.default {
+                        Some(default) => Some(ElementEventResponse::new(
+                            QueryResponse::success().with_data_float(default),
+                        )),
+                        _ => Some(ElementEventResponse::new(QueryResponse::success())), // We don't fail if the default is not set, we just return success with no data
+                    },
+
                     "step" => {
                         return Some(ElementEventResponse::new(
                             QueryResponse::success().with_data_float(self.step),
                         ));
                     }
-                    "second-step" => {
-                        if self.second_step.is_some() {
-                            return Some(ElementEventResponse::new(
-                                QueryResponse::success().with_data_float(self.second_step.unwrap()),
-                            ));
-                        } else {
-                            return Some(ElementEventResponse::new(QueryResponse::success())); // Same here
-                        }
-                    }
+                    "second-step" => match self.second_step {
+                        Some(second_step) => Some(ElementEventResponse::new(
+                            QueryResponse::success().with_data_float(second_step),
+                        )),
+                        _ => Some(ElementEventResponse::new(QueryResponse::success())), // Same here
+                    },
+
                     "vertical" => {
                         return Some(ElementEventResponse::new(
                             QueryResponse::success().with_data_bool(self.vertical),
@@ -331,6 +346,7 @@ impl ElementBase for Range {
                     .clone()
                     .unwrap_or(HashableF32::new(self.value))
                     .value();
+
                 return Some(ElementEventResponse::success());
             }
             _ => None,

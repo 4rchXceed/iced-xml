@@ -1,4 +1,3 @@
-// Copy-paste template
 use crate::{
     dom::{
         types::{DomInternalMessageType, EventListenerTypes},

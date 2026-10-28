@@ -14,6 +14,7 @@ use crate::{
         xml_element::XmlElement,
     },
 };
+use log::warn;
 
 pub struct RadioButton {
     text: String,
@@ -32,22 +33,21 @@ impl ElementBase for RadioButton {
         renderer: &mut ElementMappings,
         _: i32,
     ) -> Result<Self, ElementError> {
-        if xml_element.attributes.get("radio-id").is_none() {
-            return Err(ElementError::AttributeIdRequiredForRadio(
-                xml_element.clone(),
-            ));
-        }
-        if xml_element.attributes.get("radio-id").is_none() {
-            return Err(ElementError::AttributeValueRequiredForRadio(
-                xml_element.clone(),
-            ));
-        }
         let mut text = xml_element.text.clone();
+
         if xml_element.text.is_empty() {
-            println!("Warning: created a <Radio /> element without text");
+            warn!("Warning: created a <Radio /> element without text");
             text = String::from("No text");
         }
-        let id = xml_element.attributes.get("value").unwrap();
+
+        let selection_id = xml_element.attributes.get("radio-id").ok_or(
+            ElementError::AttributeIdRequiredForRadio(xml_element.clone()),
+        )?;
+
+        let id = xml_element.attributes.get("value").ok_or(
+            ElementError::AttributeValueRequiredForRadio(xml_element.clone()),
+        )?;
+
         let choice = RadioElement::Element(renderer.register_stringdb(id.clone()));
 
         if xml_element.attributes.get("selected").is_some() {
@@ -55,7 +55,7 @@ impl ElementBase for RadioButton {
         }
 
         return Ok(Self {
-            selection_id: xml_element.attributes.get("radio-id").unwrap().clone(),
+            selection_id: selection_id.clone(),
             text: text,
             choice: choice,
         });
@@ -69,8 +69,11 @@ impl ElementBase for RadioButton {
         self_uid: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
+
         let mut ev_response = EventResponse::new(self_uid, EventListenerTypes::Select);
+
         let mut id = None;
+
         for event in events {
             match event.event_type {
                 EventListenerTypes::Select => {
@@ -95,6 +98,7 @@ impl ElementBase for RadioButton {
                 return Message::DomEvent(id, ev_response);
             },
         );
+
         radio = radio
             .font(theme.font)
             .spacing(theme.spacing)
@@ -109,11 +113,13 @@ impl ElementBase for RadioButton {
                 dot_color: theme.icon_color,
                 text_color: Some(theme.foreground_color),
             });
-        if theme.size.is_some() {
-            radio = radio.size(theme.size.unwrap());
+
+        if let Some(size) = theme.size {
+            radio = radio.size(size);
         }
-        if theme.font_size.is_some() {
-            radio = radio.text_size(theme.font_size.unwrap());
+
+        if let Some(font_size) = theme.font_size {
+            radio = radio.text_size(font_size);
         }
 
         return radio.into();
@@ -124,6 +130,7 @@ impl ElementBase for RadioButton {
             DomInternalMessageType::PropertyChange(id, value) => match id.as_str() {
                 "text" => {
                     self.text = value.clone();
+
                     return Some(ElementEventResponse::success());
                 }
                 _ => None,

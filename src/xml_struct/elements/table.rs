@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-// Copy-paste template
 use crate::{
     dom::{types::CustomElementEvent::SetTableData, types::DomInternalMessageType},
     elements_manager::{

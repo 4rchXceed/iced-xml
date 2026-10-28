@@ -66,6 +66,7 @@ impl ElementBase for Button {
             });
         }
     }
+
     fn render<'a>(
         &self,
         renderer: &'a ElementsManager,
@@ -74,6 +75,7 @@ impl ElementBase for Button {
         self_uid: i32,
     ) -> iced::Element<'a, Message> {
         let mut button_child: iced::widget::Column<'a, Message> = iced::widget::Column::new();
+
         for child in &self.children {
             button_child =
                 button_child.push(renderer.render_element(*child, datas.child_data.clone()));
@@ -135,6 +137,7 @@ impl ElementBase for Button {
                 return match property.as_str() {
                     "text" => {
                         self.text = Some(new_val.clone());
+
                         Some(
                             ElementEventResponse::success()
                                 .with_forward_to(vec![self.virtual_text]),

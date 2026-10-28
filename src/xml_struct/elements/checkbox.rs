@@ -1,4 +1,3 @@
-// Copy-paste template
 use crate::{
     dom::{
         types::{DomInternalMessageType, EventListenerTypes},
@@ -29,20 +28,15 @@ impl ElementBase for Checkbox {
         _: &mut ElementMappings,
         _: i32,
     ) -> Result<Self, ElementError> {
-        // If it supports children, initialize them here with renderer.init_element
-        // let mut children: Vec<i32> = Vec::new();
-        // for child in &xml_element.children {
-        //     children.push(renderer.init_element(child));
-        // }
         let checked = xml_element.attributes.get("checked").is_some();
+
         let text: String = xml_element.text.clone();
-        let mut maybe_text: Option<String> = None;
-        if !text.is_empty() {
-            maybe_text = Some(text);
-        }
+
+        let label_op: Option<String> = if !text.is_empty() { Some(text) } else { None };
+
         return Ok(Self {
             checked: checked,
-            text: maybe_text,
+            text: label_op,
         });
     }
 
@@ -57,14 +51,16 @@ impl ElementBase for Checkbox {
         // let mut container: iced::widget::Column<'a, Message> = iced::widget::Column::new();
         let mut checkbox: iced::widget::Checkbox<'a, Message> =
             iced::widget::checkbox::Checkbox::new(self.checked);
+
         let mut theme = datas.default_theme.clone();
+
         if self.checked {
-            if datas.flag_themes.contains_key("checked") {
-                theme = datas.flag_themes.get("checked").unwrap().clone();
+            if let Some(checked_theme) = datas.flag_themes.get("checked") {
+                theme = checked_theme.clone();
             }
         } else {
-            if datas.flag_themes.contains_key("unchecked") {
-                theme = datas.flag_themes.get("unchecked").unwrap().clone();
+            if let Some(unchecked_theme) = datas.flag_themes.get("unchecked") {
+                theme = unchecked_theme.clone();
             }
         }
 
@@ -89,6 +85,7 @@ impl ElementBase for Checkbox {
         if let Some(size) = theme.size {
             checkbox = checkbox.size(size);
         }
+
         if let Some(font_size) = theme.font_size {
             checkbox = checkbox.text_size(font_size);
         }
@@ -103,15 +100,19 @@ impl ElementBase for Checkbox {
 
         // Register any events here
         let me = self_uid.clone();
+
         checkbox = checkbox.on_toggle(move |_| {
             return Message::DomEvent(None, EventResponse::new(me, EventListenerTypes::Check));
         });
+
         for event in events {
             match event.event_type {
                 EventListenerTypes::Check => {
                     checkbox = checkbox.on_toggle(move |checked| {
                         let mut event_response = EventResponse::new(me, event.event_type.clone());
+
                         event_response.data_bool = Some(checked);
+
                         return Message::DomEvent(Some(event.event_uid), event_response);
                     });
                 }
@@ -127,6 +128,7 @@ impl ElementBase for Checkbox {
             DomInternalMessageType::PropertyChange(key, newval) => {
                 if key == "text" {
                     self.text = Some(newval.clone());
+
                     return Some(ElementEventResponse::success());
                 } else if key == "checked" {
                     self.checked = newval == "true";
@@ -156,6 +158,7 @@ impl ElementBase for Checkbox {
         match event_type {
             EventListenerTypes::Check => {
                 self.checked = !self.checked;
+
                 return Some(ElementEventResponse::success());
             }
             _ => None,

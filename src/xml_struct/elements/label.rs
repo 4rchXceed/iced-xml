@@ -33,6 +33,7 @@ impl ElementBase for Label {
         if xml_element.children.len() > 0 {
             return Err(ElementError::LabelHasChildren(xml_element.clone()));
         }
+
         return Ok(Self {
             text: xml_element.text.clone(),
         });
@@ -46,6 +47,7 @@ impl ElementBase for Label {
         _: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
+
         let text_element = text(self.text.clone());
 
         let text_element = text_element.style(move |_| iced::widget::text::Style {
@@ -80,6 +82,7 @@ impl ElementBase for Label {
                 return match property.as_str() {
                     "text" => {
                         self.text = new_val.clone();
+
                         Some(ElementEventResponse::success())
                     }
                     _ => None,

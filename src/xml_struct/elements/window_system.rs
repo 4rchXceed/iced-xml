@@ -5,7 +5,6 @@ use iced::{
     widget::{self, button, row},
 };
 
-// Copy-paste template
 use crate::{
     dom::{
         types::{CustomElementEvent, EventResponse, QueryResponse},

@@ -2,7 +2,6 @@ use std::fmt;
 
 use iced::{Border, Shadow};
 
-// Copy-paste template
 use crate::{
     dom::{
         types::{CustomElementEvent, EventResponse, QueryResponse},

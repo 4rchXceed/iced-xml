@@ -305,3 +305,10 @@ Changed a lot of code to match the new structure.
 Some bugfixes, and improvements to the quality.
 
 Remove the requirement for a <Window> element at root, letting the user choose any element. But it must be only one. (this is because Window cannot have background)
+
+## Last commit: 
++ Rewrite V2:
+  - Removed any usage of unwrap() + improved code quality for: float.rs, button.rs, library.rs, progress.rs, input.rs, range.rs, col.rs, element_base.rs, grid.rs, center.rs, container.rs, mod.rs, checkbox.rs, radio.rs, label.rs
+
+TODO:
+Finish the rewrite for the rest of the elements, and also remove usage of [] in the code

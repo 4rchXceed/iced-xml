@@ -38,6 +38,7 @@ impl ElementBase for Col {
         _: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
+
         let mut container: iced::widget::Column<'a, Message> = iced::widget::Column::new();
 
         for child in &self.children {
@@ -52,6 +53,7 @@ impl ElementBase for Col {
             .max_width(theme.max_width)
             .spacing(theme.spacing)
             .align_x(theme.align_x);
+
         if theme.wrap {
             return container.wrap().into();
         }

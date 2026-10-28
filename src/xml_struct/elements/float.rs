@@ -1,6 +1,5 @@
 use iced::Shadow;
 
-// Copy-paste template
 use crate::{
     elements_manager::{
         elements_manager::ElementsManager,
@@ -29,6 +28,7 @@ impl ElementBase for FloatingElement {
                 xml_element.clone(),
             ));
         }
+
         let child = mappings.init_element_from_xml(xml_element.children[0].clone(), self_uid);
 
         return Ok(Self { child: child });

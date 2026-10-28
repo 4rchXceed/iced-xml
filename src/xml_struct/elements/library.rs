@@ -40,6 +40,8 @@ pub enum ElementError {
     LabelHasChildren(Box<XmlElement>),
     #[error("Progress element must have min and max attributes. Element: {0}")]
     ProgressElementMustHaveMinMaxAttributes(Box<XmlElement>),
+    #[error("'min', 'max' and 'value' values must be float / int. Element: {0}")]
+    MinMaxValuesMustBeFloat(Box<XmlElement>),
     #[error("Attribute id is required on <Radio />. Element: {0}")]
     AttributeIdRequiredForRadio(Box<XmlElement>),
     #[error("Attribute value is required on <Radio />. Element: {0}")]
