@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-iced = {version = "0.14.0", features = ["smol"]}
+iced = { version = "0.14.0", features = ["smol"] }
 quick-xml = "0.40.1"
 notify = { version = "8.2.0", optional = true }
 thiserror = "2.0.20"
@@ -15,7 +15,4 @@ css-watcher = ["notify"]
 
 [workspace]
 resolver = "3"
-members = [
-    "examples/tests",
-    "examples/calculator"
-]
+members = ["examples/tests", "examples/calculator"]

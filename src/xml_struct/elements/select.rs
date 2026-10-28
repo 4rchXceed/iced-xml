@@ -5,8 +5,8 @@ use iced::{Border, Shadow};
 // Copy-paste template
 use crate::{
     dom::{
-        events::{DomInternalMessageType, EventListenerTypes},
-        query_builder::{CustomElementEvent, EventResponse, QueryResponse},
+        types::{CustomElementEvent, EventResponse, QueryResponse},
+        types::{DomInternalMessageType, EventListenerTypes},
     },
     elements_manager::{
         elements_manager::ElementsManager,
@@ -254,7 +254,9 @@ impl ElementBase for Select {
                 }
                 "value" => {
                     if let Some(selected) = &self.selected {
-                        return Some(ElementEventResponse::new(QueryResponse::success().with_data_str(selected.id.clone())));
+                        return Some(ElementEventResponse::new(
+                            QueryResponse::success().with_data_str(selected.id.clone()),
+                        ));
                     } else {
                         return Some(ElementEventResponse::success());
                     }

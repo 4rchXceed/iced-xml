@@ -147,8 +147,8 @@ pub fn parse_font_family(
         "sans-serif" => Family::SansSerif,
         _ => {
             let font = fonts.iter().find(|f| f.0 == String::from(value));
-            if font.is_some() {
-                Family::Name(font.unwrap().1)
+            if let Some(font) = font {
+                Family::Name(font.1)
             } else {
                 return Err(ParseFontError::InvalidFontFamily(value.to_string()));
             }

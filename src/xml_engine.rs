@@ -3,13 +3,12 @@
 use std::io::Cursor;
 
 use crate::app_manager::utils::ComponentFunctions;
-use crate::dom::events::{DomInternalMessageType, DomMessage};
-use crate::dom::query_builder::{EventResponse, EventType, QueryResponse};
+use crate::dom::types::{DomInternalMessageType, DomMessage};
+use crate::dom::types::{EventResponse, EventType, QueryResponse};
 use crate::elements_manager::elements_manager::ElementsManager;
 use crate::rs_utils::get_unique_id;
 use crate::xml_struct::parser::XmlParser;
 use crate::xml_struct::theming::Fonts;
-use crate::xml_struct::xml_element::XmlElement;
 use iced::window;
 use log::warn;
 use quick_xml::Reader;
@@ -73,14 +72,8 @@ pub enum XmlEngineError {
     ///  The XML failed to parse, this is usually due to invalid XML syntax.
     ///
     ///  The quick_xml::Error is the error that was returned by the quick_xml parser.
-    #[error("The XML failed to parse, due to invalid XML syntax")]
-    XmlParseError(quick_xml::Error),
-    ///
-    ///  The root element is not a <Window> element. This is usually due to invalid XML structure.
-    ///
-    ///  The XmlElement is the root element that was parsed from the XML.
-    #[error("The root element is not a <Window> element")]
-    InvalidRootElement(XmlElement),
+    #[error("The XML failed to parse, due to invalid XML syntax: {0}")]
+    XmlParseError(String),
 }
 
 impl XmlEngine {
@@ -92,18 +85,12 @@ impl XmlEngine {
     pub fn new(xml: String, settings: EngineSettings) -> Self {
         let self_op = Self::try_new(xml, settings);
 
-        if self_op.is_err() {
-            match self_op.err().unwrap() {
-                XmlEngineError::XmlParseError(e) => {
-                    panic!("Failed to parse XML: {}", e);
-                }
-                XmlEngineError::InvalidRootElement(e) => {
-                    panic!("Invalid root element: {:?}", e);
-                }
+        match self_op {
+            Ok(self_ok) => {
+                return self_ok;
             }
-        }
-
-        return self_op.unwrap();
+            Err(e) => panic!("Failed to create the window: {e}"),
+        };
     }
 
     ///  This created the XmlEngine from the given XML content and settings. It will return an error if the XML is invalid or if the root element is not a <Window> element.
@@ -121,9 +108,9 @@ impl XmlEngine {
 
         let root = window_parser.root;
 
-        if root.tag != "Window" {
-            return Err(XmlEngineError::InvalidRootElement(root));
-        }
+        // if root.tag != "Window" {
+        //     return Err(XmlEngineError::InvalidRootElement(root));
+        // }
 
         // Create the element renderer and initialize it with the root element
         let mut elements_manager = ElementsManager::new(settings.fonts, settings.functions);

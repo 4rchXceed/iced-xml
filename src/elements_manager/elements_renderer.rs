@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use crate::css::parser::CssReader;
 use crate::css::types::{Rule, RuleBlock, Selector};
-use crate::dom::events::DomInternalMessageType;
 use crate::dom::query::DomQuery;
+use crate::dom::types::DomInternalMessageType;
 use crate::xml_struct::theming::{Fonts, gen_styles_log};
 
 use super::hot_reload::cleanup_for_hot_reload;

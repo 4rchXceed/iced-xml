@@ -125,7 +125,7 @@ fn hex_to_rgb(
     color: &String,
     color_clean: Result<&str, ParseColorError>,
 ) -> Result<(u32, u32, u32), ParseColorError> {
-    let color_clean = color_clean.unwrap();
+    let color_clean = color_clean?;
     let mut r = 0;
     let mut g = 0;
     let mut b = 0;

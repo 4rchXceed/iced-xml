@@ -123,9 +123,9 @@ impl XmlTheme {
      * Changes the values of the current theme to match the values of changes only on the properties that are different between first and second.
      */
     pub fn apply_only_changes(&mut self, first: &XmlTheme, second: &XmlTheme, changes: &XmlTheme) {
-        if first.select_icon.is_some() && second.select_icon.is_some() {
-            let a = first.select_icon.clone().unwrap();
-            let b = second.select_icon.clone().unwrap();
+        if let Some(a) = &first.select_icon
+            && let Some(b) = &second.select_icon
+        {
             let side_a = match a.side {
                 Side::Left => "l",
                 Side::Right => "r",

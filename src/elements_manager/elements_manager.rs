@@ -5,9 +5,9 @@ use iced::Subscription;
 use iced::widget::text;
 
 use crate::app_manager::utils::ComponentFunctions;
-use crate::dom::events::{DomInternalMessageType, EventListenerTypes};
 use crate::dom::query::{DomQuery, DomQueryType};
-use crate::dom::query_builder::{EventResponse, QueryResponse};
+use crate::dom::types::{DomInternalMessageType, EventListenerTypes};
+use crate::dom::types::{EventResponse, QueryResponse};
 use crate::rs_utils::get_unique_id;
 use crate::xml_engine::Message;
 use crate::xml_struct::elements::library::{
@@ -229,7 +229,6 @@ impl ElementsManager {
             // Post process the event response, if any, and forward it to the renderer or other elements
             if let Some(element_response) = element_response_op {
                 let mut event_response = element_response.response.clone();
-
 
                 event_response.data_selector = Some(DomQuery {
                     query_type: DomQueryType::ByUid(uid),

@@ -3,8 +3,8 @@ use std::ops::RangeInclusive;
 // Copy-paste template
 use crate::{
     dom::{
-        events::{DomInternalMessageType, EventListenerTypes},
-        query_builder::{EventResponse, QueryResponse},
+        types::{DomInternalMessageType, EventListenerTypes},
+        types::{EventResponse, QueryResponse},
     },
     elements_manager::{
         elements_manager::ElementsManager,

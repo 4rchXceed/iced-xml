@@ -2,7 +2,7 @@ use std::any::Any;
 
 use iced_xml::{
     app_manager::{app_manager::WindowManager, state_wrapper::App, utils::WindowId},
-    dom::{api::Dom, events::EventListenerTypes, query_builder::QueryBuilder},
+    dom::{api::Dom, query_builder::QueryBuilder, types::EventListenerTypes},
     utils::watch_css::watch_css_file,
     window_manager,
     window_wrapper::{AppResult, CssRx, CssWatcher, Objects, ObjectsReadOnly, WindowTemplate},

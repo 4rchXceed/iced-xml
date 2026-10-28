@@ -2,8 +2,8 @@ use iced::{Point, widget::text_editor::Motion::*};
 
 use crate::{
     dom::{
-        events::{DomInternalMessageType, EventListenerTypes},
-        query_builder::{CustomElementEvent, EventResponse, QueryResponse},
+        types::{CustomElementEvent, EventResponse, QueryResponse},
+        types::{DomInternalMessageType, EventListenerTypes},
     },
     elements_manager::{
         elements_manager::ElementsManager,

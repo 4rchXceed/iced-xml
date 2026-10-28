@@ -3,9 +3,7 @@ use std::collections::HashMap;
 use iced_xml::{
     app_manager::{app_manager::WindowManager, state_wrapper::App, utils::WindowId},
     dom::{
-        api::Dom,
-        events::EventListenerTypes,
-        query_builder::{CustomElementEvent, QueryBuilder},
+        api::Dom, query_builder::QueryBuilder, types::CustomElementEvent, types::EventListenerTypes,
     },
     rs_utils::HashableHashMap,
     utils::watch_css::watch_css_file,

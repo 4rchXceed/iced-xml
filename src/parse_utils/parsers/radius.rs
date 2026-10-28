@@ -24,6 +24,7 @@ pub enum ParseRadiusError {
 ///  - As a set of values: `radius: top_left=10 top_right=20 bottom_left=30 bottom_right=40;` (each corner will have its own radius)
 pub fn parse_radius(value: &String) -> Result<Radius, ParseRadiusError> {
     let value_float = value.parse::<f32>();
+
     if let Ok(val) = value_float {
         return Ok(Radius {
             bottom_left: val,
@@ -32,22 +33,27 @@ pub fn parse_radius(value: &String) -> Result<Radius, ParseRadiusError> {
             top_left: val,
         });
     }
+
     let value_sep = value.split(" ").collect::<Vec<&str>>();
+
     let mut top_left = 0.0;
     let mut top_right = 0.0;
     let mut bottom_right = 0.0;
     let mut bottom_left = 0.0;
+
     for (_, v) in value_sep.iter().enumerate() {
         let val_part = v.split("=").collect::<Vec<&str>>();
+
         if val_part.len() != 2 {
             return Err(ParseRadiusError::InvalidRadiusPart(v.to_string()));
         }
+
         let val_kw = val_part[0];
-        let val_f32 = val_part[1].parse();
-        if val_f32.is_err() {
-            return Err(ParseRadiusError::NotANumber(val_part[1].to_string()));
-        }
-        let val_f32 = val_f32.unwrap();
+
+        let val_f32 = val_part[1]
+            .parse()
+            .map_err(|_| ParseRadiusError::NotANumber(val_part[1].to_string()))?;
+
         match val_kw {
             "top_left" => top_left = val_f32,
             "top_right" => top_right = val_f32,
@@ -56,6 +62,7 @@ pub fn parse_radius(value: &String) -> Result<Radius, ParseRadiusError> {
             _ => return Err(ParseRadiusError::InvalidRadiusKeyword(val_kw.to_string())),
         }
     }
+
     return Ok(Radius {
         top_left: top_left,
         top_right: top_right,

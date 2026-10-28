@@ -1,7 +1,7 @@
 use crate::{
     dom::{
-        events::{DomInternalMessageType, EventListenerTypes},
-        query_builder::EventResponse,
+        types::EventResponse,
+        types::{DomInternalMessageType, EventListenerTypes},
     },
     elements_manager::{
         elements_manager::ElementsManager,

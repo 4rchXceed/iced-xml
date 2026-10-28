@@ -21,13 +21,11 @@ pub fn parse_bool(value: &str) -> Result<bool, ParseBoolError> {
 /// The time value can be specified in the following format:
 /// "<value>ms" or "<value>s". If the value is not in the correct format, it will default to 0.0 and print an error message.
 pub fn parse_time(value: &str) -> Result<f32, String> {
-    if value.ends_with("ms") {
-        let value = value.strip_suffix("ms").unwrap();
-        return Ok(parse_value(&String::from(value))? / 1000.0);
+    if let Some(end) = value.strip_suffix("ms") {
+        return Ok(parse_value(&String::from(end))? / 1000.0);
     }
-    if value.ends_with("s") {
-        let value = value.strip_suffix("s").unwrap();
-        return Ok(parse_value(&String::from(value))?);
+    if let Some(end) = value.strip_suffix("s") {
+        return Ok(parse_value(&String::from(end))?);
     }
     return Err(format!("Invalid number with suffix: {value}"));
 }

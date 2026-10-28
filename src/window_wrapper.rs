@@ -4,10 +4,7 @@ use std::any::Any;
 
 use crate::{
     app_manager::state_wrapper::App,
-    dom::{
-        events::DomQueryBuilder,
-        query_builder::{QueryBuilder, QueryResponse},
-    },
+    dom::{events::DomQueryBuilder, query_builder::QueryBuilder, types::QueryResponse},
     xml_engine::{Message, XmlEngine},
     xml_struct::{
         elements::library::{ElementError, generate_element_from_tag},
@@ -136,9 +133,9 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
 
         // Ensure that only one element was found for the query
         if uid.len() != 1 {
-            return Err(
-                String::from("Panic: More than one element found when adding a component. Please ensure that the query is unique.")
-            );
+            return Err(String::from(
+                "Panic: More than one element found when adding a component. Please ensure that the query is unique.",
+            ));
         }
         // Register the component with the engine's element renderer
         me.engine
@@ -166,13 +163,13 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
         let elem_renderer = &mut me.engine.elements_manager;
 
         // Remove the component
-        let component = elem_renderer.components.remove(&component_uid);
-        if component.is_none() {
-            return Err(ComponentRemoveError::ComponentUidNotFound(component_uid));
-        }
+        let mut component = elem_renderer
+            .components
+            .remove(&component_uid)
+            .ok_or(ComponentRemoveError::ComponentUidNotFound(component_uid))?;
 
         // Call the on_close callback when closing
-        (elem_renderer.functions.on_close)(&mut component.unwrap(), app_state);
+        (elem_renderer.functions.on_close)(&mut component, app_state);
 
         // The create an empty element replacing the old component, so it's parent doesn't crash
         let element_uid = generate_element_from_tag(
@@ -220,7 +217,6 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
 
         return me.engine.view();
     }
-
 
     fn process_context<F, C>(&mut self, callback: F, context: &mut C) -> QueryResponse
     where

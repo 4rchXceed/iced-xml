@@ -293,16 +293,16 @@ impl CssReader {
                 content: selector,
                 flag: flag,
             });
-        } else if selector.starts_with("#") {
+        } else if let Some(selector_prefix) = selector.strip_prefix("#") {
             return Ok(Selector {
                 selector_type: SelectorType::Id,
-                content: selector.strip_prefix("#").unwrap().to_string(),
+                content: selector_prefix.to_string(),
                 flag: flag,
             });
-        } else if selector.starts_with(".") {
+        } else if let Some(selector_prefix) = selector.strip_prefix(".") {
             return Ok(Selector {
                 selector_type: SelectorType::Class,
-                content: selector.strip_prefix(".").unwrap().to_string(),
+                content: selector_prefix.to_string(),
                 flag: flag,
             });
         } else if selector == "*" {

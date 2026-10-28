@@ -298,3 +298,10 @@ Changes a lot of code to match the new structure.
 + Moved XmlElement to a separate file (xml_element.rs)
 
 Changed a lot of code to match the new structure.
+
+## Last commit: be64bafdc852e96e665884bfc55a1ff80a6109b9
++ Rewrite V2:
+  - Removed any usage of unwrap() for: src/dom/*, parser.rs and theming.rs
+Some bugfixes, and improvements to the quality.
+
+Remove the requirement for a <Window> element at root, letting the user choose any element. But it must be only one. (this is because Window cannot have background)

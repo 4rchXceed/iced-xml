@@ -1,64 +1,14 @@
 use crate::{
     css::types::SelectorType,
-    dom::{query::DomQuery, query_builder::CustomElementEvent},
+    dom::{
+        query::DomQuery,
+        types::CustomElementEvent,
+        types::{DomInternalMessageType, DomMessage, EventListenerTypes},
+    },
     elements_manager::{elements_renderer::ElementsRenderer, utils::StyleChangeEvent},
     rs_utils::HashableXmlElement,
-    xml_engine::DynamicEvent,
     xml_struct::xml_element::XmlElement,
 };
-
-/// Message to pass to the Engine / Element Renderer from the "Client" side (like the UI or the user code)
-#[derive(Debug, Clone, Hash)]
-pub struct DomMessage {
-    /// The type of message to send to the engine
-    pub message: DomInternalMessageType,
-    /// The unique identifier of the element to send the message to (if any)
-    pub uid: Option<i32>,
-    /// The selector to use to find the element to send the message to
-    pub selector: DomQuery,
-}
-
-/// The type of message to send to the engine
-#[derive(Debug, Clone, Hash)]
-pub enum DomInternalMessageType {
-    StyleChange(StyleChangeEvent),  // k => v custom_style_flag [for(xyz)]
-    PropertyChange(String, String), // k => v
-    GetProperty(String),            // key
-    RegisterEventListener(EventListenerTypes), // event_name
-    ImportCss(String, bool),        // css content
-    SubscribeDynamicEvent(DynamicEvent), // dynamic events (like set_timeout, set_interval, etc.)
-    GetData(String),                // key
-    FireEvent(CustomElementEvent),  // event name, event data
-    Remove,                         // remove element
-    Replace(HashableXmlElement),    // replace element with new one
-    GetElement,                     // get the element's source
-}
-
-#[derive(Debug, Clone, Hash, PartialEq)]
-pub enum EventListenerTypes {
-    Click,
-    Check,
-    Input,
-    Paste,
-    Submit,
-    Release,
-    Scroll,
-    Select,
-    OnClose,
-    OnOpen,
-    OnInput,
-    TextareaEvent,
-    Toggle,
-    Hidden,
-    Shown,
-    Resize,
-    Drag,
-    Maximize,
-    Restore,
-    Close,
-    Focus,
-    None,
-}
 
 /// A result of a Dom::XYZ query, which can be used to select elements (View Dom struct & src/dom/api.rs)
 #[derive(Debug, Clone)]
@@ -91,34 +41,36 @@ impl DomQueryBuilder {
     /// Adds a flag to the query,if  it's a ::for() flag, it will be added to the event instead of the query
     pub fn with_flag(&mut self, flag: String) -> &mut Self {
         let style_flag = ElementsRenderer::extract_selector_style_flag(&flag);
+
         if style_flag.is_some() {
-            if self.event.is_some() {
+            if let Some(event) = &mut self.event {
                 self.event = Some(DomMessage {
-                    message: self.event.as_ref().unwrap().message.clone(),
-                    uid: self.event.as_ref().unwrap().uid,
-                    selector: self.event.as_ref().unwrap().selector.clone(),
+                    message: event.message.clone(),
+                    uid: event.uid,
+                    selector: event.selector.clone(),
                 });
             }
         } else {
             self.query_event.flag = Some(flag);
         }
+
         return self;
     }
 
     /// Creates a new DomQueryResult from a DomQuery
     pub fn from(dom_query: DomQuery) -> Self {
-        Self {
+        return Self {
             query_event: dom_query,
             event: None,
-        }
+        };
     }
 
     /// Creates a new DomQueryResult from a DomMessage
     pub fn from_dom_message(dom_message: DomMessage) -> Self {
-        Self {
+        return Self {
             query_event: dom_message.selector.clone(),
             event: Some(dom_message),
-        }
+        };
     }
 
     /// Sets a property on the element selected by the query
@@ -138,7 +90,9 @@ impl DomQueryBuilder {
             uid: None,
             selector: self.query_event.clone(),
         };
+
         self.event = Some(event);
+
         return self;
     }
 
@@ -160,7 +114,9 @@ impl DomQueryBuilder {
             uid: None,
             selector: self.query_event.clone(),
         };
+
         self.event = Some(event);
+
         return self;
     }
 
@@ -184,12 +140,13 @@ impl DomQueryBuilder {
             uid: None,
             selector: self.query_event.clone(),
         };
+
         self.event = Some(event);
+
         return self;
     }
 
     /// Registers an event listener on the element selected by the query
-    /// TODO: Switch to an enum
     ///
     /// Parameters:
     /// - name: The event name
@@ -205,7 +162,9 @@ impl DomQueryBuilder {
             uid: None,
             selector: self.query_event.clone(),
         };
+
         self.event = Some(event);
+
         return self;
     }
 
@@ -227,7 +186,9 @@ impl DomQueryBuilder {
             uid: None,
             selector: self.query_event.clone(),
         };
+
         self.event = Some(event);
+
         return self;
     }
 
@@ -246,7 +207,9 @@ impl DomQueryBuilder {
             uid: None,
             selector: self.query_event.clone(),
         };
+
         self.event = Some(event);
+
         return self;
     }
 
@@ -263,7 +226,9 @@ impl DomQueryBuilder {
             uid: None,
             selector: self.query_event.clone(),
         };
+
         self.event = Some(event);
+
         return self;
     }
 
@@ -283,7 +248,9 @@ impl DomQueryBuilder {
             uid: None,
             selector: self.query_event.clone(),
         };
+
         self.event = Some(event);
+
         return self;
     }
 
@@ -294,7 +261,9 @@ impl DomQueryBuilder {
             uid: None,
             selector: self.query_event.clone(),
         };
+
         self.event = Some(event);
+
         return self;
     }
 }

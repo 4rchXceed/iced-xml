@@ -2,7 +2,7 @@ use iced::Border;
 
 // Copy-paste template
 use crate::{
-    dom::{events::DomInternalMessageType, query_builder::QueryResponse},
+    dom::{types::DomInternalMessageType, types::QueryResponse},
     elements_manager::{
         elements_manager::ElementsManager,
         mappings::ElementMappings,

@@ -3,7 +3,8 @@ use log::error;
 use std::collections::HashMap;
 
 use crate::css::errors::CssParseError;
-use crate::dom::query::{ComplexQuery, ComplexQueryJoinType, DomQuery, DomQueryType};
+use crate::dom::complex_query::{ComplexQuery, ComplexQueryJoinType};
+use crate::dom::query::{DomQuery, DomQueryType};
 use crate::rs_utils::get_unique_id;
 use crate::xml_struct::elements::library::{AnyElement, generate_element_from_tag};
 use crate::xml_struct::elements::radio::RadioElement;
@@ -372,27 +373,28 @@ impl ElementMappings {
     ) -> i32 {
         let element_result = generate_element_from_tag(xml_element.clone(), self, element_uid);
 
-        let element = if let Ok(element_result) = element_result {
-            element_result
-        } else {
-            // An error occurred during element creation
-            error!(
-                "Error during element creation: {}. Generating <Void /> element instead",
-                element_result.err().unwrap().to_string()
-            );
+        let element = match element_result {
+            Ok(element) => element,
+            Err(e) => {
+                // An error occurred during element creation
+                error!(
+                    "Error during element creation: {}. Generating <Void /> element instead",
+                    e
+                );
 
-            let void_element = Box::new(XmlElement::void());
+                let void_element = Box::new(XmlElement::void());
 
-            let element_result = generate_element_from_tag(void_element, self, 0);
+                let element_result = generate_element_from_tag(void_element, self, 0);
 
-            match element_result {
-                Ok(result) => result,
-                Err(e) => {
-                    error!(
-                        "Error during <Void /> element creation: {}. Returning 0, but the program will probably crash",
-                        e
-                    );
-                    return 0;
+                match element_result {
+                    Ok(result) => result,
+                    Err(e) => {
+                        error!(
+                            "Error during <Void /> element creation: {}. Returning 0, but the program will probably crash",
+                            e
+                        );
+                        return 0;
+                    }
                 }
             }
         };

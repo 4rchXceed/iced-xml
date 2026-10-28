@@ -2,8 +2,8 @@ use std::any::Any;
 use std::collections::HashMap;
 
 use crate::css::types::RuleBlock;
-use crate::dom::events::EventListenerTypes;
-use crate::dom::query_builder::QueryResponse;
+use crate::dom::types::EventListenerTypes;
+use crate::dom::types::QueryResponse;
 use crate::xml_engine::Message;
 use crate::xml_struct::elements::radio::RadioElement;
 use crate::xml_struct::theming::XmlTheme;

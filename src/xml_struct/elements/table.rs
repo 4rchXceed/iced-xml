@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 // Copy-paste template
 use crate::{
-    dom::{events::DomInternalMessageType, query_builder::CustomElementEvent::SetTableData},
+    dom::{types::CustomElementEvent::SetTableData, types::DomInternalMessageType},
     elements_manager::{
         elements_manager::ElementsManager,
         mappings::ElementMappings,
