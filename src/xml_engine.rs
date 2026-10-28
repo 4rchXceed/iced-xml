@@ -265,7 +265,17 @@ impl XmlEngine {
             // If it's an ImportCss event, we load the CSS into the element renderer, and return the success status and any error message that might have occurred during the loading process.
             DomInternalMessageType::ImportCss(css, for_hot_reload) => {
                 match self.elements_manager.load_css(&css, for_hot_reload.clone()) {
-                    Ok(_) => {
+                    Ok(style_changes) => {
+                        // Process the events returned by the load_css function
+                        // TODO: Is that really what I was doing before the rewrite? seems ... wierd
+                        for (element, event, comes_from_hot_reload) in style_changes {
+                            self.elements_manager.process_element_event(
+                                element,
+                                event,
+                                comes_from_hot_reload,
+                            );
+                        }
+
                         let query_response = QueryResponse::success();
 
                         return vec![query_response];

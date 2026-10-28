@@ -34,10 +34,11 @@ pub fn watch_css_file<T: WindowTemplate<T, AppState> + 'static, AppState: 'stati
             return;
         }
         let ev = me.get_objects().css_watcher_rx.unwrap().try_recv();
-
+		
         if let Ok(ev) = ev {
             if let Ok(ev) = ev && ev.kind.is_modify() {
                 let objects = me.get_objects();
+
                 objects
                 .qb
                 .import_css(std::fs::read_to_string(&objects.css_path).unwrap(), true)
