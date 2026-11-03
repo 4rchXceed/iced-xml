@@ -48,10 +48,10 @@ impl ElementBase for Toggle {
         self_uid: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
-        let mut handle_theme = theme.clone();
 
-        if datas.flag_themes.contains_key("handle") {
-            handle_theme = datas.flag_themes.get("handle").unwrap().clone();
+        let mut handle_theme = theme.clone();
+        if let Some(handle_theme_op) = datas.flag_themes.get("handle").cloned() {
+            handle_theme = handle_theme_op;
         }
 
         let mut toggle = iced::widget::toggler::Toggler::new(self.toggled);
@@ -77,12 +77,12 @@ impl ElementBase for Toggle {
                 padding_ratio: theme.toggle_padding_ratio,
             });
 
-        if theme.size.is_some() {
-            toggle = toggle.size(theme.size.unwrap());
+        if let Some(size) = theme.size {
+            toggle = toggle.size(size);
         }
 
-        if theme.font_size.is_some() {
-            toggle = toggle.text_size(theme.font_size.unwrap());
+        if let Some(font_size) = theme.font_size {
+            toggle = toggle.text_size(font_size);
         }
 
         let mut event_id = None;
@@ -94,7 +94,9 @@ impl ElementBase for Toggle {
 
         toggle = toggle.on_toggle(move |toggled| {
             let mut event_response = EventResponse::new(self_uid, EventListenerTypes::Toggle);
+
             event_response.data_bool = Some(toggled);
+
             return Message::DomEvent(event_id, event_response);
         });
 
@@ -107,10 +109,12 @@ impl ElementBase for Toggle {
             DomInternalMessageType::PropertyChange(key, value) => match key.as_str() {
                 "toggled" => {
                     self.toggled = value == "true";
+
                     return Some(ElementEventResponse::success());
                 }
                 "label" => {
                     self.label = value.clone();
+
                     return Some(ElementEventResponse::success());
                 }
                 _ => None,
@@ -118,10 +122,12 @@ impl ElementBase for Toggle {
             DomInternalMessageType::GetProperty(key) => match key.as_str() {
                 "toggled" => {
                     query_response.data_bool = Some(self.toggled);
+
                     return Some(ElementEventResponse::success());
                 }
                 "label" => {
                     query_response.data_str = Some(self.label.clone());
+
                     return Some(ElementEventResponse::success());
                 }
                 _ => None,
@@ -137,8 +143,9 @@ impl ElementBase for Toggle {
     ) -> Option<ElementEventResponse> {
         match event_type {
             EventListenerTypes::Toggle => {
-                if event_response.data_bool.is_some() {
-                    self.toggled = event_response.data_bool.unwrap();
+                if let Some(toggled) = event_response.data_bool {
+                    self.toggled = toggled;
+
                     return Some(ElementEventResponse::success());
                 } else {
                     None

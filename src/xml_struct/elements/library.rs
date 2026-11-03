@@ -84,6 +84,8 @@ pub enum ElementError {
     WindowSystemChildMustBeWindow(Box<XmlElement>, Box<XmlElement>),
     #[error("Element tag not found: {0}")]
     TagNotFound(Box<XmlElement>),
+    #[error("<Var /> element must have the var-key attribute")]
+    VarMustHaveVarKey(Box<XmlElement>),
 }
 
 pub enum AnyElement {

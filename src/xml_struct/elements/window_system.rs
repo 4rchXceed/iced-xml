@@ -66,6 +66,7 @@ impl WindowSystem {
         if window_id == "focused" {
             return Some(self.focused);
         }
+
         for (pane, pane_type) in self.panes.iter() {
             match pane_type {
                 PaneType::InternalPane(id, _) => {
@@ -85,6 +86,7 @@ impl WindowSystem {
     ) -> EventResponse {
         let drag_type;
         let data_window;
+
         let mut data_target: Option<iced::widget::pane_grid::Target> = None;
         match ev {
             widget::pane_grid::DragEvent::Canceled { pane } => {

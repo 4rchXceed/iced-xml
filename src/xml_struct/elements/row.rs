@@ -26,6 +26,7 @@ impl ElementBase for Row {
             .iter()
             .map(|child| renderer.init_element_from_xml(child.clone(), self_uid))
             .collect();
+
         return Ok(Self { children: children });
     }
 
@@ -50,6 +51,7 @@ impl ElementBase for Row {
             .width(theme.width)
             .spacing(theme.spacing)
             .align_y(theme.align_y);
+
         if theme.wrap {
             return container.wrap().into();
         }

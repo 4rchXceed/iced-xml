@@ -1,3 +1,5 @@
+use log::warn;
+
 use crate::{
     dom::{types::DomInternalMessageType, types::QueryResponse},
     elements_manager::{
@@ -24,12 +26,15 @@ impl ElementBase for Var {
         _: i32,
     ) -> Result<Self, ElementError> {
         if !xml_element.attributes.contains_key("var-key") {
-            panic!("<Var /> element must have the var-key attribute")
+            return Err(ElementError::VarMustHaveVarKey(xml_element.clone()));
         }
+        
         let mut fallback_text = String::from("Unknown");
-        if xml_element.attributes.contains_key("fallback") {
-            fallback_text = xml_element.attributes.get("fallback").unwrap().to_string();
+        
+        if let Some(fallback_attr) = xml_element.attributes.get("fallback") {
+            fallback_text = fallback_attr.to_string();
         }
+
         return Ok(Self {
             key_name: xml_element.attributes.get("var-key").unwrap().to_string(),
             fallback_text: fallback_text,
@@ -45,22 +50,21 @@ impl ElementBase for Var {
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
         let mut text = self.fallback_text.clone();
-        if datas.child_data.is_some() && datas.child_data.as_ref().unwrap().table_datas.is_some() {
-            let text_op = datas
-                .child_data
-                .unwrap()
-                .table_datas
-                .unwrap()
+
+        if let Some(child_data) = datas.child_data && let Some(table_datas) = child_data.table_datas {
+            let text_op = table_datas
                 .get(&self.key_name)
                 .cloned();
-            if text_op.is_some() {
-                text = text_op.unwrap();
+
+            if let Some(text_op) = text_op {
+                text = text_op;
             }
         } else {
-            println!(
+            warn!(
                 "<Var /> element is not a child of a var-providing element like <Table />. This is almost certainly a mistake"
             )
         }
+
         let text_element = iced::widget::text(text);
 
         let text_element = text_element.style(move |_| iced::widget::text::Style {
@@ -94,10 +98,12 @@ impl ElementBase for Var {
             DomInternalMessageType::PropertyChange(key, value) => match key.as_str() {
                 "var-key" => {
                     self.key_name = value.clone();
+
                     Some(ElementEventResponse::success())
                 }
                 "fallback" => {
                     self.fallback_text = value.clone();
+
                     Some(ElementEventResponse::success())
                 }
                 _ => None,

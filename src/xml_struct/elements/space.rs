@@ -26,6 +26,7 @@ impl ElementBase for Space {
         _: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
+
         let mut space = iced::widget::Space::new();
 
         space = space.width(theme.width).height(theme.height);

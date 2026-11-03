@@ -27,35 +27,47 @@ impl ElementBase for Table {
     ) -> Result<Self, ElementError> {
         // If it supports children, initialize them here with renderer.init_element
         let mut columns = HashMap::new();
+
+        // <Table></Table>
         for table_column in &xml_element.children {
+            // <Table>
+            //  <TableColumn></TableColumn>
+            // </Table>
             if table_column.tag == "TableColumn" {
                 let mut column_name_elem_id = None;
                 let mut column_template = None;
+
                 for child in &table_column.children {
+                    // <Table>
+                    //  <TableColumn>
+                    //      <ColumnName></ColumnName>
+                    //  </TableColumn>
+                    // </Table>
                     if child.tag == "ColumnName" {
-                        if child.children.len() != 1 {
+                        if let Some(child) = child.children.get(0) {
+                            column_name_elem_id =
+                                Some(renderer.init_element_from_xml(child.clone(), self_uid));
+                        } else {
                             return Err(ElementError::ColumnNameElementMustHaveOneChild(
                                 child.clone(),
                             ));
                         }
-                        column_name_elem_id = Some(renderer.init_element_from_xml(
-                            child.children.get(0).unwrap().clone(),
-                            self_uid,
-                        ));
                     } else if child.tag == "ColumnTemplate" {
-                        if child.children.len() != 1 {
+                        if let Some(child) = child.children.get(0) {
+                            column_template =
+                                Some(renderer.init_element_from_xml(child.clone(), self_uid));
+                        } else {
                             return Err(ElementError::ColumnTemplateElementMustHaveOneChild(
                                 child.clone(),
                             ));
                         }
-                        column_template = Some(renderer.init_element_from_xml(
-                            child.children.get(0).unwrap().clone(),
-                            self_uid,
-                        ));
                     }
                 }
-                if column_name_elem_id.is_some() && column_template.is_some() {
-                    columns.insert(column_name_elem_id.unwrap(), column_template.unwrap());
+
+                if let Some(column_name_elem_id) = column_name_elem_id
+                    && let Some(column_template) = column_template
+                {
+                    columns.insert(column_name_elem_id, column_template);
                 } else {
                     return Err(ElementError::MissingChildInTableColumn(
                         table_column.clone(),
@@ -68,6 +80,7 @@ impl ElementBase for Table {
                 ));
             }
         }
+
         if columns.is_empty() {
             return Err(ElementError::TableHasNoChildren(xml_element.clone()));
         }
@@ -86,10 +99,12 @@ impl ElementBase for Table {
         _: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
+
         let mut column_theme = theme.clone();
-        if datas.flag_themes.contains_key("table-column") {
-            column_theme = datas.flag_themes.get("table-column").unwrap().clone();
+        if let Some(column_theme_op) = datas.flag_themes.get("table-column") {
+            column_theme = column_theme_op.clone();
         }
+
         let mut columns = Vec::new();
 
         for (column_name_elem_id, column_template_elem_id) in &self.columns {

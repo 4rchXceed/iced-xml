@@ -138,8 +138,8 @@ impl ElementBase for Textarea {
         let content = iced::widget::text_editor::Content::with_text(&xml_element.text);
         let mut placeholder = String::new();
 
-        if xml_element.attributes.contains_key("placeholder") {
-            placeholder = xml_element.attributes["placeholder"].clone();
+        if let Some(placeholder_op) = xml_element.attributes.get("placeholder") {
+            placeholder = placeholder_op.clone();
         }
 
         return Ok(Self {
@@ -179,11 +179,13 @@ impl ElementBase for Textarea {
                 value: theme.foreground_color,
                 selection: theme.selection_color,
             }); // highlight_with??
-        if theme.size.is_some() {
-            textarea = textarea.size(theme.size.unwrap());
+
+        if let Some(size) = theme.size {
+            textarea = textarea.size(size);
         }
-        if theme.textarea_width.is_some() {
-            textarea = textarea.width(theme.textarea_width.unwrap());
+
+        if let Some(width) = theme.textarea_width {
+            textarea = textarea.width(width);
         }
 
         // TODO (well maybe): Key mapping
@@ -204,8 +206,10 @@ impl ElementBase for Textarea {
         let me = self_uid;
         textarea = textarea.on_action(move |action| {
             let mut ev_response = EventResponse::new(me, EventListenerTypes::TextareaEvent);
+
             ev_response.textarea_event = Some(generate_action(action, &self.content));
             ev_response.data_str = Some(self.content.text().to_string());
+
             return Message::DomEvent(event_uid, ev_response);
         });
 
@@ -217,6 +221,7 @@ impl ElementBase for Textarea {
             DomInternalMessageType::FireEvent(custom_event) => match custom_event {
                 CustomElementEvent::TextareaEvent(textarea_event) => {
                     handle_event(&mut self.content, textarea_event);
+
                     return Some(ElementEventResponse::success());
                 }
                 CustomElementEvent::MoveCursor(to) => {
@@ -227,6 +232,7 @@ impl ElementBase for Textarea {
                         },
                         selection: None,
                     });
+
                     return Some(ElementEventResponse::success());
                 }
                 _ => None,
@@ -234,10 +240,12 @@ impl ElementBase for Textarea {
             DomInternalMessageType::PropertyChange(name, new_val) => match name.as_str() {
                 "placeholder" => {
                     self.placeholder = new_val.clone();
+
                     return Some(ElementEventResponse::success());
                 }
                 "value" => {
                     self.content = iced::widget::text_editor::Content::with_text(new_val);
+
                     return Some(ElementEventResponse::success());
                 }
                 _ => None,
@@ -255,6 +263,7 @@ impl ElementBase for Textarea {
                 }
                 "cursor_position" => {
                     let pos = self.content.cursor().position;
+
                     return Some(ElementEventResponse::new(
                         QueryResponse::success().with_data_vector(Vector2 {
                             x: HashableF32::new(pos.column as f32),
@@ -264,9 +273,10 @@ impl ElementBase for Textarea {
                 }
                 "selection" => {
                     let selection = self.content.selection();
-                    if selection.is_some() {
+
+                    if let Some(selection) = selection {
                         return Some(ElementEventResponse::new(
-                            QueryResponse::success().with_data_str(selection.unwrap()),
+                            QueryResponse::success().with_data_str(selection),
                         ));
                     } else {
                         return Some(ElementEventResponse::success());
@@ -285,11 +295,9 @@ impl ElementBase for Textarea {
     ) -> Option<ElementEventResponse> {
         match event_type {
             EventListenerTypes::TextareaEvent => {
-                if event_response.textarea_event.is_some() {
-                    handle_event(
-                        &mut self.content,
-                        event_response.textarea_event.as_ref().unwrap(),
-                    );
+                if let Some(textarea_event) = &event_response.textarea_event {
+                    handle_event(&mut self.content, textarea_event);
+
                     return Some(ElementEventResponse::success());
                 } else {
                     return None;

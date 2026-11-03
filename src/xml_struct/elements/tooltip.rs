@@ -1,3 +1,5 @@
+use log::warn;
+
 use crate::{
     dom::{types::DomInternalMessageType, types::QueryResponse},
     elements_manager::{
@@ -26,7 +28,7 @@ fn parse_position(pos: &str) -> iced::widget::tooltip::Position {
         "right" => iced::widget::tooltip::Position::Right,
         "cursor" => iced::widget::tooltip::Position::FollowCursor,
         _ => {
-            println!(
+            warn!(
                 "Invalid <Tooltip> tip-pos value: {}. Defaulting to 'cursor'",
                 pos
             );
@@ -53,18 +55,20 @@ impl ElementBase for Tooltip {
         for child in &xml_element.children {
             match child.tag.as_str() {
                 "Content" => {
-                    if child.children.len() != 1 {
+                    if let Some(child_child) = child.children.get(0) {
+                        content =
+                            Some(renderer.init_element_from_xml(child_child.clone(), self_uid));
+                    } else {
                         return Err(ElementError::TooltipContentMustHaveOneChild(child.clone()));
                     }
-                    content =
-                        Some(renderer.init_element_from_xml(child.children[0].clone(), self_uid));
                 }
                 "Tip" => {
-                    if child.children.len() != 1 {
+                    if let Some(child_child) = child.children.get(0) {
+                        tooltip =
+                            Some(renderer.init_element_from_xml(child_child.clone(), self_uid));
+                    } else {
                         return Err(ElementError::TooltipTipMustHaveOneChild(child.clone()));
                     }
-                    tooltip =
-                        Some(renderer.init_element_from_xml(child.children[0].clone(), self_uid));
                 }
                 _ => {
                     return Err(ElementError::TooltipChildrenMustBeContentAndTip(
@@ -74,13 +78,14 @@ impl ElementBase for Tooltip {
             }
         }
         if content.is_none() || tooltip.is_none() {
-            panic!("<Tooltip> elements must have exactly one <Content /> and one <Tip /> child");
+            return Err(ElementError::TooltipMustHaveTwoChildren(
+                xml_element.clone(),
+            ));
         }
 
         let mut position = iced::widget::tooltip::Position::FollowCursor;
 
-        if xml_element.attributes.contains_key("tip-pos") {
-            let pos = xml_element.attributes.get("tip-pos").unwrap();
+        if let Some(pos) = xml_element.attributes.get("tip-pos") {
             position = parse_position(pos);
         }
 
@@ -99,6 +104,7 @@ impl ElementBase for Tooltip {
         _: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
+
         let mut tooltip = iced::widget::tooltip::Tooltip::new(
             renderer.render_element(self.content, datas.child_data.clone()),
             renderer.render_element(self.tooltip, datas.child_data),
@@ -134,6 +140,7 @@ impl ElementBase for Tooltip {
             DomInternalMessageType::PropertyChange(name, newval) => match name.as_str() {
                 "tip-pos" => {
                     self.position = parse_position(newval);
+
                     Some(ElementEventResponse::success())
                 }
                 _ => None,
@@ -147,6 +154,7 @@ impl ElementBase for Tooltip {
                         iced::widget::tooltip::Position::Right => "right".to_string(),
                         iced::widget::tooltip::Position::FollowCursor => "cursor".to_string(),
                     };
+
                     Some(ElementEventResponse::new(
                         QueryResponse::success().with_data_str(pos_string),
                     ))
