@@ -23,15 +23,15 @@ impl ElementBase for FloatingElement {
         mappings: &mut ElementMappings,
         self_uid: i32,
     ) -> Result<Self, ElementError> {
-        if xml_element.children.len() != 1 {
+        if let Some(first_child) = xml_element.children.get(0) {
+            let child = mappings.init_element_from_xml(first_child.clone(), self_uid);
+
+            return Ok(Self { child: child });
+        } else {
             return Err(ElementError::FloatingElementMustHaveOneChild(
                 xml_element.clone(),
             ));
         }
-
-        let child = mappings.init_element_from_xml(xml_element.children[0].clone(), self_uid);
-
-        return Ok(Self { child: child });
     }
 
     fn render<'a>(

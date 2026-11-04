@@ -44,17 +44,19 @@ pub fn parse_radius(value: &String) -> Result<Radius, ParseRadiusError> {
     for (_, v) in value_sep.iter().enumerate() {
         let val_part = v.split("=").collect::<Vec<&str>>();
 
-        if val_part.len() != 2 {
-            return Err(ParseRadiusError::InvalidRadiusPart(v.to_string()));
-        }
+        let val_kw = val_part
+            .get(0)
+            .ok_or(ParseRadiusError::InvalidRadiusPart(v.to_string()))?;
 
-        let val_kw = val_part[0];
+        let val_str = val_part
+            .get(1)
+            .ok_or(ParseRadiusError::InvalidRadiusPart(v.to_string()))?;
 
-        let val_f32 = val_part[1]
+        let val_f32 = val_str
             .parse()
-            .map_err(|_| ParseRadiusError::NotANumber(val_part[1].to_string()))?;
+            .map_err(|_| ParseRadiusError::NotANumber(val_str.to_string()))?;
 
-        match val_kw {
+        match *val_kw {
             "top_left" => top_left = val_f32,
             "top_right" => top_right = val_f32,
             "bottom_left" => bottom_left = val_f32,

@@ -80,12 +80,18 @@ pub enum ElementError {
     TriggerElementHasMoreThanOneChild(Box<XmlElement>),
     #[error("WindowSystem element must have exactly one child. Element: {0}")]
     WindowSystemElementMustHaveOneChild(Box<XmlElement>),
-    #[error("WindowSystem element's child must be a Window element.")]
+    #[error("WindowSystem element's child must be a Window element: {0}")]
     WindowSystemChildMustBeWindow(Box<XmlElement>, Box<XmlElement>),
     #[error("Element tag not found: {0}")]
     TagNotFound(Box<XmlElement>),
-    #[error("<Var /> element must have the var-key attribute")]
+    #[error("<Var /> element must have the var-key attribute: {0}")]
     VarMustHaveVarKey(Box<XmlElement>),
+    #[error("Window element must have window-id and split-method attributes: {0}")]
+    WindowAttributesMissing(Box<XmlElement>),
+    #[error("Window element must have a WindowContent child element: {0}")]
+    WindowMustHaveWindowContent(Box<XmlElement>),
+    #[error("WindowChildren element must have only Window child elements: {0}")]
+    WindowChildrenNotWindowAsChild(Box<XmlElement>),
 }
 
 pub enum AnyElement {

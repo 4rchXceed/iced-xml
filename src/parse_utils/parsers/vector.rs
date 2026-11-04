@@ -24,8 +24,16 @@ pub fn parse_vector(value: &String) -> Result<Vector, ParseVectorError> {
         })
         .collect::<Vec<Result<f32, ParseVectorError>>>();
 
-    let val_01 = value_f32[0].as_ref().map_err(|e| e.clone())?;
-    let val_02 = value_f32[1].as_ref().map_err(|e| e.clone())?;
+    let val_01 = value_f32
+        .get(0)
+        .ok_or(ParseVectorError::InvalidVector(value.clone()))?
+        .as_ref()
+        .map_err(|e| e.clone())?;
+    let val_02 = value_f32
+        .get(1)
+        .ok_or(ParseVectorError::InvalidVector(value.clone()))?
+        .as_ref()
+        .map_err(|e| e.clone())?;
 
     if value_sep.len() != 2 {
         return Err(ParseVectorError::InvalidVector(value.clone()));

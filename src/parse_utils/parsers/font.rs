@@ -46,12 +46,15 @@ pub fn parse_font(value: &String, fonts: &Fonts) -> Result<Font, ParseFontError>
 
     for part in parts {
         let parts: Vec<&str> = part.split("=").collect();
-        if parts.len() != 2 {
-            return Err(ParseFontError::InvalidFontProperty(part.to_string()));
-        }
-        let key = parts[0];
-        let value = parts[1];
-        match key {
+
+        let key = parts
+            .get(0)
+            .ok_or(ParseFontError::InvalidFontProperty(part.to_string()))?;
+        let value = parts
+            .get(0)
+            .ok_or(ParseFontError::InvalidFontProperty(part.to_string()))?;
+
+        match *key {
             "family" => {
                 parse_font_family(&mut family, value, fonts)?;
             }

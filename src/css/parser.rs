@@ -270,7 +270,11 @@ impl CssReader {
             .get(1)
             .map(|s| s.trim().to_string());
 
-        let selector = selector.split("::").collect::<Vec<&str>>()[0]
+        let selector = selector
+            .split("::")
+            .collect::<Vec<&str>>()
+            .get(0)
+            .ok_or(CssParseError::InvalidSelector(self.get_context()))?
             .trim()
             .to_string();
 

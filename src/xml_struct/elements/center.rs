@@ -44,8 +44,16 @@ impl ElementBase for Center {
         }
 
         if xml_element.text.trim().is_empty() {
-            let child_id =
-                mappings.init_element_from_xml(xml_element.children[0].clone(), self_uid);
+            let child_id = mappings.init_element_from_xml(
+                xml_element
+                    .children
+                    .get(0)
+                    .ok_or(ElementError::CenterElementHasBothChildrenAndText(
+                        xml_element.clone(),
+                    ))?
+                    .clone(),
+                self_uid,
+            );
 
             return Ok(Self {
                 content: Content::Children(child_id),

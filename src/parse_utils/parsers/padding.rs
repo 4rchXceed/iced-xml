@@ -38,16 +38,20 @@ pub fn parse_padding(value: &String) -> Result<Padding, ParsePaddingError> {
 
     for (_, v) in value_sep.iter().enumerate() {
         let val_part = v.split("=").collect::<Vec<&str>>();
-        if val_part.len() != 2 {
-            return Err(ParsePaddingError::InvalidPaddingPart(v.to_string()));
-        }
-        let val_kw = val_part[0];
 
-        let val_f32 = val_part[1]
+        let val_kw = val_part
+            .get(0)
+            .ok_or(ParsePaddingError::InvalidPaddingPart(v.to_string()))?;
+
+        let val_str = val_part
+            .get(1)
+            .ok_or(ParsePaddingError::InvalidPaddingPart(v.to_string()))?;
+
+        let val_f32 = val_str
             .parse()
-            .map_err(|_| ParsePaddingError::NotANumber(val_part[1].to_string()))?;
+            .map_err(|_| ParsePaddingError::NotANumber(val_str.to_string()))?;
 
-        match val_kw {
+        match *val_kw {
             "top" => top = val_f32,
             "right" => right = val_f32,
             "bottom" => bottom = val_f32,
@@ -55,6 +59,7 @@ pub fn parse_padding(value: &String) -> Result<Padding, ParsePaddingError> {
             _ => return Err(ParsePaddingError::InvalidPaddingKeyword(val_kw.to_string())),
         }
     }
+
     return Ok(Padding {
         top: top,
         right: right,

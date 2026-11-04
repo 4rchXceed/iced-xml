@@ -55,10 +55,6 @@ pub fn parse_color(color: &String) -> Result<Color, ParseColorError> {
 
         let color_clean = color_clean.split(",").collect::<Vec<&str>>();
 
-        if color_clean.len() != 4 {
-            return Err(ParseColorError::InvalidRgbaColor(color.clone()));
-        }
-
         let color_clean_f32: [f32; 4] = color_clean
             .iter()
             .map(|c| {
@@ -70,11 +66,24 @@ pub fn parse_color(color: &String) -> Result<Color, ParseColorError> {
             .try_into()
             .map_err(|_| ParseColorError::InvalidRgbaColor(color.clone()))?;
 
+        let first = color_clean_f32
+            .get(0)
+            .ok_or(ParseColorError::InvalidRgbaColor(color.clone()))?;
+        let second = color_clean_f32
+            .get(1)
+            .ok_or(ParseColorError::InvalidRgbaColor(color.clone()))?;
+        let third = color_clean_f32
+            .get(2)
+            .ok_or(ParseColorError::InvalidRgbaColor(color.clone()))?;
+        let fourth = color_clean_f32
+            .get(3)
+            .ok_or(ParseColorError::InvalidRgbaColor(color.clone()))?;
+
         return Ok(Color::from_rgba(
-            color_clean_f32[0] / 255.0,
-            color_clean_f32[1] / 255.0,
-            color_clean_f32[2] / 255.0,
-            color_clean_f32[3],
+            first / 255.0,
+            second / 255.0,
+            third / 255.0,
+            *fourth,
         ));
     } else if color.starts_with("rgb") {
         let color_clean = color
@@ -87,10 +96,6 @@ pub fn parse_color(color: &String) -> Result<Color, ParseColorError> {
 
         let color_clean = color_clean.split(",").collect::<Vec<&str>>();
 
-        if color_clean.len() != 3 {
-            return Err(ParseColorError::InvalidRgbColor(color.clone()));
-        }
-
         let color_clean_f32: [f32; 3] = color_clean
             .iter()
             .map(|c| {
@@ -102,10 +107,20 @@ pub fn parse_color(color: &String) -> Result<Color, ParseColorError> {
             .try_into()
             .map_err(|_| ParseColorError::InvalidRgbaColor(color.clone()))?;
 
+        let first = color_clean_f32
+            .get(0)
+            .ok_or(ParseColorError::InvalidRgbColor(color.clone()))?;
+        let second = color_clean_f32
+            .get(1)
+            .ok_or(ParseColorError::InvalidRgbColor(color.clone()))?;
+        let third = color_clean_f32
+            .get(2)
+            .ok_or(ParseColorError::InvalidRgbColor(color.clone()))?;
+
         return Ok(Color::from_rgb(
-            color_clean_f32[0] / 255.0,
-            color_clean_f32[1] / 255.0,
-            color_clean_f32[2] / 255.0,
+            first / 255.0,
+            second / 255.0,
+            third / 255.0,
         ));
         // Special case for transparent
     } else if color == "transparent" {

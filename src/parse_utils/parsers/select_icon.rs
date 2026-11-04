@@ -58,7 +58,10 @@ pub fn parse_select_icon(
         return Err(ParseSelectIconError::InvalidIconPart(value.to_string()));
     }
     let mut i = 1;
-    let size_str = parts[1].parse::<f32>();
+    let size_str = parts
+        .get(1)
+        .ok_or(ParseSelectIconError::InvalidIcon(value.to_string()))?
+        .parse::<f32>();
     let mut size: Option<Pixels> = None;
 
     if let Ok(size_val) = size_str {

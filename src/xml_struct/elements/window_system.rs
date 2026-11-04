@@ -6,9 +6,9 @@ use iced::{
 };
 
 use crate::{
-    dom::{
-        types::{CustomElementEvent, EventResponse, QueryResponse},
-        types::{DomInternalMessageType, EventListenerTypes},
+    dom::types::{
+        CustomElementEvent, DomInternalMessageType, EventListenerTypes, EventResponse,
+        QueryResponse,
     },
     elements_manager::{
         elements_manager::ElementsManager,
@@ -103,12 +103,16 @@ impl WindowSystem {
                 data_target = Some(target);
             }
         };
+
         let mut ev_res = EventResponse::new(me, EventListenerTypes::Drag);
+
         ev_res.data_str = Some(drag_type);
         ev_res.window_system_data_window = data_window;
-        if data_target.is_some() {
-            ev_res.window_system_data_target = Some(HashableGridTarget::new(data_target.unwrap()));
+
+        if let Some(target) = data_target {
+            ev_res.window_system_data_target = Some(HashableGridTarget::new(target));
         }
+
         return ev_res;
     }
 }
@@ -119,51 +123,60 @@ fn preprocess_pane_state(
     elements: Vec<Box<XmlElement>>,
     parent_pane: iced::widget::pane_grid::Pane,
     self_uid: i32,
-) -> HashMap<String, WindowChild> {
+) -> Result<HashMap<String, WindowChild>, ElementError> {
     let mut children: HashMap<String, WindowChild> = HashMap::new();
+
     for child in elements {
         if child.tag == "Window" {
-            if child.attributes.get("window-id").is_none()
-                || (child.attributes.get("window-closed").is_none()
-                    && child.attributes.get("split-method").is_none())
-            {
-                panic!("Window element must have window-id and split-method attributes."); // Note: maybe I'm going to make split-method in styling instead of attribute. We'll see
-            }
-            let child_id = child.attributes.get("window-id").unwrap().clone();
-            let child_uid = renderer.init_element_from_xml(content(child.clone()), self_uid);
-            let fullscreen_btn = maximize_button(child.clone())
-                .map(|btn| renderer.init_element_from_xml(btn, self_uid));
-            let close_btn = close_button(child.clone())
-                .map(|btn| renderer.init_element_from_xml(btn, self_uid));
-            let titlebar_content_uid = titlebar_content(child.clone())
-                .map(|btn| renderer.init_element_from_xml(btn, self_uid));
-            let child_datas = WindowChild {
-                content_uid: child_uid,
-                fullscreen_btn: fullscreen_btn,
-                close_btn: close_btn,
-                titlebar_content_uid,
-            };
-            children.insert(child_id.clone(), child_datas.clone());
-            if child.children.len() > 0 && child.attributes.get("window-closed").is_none() {
-                let pane = state.split(
-                    parse_pane_axis(child.attributes.get("split-method").unwrap().as_str())
-                        .unwrap_or(widget::pane_grid::Axis::Horizontal),
-                    parent_pane,
-                    InternalPane(child_id, child_datas),
-                );
-                if pane.is_some() {
-                    preprocess_pane_state(
-                        state,
-                        renderer,
-                        window_children(child),
-                        pane.unwrap().0,
-                        self_uid,
+            if let Some(child_id) = child.attributes.get("window-id") {
+                let child_uid = renderer.init_element_from_xml(content(child.clone())?, self_uid);
+
+                let fullscreen_btn = maximize_button(child.clone())
+                    .map(|btn| renderer.init_element_from_xml(btn, self_uid));
+
+                let close_btn = close_button(child.clone())
+                    .map(|btn| renderer.init_element_from_xml(btn, self_uid));
+
+                let titlebar_content_uid = titlebar_content(child.clone())
+                    .map(|btn| renderer.init_element_from_xml(btn, self_uid));
+
+                let child_datas = WindowChild {
+                    content_uid: child_uid,
+                    fullscreen_btn: fullscreen_btn,
+                    close_btn: close_btn,
+                    titlebar_content_uid,
+                };
+
+                children.insert(child_id.clone(), child_datas.clone());
+
+                if child.children.len() > 0
+                    && child.attributes.get("window-closed").is_none()
+                    && let Some(split_method) = child.attributes.get("split-method")
+                {
+                    let pane = state.split(
+                        parse_pane_axis(split_method.as_str())
+                            .unwrap_or(widget::pane_grid::Axis::Horizontal),
+                        parent_pane,
+                        InternalPane(child_id.clone(), child_datas),
                     );
+
+                    if let Some(pane) = pane {
+                        preprocess_pane_state(
+                            state,
+                            renderer,
+                            window_children(child)?,
+                            pane.0,
+                            self_uid,
+                        )?;
+                    }
                 }
+            } else {
+                return Err(ElementError::WindowAttributesMissing(child));
             }
         }
     }
-    return children;
+
+    return Ok(children);
 }
 
 fn titlebar(element: Box<XmlElement>) -> Option<Box<XmlElement>> {
@@ -172,29 +185,25 @@ fn titlebar(element: Box<XmlElement>) -> Option<Box<XmlElement>> {
             return Some(child.clone());
         }
     }
+
     return None;
 }
 
 fn maximize_button(element: Box<XmlElement>) -> Option<Box<XmlElement>> {
-    let titlebar_op = titlebar(element);
-    if titlebar_op.is_none() {
-        return None;
-    }
-    let titlebar = titlebar_op.unwrap();
+    let titlebar = titlebar(element)?;
+
     for child in &titlebar.children {
         if child.tag == "MaximizeButton" {
             return Some(child.clone());
         }
     }
+
     return None;
 }
 
 fn close_button(element: Box<XmlElement>) -> Option<Box<XmlElement>> {
-    let titlebar_op = titlebar(element);
-    if titlebar_op.is_none() {
-        return None;
-    }
-    let titlebar = titlebar_op.unwrap();
+    let titlebar = titlebar(element)?;
+
     for child in &titlebar.children {
         if child.tag == "CloseButton" {
             return Some(child.clone());
@@ -204,46 +213,43 @@ fn close_button(element: Box<XmlElement>) -> Option<Box<XmlElement>> {
 }
 
 fn titlebar_content(element: Box<XmlElement>) -> Option<Box<XmlElement>> {
-    let titlebar_op = titlebar(element);
-    if titlebar_op.is_none() {
-        return None;
-    }
-    let titlebar = titlebar_op.unwrap();
+    let titlebar = titlebar(element)?;
+
     for child in &titlebar.children {
         if child.tag == "Content" {
             return Some(child.clone());
         }
     }
+
     return None;
 }
 
-fn content(element: Box<XmlElement>) -> Box<XmlElement> {
-    let mut content: Option<Box<XmlElement>> = None;
+fn content(element: Box<XmlElement>) -> Result<Box<XmlElement>, ElementError> {
     for child in &element.children {
         if child.tag == "WindowContent" {
-            content = Some(child.clone());
-            break;
+            return Ok(child.clone());
         }
     }
-    if content.is_none() {
-        panic!("Window element must have a WindowContent child element.");
-    }
-    return content.unwrap();
+
+    return Err(ElementError::WindowMustHaveWindowContent(element));
 }
 
-fn window_children(element: Box<XmlElement>) -> Vec<Box<XmlElement>> {
+fn window_children(element: Box<XmlElement>) -> Result<Vec<Box<XmlElement>>, ElementError> {
     let mut childs: Vec<Box<XmlElement>> = Vec::new();
+
     for child in &element.children {
         if child.tag == "WindowChildren" {
             for grandchild in &child.children {
                 if grandchild.tag != "Window" {
-                    panic!("WindowChildren element must have only Window child elements.");
+                    return Err(ElementError::WindowChildrenNotWindowAsChild(element));
                 }
+
                 childs.push(grandchild.clone());
             }
         }
     }
-    return childs;
+
+    return Ok(childs);
 }
 
 fn transparent_btn_style() -> iced::widget::button::Style {
@@ -276,15 +282,18 @@ impl ElementBase for WindowSystem {
         self_uid: i32,
     ) -> Result<Self, ElementError> {
         // If it supports children, initialize them here with renderer.init_element
-        if xml_element.children.len() != 1 {
-            return Err(ElementError::WindowSystemElementMustHaveOneChild(
+        let first_child = xml_element
+            .children
+            .get(0)
+            .ok_or(ElementError::WindowSystemElementMustHaveOneChild(
                 xml_element.clone(),
-            ));
-        }
-        if xml_element.children[0].tag != "Window" {
+            ))?
+            .clone();
+
+        if first_child.tag != "Window" {
             return Err(ElementError::WindowSystemChildMustBeWindow(
                 xml_element.clone(),
-                xml_element.children[0].clone(),
+                first_child.clone(),
             ));
         }
 
@@ -293,22 +302,22 @@ impl ElementBase for WindowSystem {
             drag_border_size = drag_border_size_str.parse::<f32>().unwrap_or(5.0);
         }
 
-        let first_window_content = content(xml_element.children[0].clone());
-        let first_window_children = window_children(xml_element.children[0].clone());
+        let first_window_content = content(first_child.clone())?;
+        let first_window_children = window_children(first_child.clone())?;
 
         let first_uid = renderer.init_element_from_xml(first_window_content, self_uid);
-        let first_id = xml_element.children[0]
+        let first_id = first_child
             .attributes
             .get("window-id")
-            .unwrap()
-            .clone();
+            .ok_or(ElementError::WindowAttributesMissing(xml_element))?;
+
         let first_child = WindowChild {
             content_uid: first_uid,
-            fullscreen_btn: maximize_button(xml_element.children[0].clone())
+            fullscreen_btn: maximize_button(first_child.clone())
                 .map(|btn| renderer.init_element_from_xml(btn, self_uid)),
-            close_btn: close_button(xml_element.children[0].clone())
+            close_btn: close_button(first_child.clone())
                 .map(|btn| renderer.init_element_from_xml(btn, self_uid)),
-            titlebar_content_uid: titlebar_content(xml_element.children[0].clone())
+            titlebar_content_uid: titlebar_content(first_child.clone())
                 .map(|btn| renderer.init_element_from_xml(btn, self_uid)),
         };
 
@@ -323,9 +332,9 @@ impl ElementBase for WindowSystem {
             first_window_children,
             state.1,
             self_uid,
-        );
+        )?;
 
-        children.insert(first_id, first_child);
+        children.insert(first_id.clone(), first_child);
 
         return Ok(Self {
             children_id: children.clone(),
@@ -347,18 +356,14 @@ impl ElementBase for WindowSystem {
         let mut hover_line = datas.default_theme.clone();
         let mut picked_line = datas.default_theme.clone();
 
-        let hover_region_style = datas.flag_themes.get("window-system-drop-region");
-        let hover_line_style = datas.flag_themes.get("window-system-drop-border");
-        let picked_line_style = datas.flag_themes.get("window-system-drag-border");
-
-        if hover_region_style.is_some() {
-            hover_region = hover_region_style.unwrap().clone();
+        if let Some(hover_region_style) = datas.flag_themes.get("window-system-drop-region") {
+            hover_region = hover_region_style.clone();
         }
-        if hover_line_style.is_some() {
-            hover_line = hover_line_style.unwrap().clone();
+        if let Some(hover_line_style) = datas.flag_themes.get("window-system-drop-border") {
+            hover_line = hover_line_style.clone();
         }
-        if picked_line_style.is_some() {
-            picked_line = picked_line_style.unwrap().clone();
+        if let Some(picked_line_style) = datas.flag_themes.get("window-system-drag-border") {
+            picked_line = picked_line_style.clone();
         }
 
         let mut pane_grid: iced::widget::pane_grid::PaneGrid<'a, Message> =
@@ -367,29 +372,33 @@ impl ElementBase for WindowSystem {
                     InternalPane(_, child_datas) => {
                         let mut btn_max = button(iced::widget::text("Max"));
                         let mut btn_close = button(iced::widget::text("Close"));
-                        if child_datas.fullscreen_btn.is_some() {
-                            btn_max = button(renderer.render_element(
-                                child_datas.fullscreen_btn.unwrap(),
-                                datas.child_data.clone(),
-                            ))
+
+                        if let Some(fullscreen_btn) = child_datas.fullscreen_btn {
+                            btn_max = button(
+                                renderer.render_element(fullscreen_btn, datas.child_data.clone()),
+                            )
                             .style(|_, _| transparent_btn_style());
                         }
-                        if child_datas.close_btn.is_some() {
-                            btn_close = button(renderer.render_element(
-                                child_datas.close_btn.unwrap(),
-                                datas.child_data.clone(),
-                            ))
+
+                        if let Some(close_btn) = child_datas.close_btn {
+                            btn_close = button(
+                                renderer.render_element(close_btn, datas.child_data.clone()),
+                            )
                             .style(|_, _| transparent_btn_style());
                         }
+
                         let mut ev_res_max =
                             EventResponse::new(self_uid, EventListenerTypes::Maximize);
                         let ev_res_restore =
                             EventResponse::new(self_uid, EventListenerTypes::Restore);
                         let mut ev_res_close =
                             EventResponse::new(self_uid, EventListenerTypes::Close);
+
                         ev_res_max.window_system_data_window = Some(pane);
                         ev_res_close.window_system_data_window = Some(pane);
+
                         btn_max = btn_max.on_press(Message::DomEvent(None, ev_res_max.clone()));
+
                         if is_fullscreen {
                             btn_max =
                                 btn_max.on_press(Message::DomEvent(None, ev_res_restore.clone()));
@@ -397,13 +406,13 @@ impl ElementBase for WindowSystem {
                             btn_close =
                                 btn_close.on_press(Message::DomEvent(None, ev_res_close.clone()));
                         }
+
                         let mut title_bar_content: iced::Element<'a, Message> =
                             iced::widget::text("").into();
-                        if child_datas.titlebar_content_uid.is_some() {
-                            title_bar_content = renderer.render_element(
-                                child_datas.titlebar_content_uid.unwrap(),
-                                datas.child_data.clone(),
-                            );
+
+                        if let Some(titlebar_content) = child_datas.titlebar_content_uid {
+                            title_bar_content =
+                                renderer.render_element(titlebar_content, datas.child_data.clone());
                         }
 
                         let title_bar = iced::widget::pane_grid::TitleBar::new(title_bar_content)
@@ -411,14 +420,17 @@ impl ElementBase for WindowSystem {
                                 row![btn_max, btn_close].spacing(5).width(Length::Shrink),
                             ))
                             .padding(10);
+
                         let element = renderer
                             .render_element(child_datas.content_uid, datas.child_data.clone());
+
                         return iced::widget::pane_grid::Content::new(element).title_bar(title_bar);
                     }
                 }
             });
 
         let me = self_uid.clone();
+
         pane_grid = pane_grid
             .height(theme.height)
             .min_size(theme.pane_min_size)
@@ -444,14 +456,18 @@ impl ElementBase for WindowSystem {
             .width(theme.width)
             .on_click(move |p| {
                 let mut res = EventResponse::new(me, EventListenerTypes::Focus);
+
                 res.window_system_data_window = Some(p);
+
                 Message::DomEvent(None, res)
             })
             .on_drag(move |ev| Message::DomEvent(None, self.preprocess_pane_drag(ev, me)))
             .on_resize(self.drag_border_size, move |ev| {
                 let mut res = EventResponse::new(me, EventListenerTypes::Resize);
+
                 res.window_system_data_split = Some(ev.split);
                 res.data_float = Some(HashableF32::new(ev.ratio));
+
                 Message::DomEvent(None, res)
             });
 
@@ -461,13 +477,19 @@ impl ElementBase for WindowSystem {
                 EventListenerTypes::Focus => {
                     pane_grid = pane_grid.on_click(move |pane| {
                         let mut res = EventResponse::new(me, event.event_type.clone());
-                        let internal_pane = self.panes.get(pane).unwrap();
-                        let pane_id = match internal_pane {
-                            InternalPane(pane_id, _) => pane_id.clone(),
-                        };
-                        res.data_str = Some(pane_id);
-                        res.window_system_data_window = Some(pane);
-                        Message::DomEvent(Some(event.event_uid), res)
+
+                        if let Some(internal_pane) = self.panes.get(pane) {
+                            let pane_id = match internal_pane {
+                                InternalPane(pane_id, _) => pane_id.clone(),
+                            };
+
+                            res.data_str = Some(pane_id);
+                            res.window_system_data_window = Some(pane);
+
+                            Message::DomEvent(Some(event.event_uid), res)
+                        } else {
+                            Message::DomEvent(Some(event.event_uid), res)
+                        }
                     });
                 }
                 EventListenerTypes::Drag => {
@@ -478,8 +500,10 @@ impl ElementBase for WindowSystem {
                 EventListenerTypes::Resize => {
                     pane_grid = pane_grid.on_resize(self.drag_border_size, move |ev| {
                         let mut res = EventResponse::new(me, event.event_type.clone());
+
                         res.window_system_data_split = Some(ev.split);
                         res.data_float = Some(HashableF32::new(ev.ratio));
+
                         Message::DomEvent(Some(event.event_uid), res)
                     })
                 }
@@ -495,8 +519,9 @@ impl ElementBase for WindowSystem {
             DomInternalMessageType::FireEvent(event) => match event {
                 CustomElementEvent::TWMMaximizeWindow(window_id) => {
                     let pane = self.window_id_to_pane(window_id);
-                    if pane.is_some() {
-                        self.panes.maximize(pane.unwrap());
+                    if let Some(pane) = pane {
+                        self.panes.maximize(pane);
+
                         Some(ElementEventResponse::success())
                     } else {
                         Some(ElementEventResponse::new(QueryResponse::fail(
@@ -510,12 +535,15 @@ impl ElementBase for WindowSystem {
                 }
                 CustomElementEvent::TWMCloseWindow(window_id) => {
                     let window = self.window_id_to_pane(window_id);
-                    if window.is_some() {
-                        let sibling_op = self.panes.close(window.unwrap());
-                        if sibling_op.is_some() {
-                            let (_, to_focus) = sibling_op.unwrap();
+
+                    if let Some(window) = window {
+                        let sibling_op = self.panes.close(window);
+
+                        if let Some(sibling) = sibling_op {
+                            let (_, to_focus) = sibling;
                             self.focused = to_focus;
                         }
+
                         Some(ElementEventResponse::success())
                     } else {
                         Some(ElementEventResponse::new(QueryResponse::fail(
@@ -525,8 +553,9 @@ impl ElementBase for WindowSystem {
                 }
                 CustomElementEvent::TWMFocusWindow(window) => {
                     let pane = self.window_id_to_pane(window);
-                    if pane.is_some() {
-                        self.focused = pane.unwrap();
+                    if let Some(pane) = pane {
+                        self.focused = pane;
+
                         Some(ElementEventResponse::success())
                     } else {
                         Some(ElementEventResponse::new(QueryResponse::fail(
@@ -536,8 +565,10 @@ impl ElementBase for WindowSystem {
                 }
                 CustomElementEvent::TWMDragWindow(window_id, target) => {
                     let window = self.window_id_to_pane(window_id);
-                    if window.is_some() {
-                        self.panes.drop(window.unwrap(), target.value());
+
+                    if let Some(window) = window {
+                        self.panes.drop(window, target.value());
+
                         Some(ElementEventResponse::success())
                     } else {
                         Some(ElementEventResponse::new(QueryResponse::fail(
@@ -546,22 +577,25 @@ impl ElementBase for WindowSystem {
                     }
                 }
                 CustomElementEvent::TWMOpenWindow(open_params) => {
-                    let window = self.children_id.get(&open_params.window_id);
-                    if window.is_some() {
-                        let parent_window = self.window_id_to_pane(&open_params.parent_window_id);
-                        if parent_window.is_some() {
+                    let window_op = self.children_id.get(&open_params.window_id);
+
+                    if let Some(window) = window_op {
+                        let parent_window_op =
+                            self.window_id_to_pane(&open_params.parent_window_id);
+
+                        if let Some(parent_window) = parent_window_op {
                             let split_method = parse_pane_axis(&open_params.split_method)
                                 .unwrap_or(widget::pane_grid::Axis::Horizontal);
+
                             let pane = self.panes.split(
                                 split_method,
-                                parent_window.unwrap(),
-                                InternalPane(
-                                    open_params.window_id.clone(),
-                                    window.unwrap().clone(),
-                                ),
+                                parent_window,
+                                InternalPane(open_params.window_id.clone(), window.clone()),
                             );
-                            if pane.is_some() {
-                                self.focused = pane.unwrap().0;
+
+                            if let Some(pane) = pane {
+                                self.focused = pane.0;
+
                                 Some(ElementEventResponse::success())
                             } else {
                                 Some(ElementEventResponse::new(QueryResponse::fail(
@@ -596,54 +630,65 @@ impl ElementBase for WindowSystem {
         event_response: &EventResponse,
     ) -> Option<ElementEventResponse> {
         match event_type {
-            EventListenerTypes::Maximize => {
-                self.panes
-                    .maximize(event_response.window_system_data_window.unwrap());
-                return Some(ElementEventResponse::success());
-            }
             EventListenerTypes::Restore => {
                 self.panes.restore();
-                return Some(ElementEventResponse::success());
-            }
-            EventListenerTypes::Close => {
-                let datas_op = self
-                    .panes
-                    .close(event_response.window_system_data_window.unwrap());
-                if datas_op.is_some() {
-                    let (_, to_focus) = datas_op.unwrap();
-                    self.focused = to_focus;
-                }
-                return Some(ElementEventResponse::success());
-            }
-            EventListenerTypes::Focus => {
-                self.focused = event_response.window_system_data_window.unwrap();
+
                 return Some(ElementEventResponse::success());
             }
             EventListenerTypes::Resize => {
-                self.panes.resize(
-                    event_response.window_system_data_split.unwrap(),
-                    event_response.data_float.as_ref().unwrap().value(),
-                );
+                if let Some(split) = event_response.window_system_data_split
+                    && let Some(size) = &event_response.data_float
+                {
+                    self.panes.resize(split, size.value());
+                }
+
                 return Some(ElementEventResponse::success());
             }
-            EventListenerTypes::Drag => {
-                let event_type = event_response.data_str.as_ref().unwrap();
-                match event_type.as_str() {
-                    "dropped" => {
-                        self.panes.drop(
-                            event_response.window_system_data_window.unwrap(),
-                            event_response
-                                .window_system_data_target
-                                .as_ref()
-                                .unwrap()
-                                .value(),
-                        );
-                        return Some(ElementEventResponse::success());
-                    }
-                    _ => return Some(ElementEventResponse::success()),
+            _ => {}
+        }
+
+        if let Some(data_window) = event_response.window_system_data_window {
+            match event_type {
+                EventListenerTypes::Maximize => {
+                    self.panes.maximize(data_window);
+
+                    return Some(ElementEventResponse::success());
                 }
+                EventListenerTypes::Close => {
+                    let datas_op = self.panes.close(data_window);
+
+                    if datas_op.is_some() {
+                        let (_, to_focus) = datas_op.unwrap();
+                        self.focused = to_focus;
+                    }
+                    return Some(ElementEventResponse::success());
+                }
+                EventListenerTypes::Focus => {
+                    self.focused = data_window;
+
+                    return Some(ElementEventResponse::success());
+                }
+                EventListenerTypes::Drag => {
+                    if let Some(event_type) = &event_response.data_str {
+                        match event_type.as_str() {
+                            "dropped" => {
+                                if let Some(data_target) = &event_response.window_system_data_target
+                                {
+                                    self.panes.drop(data_window, data_target.value());
+                                }
+
+                                return Some(ElementEventResponse::success());
+                            }
+                            _ => return Some(ElementEventResponse::success()),
+                        }
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
             }
-            _ => None,
+        } else {
+            None
         }
     }
 }

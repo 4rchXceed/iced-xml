@@ -132,16 +132,18 @@ pub trait WindowTemplate<WindowApp: 'static, AppState: 'static> {
             .raw_element_query(&element.get_query().query_type);
 
         // Ensure that only one element was found for the query
-        if uid.len() != 1 {
+        if let Some(uid) = uid.get(0) {
+            // Register the component with the engine's element renderer
+            me.engine
+                .elements_manager
+                .register_component(*uid, component);
+
+            return Ok(*uid);
+        } else {
             return Err(String::from(
                 "Panic: More than one element found when adding a component. Please ensure that the query is unique.",
             ));
         }
-        // Register the component with the engine's element renderer
-        me.engine
-            .elements_manager
-            .register_component(uid[0], component);
-        return Ok(uid[0]);
     }
 
     ///  Remove a component from the window template, given its unique identifier and the application state
