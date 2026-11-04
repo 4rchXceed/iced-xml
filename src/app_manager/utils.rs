@@ -11,6 +11,12 @@ pub type IcedTask = iced::Task<Message>;
 pub type WindowId = window::Id;
 pub type WindowSettings = window::Settings;
 
+#[derive(Clone)]
+pub enum CloseMode {
+    Minimize,
+    Close,
+}
+
 // Expose the FNs for the macro
 pub fn open_window(settings: WindowSettings) -> (WindowId, Task<WindowId>) {
     return window::open(settings);

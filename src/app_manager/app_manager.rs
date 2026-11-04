@@ -1,16 +1,20 @@
 use std::{
     any::Any,
     collections::{BTreeMap, HashMap},
+    sync::{Arc, Mutex, mpsc::Receiver},
+    time::Duration,
 };
 
+use iced::time;
 use log::error;
 
 use crate::{
     app_manager::{
         state_wrapper::App,
         utils::{
-            CreateWindowFn, IcedElement, IcedSubscription, IcedTask, WindowId, WindowSettings,
-            close_event_messages, close_window, exit_iced, open_window, run_app_internal, text,
+            CloseMode, CreateWindowFn, IcedElement, IcedSubscription, IcedTask, WindowId,
+            WindowSettings, close_event_messages, close_window, exit_iced, open_window,
+            run_app_internal, text,
         },
     },
     rs_utils::{IntoAny, get_unique_id},
@@ -29,6 +33,8 @@ where
     app_state: App<S>,                // This is used to store the state of the application
     engine_params: EngineSettings,
     create_window: CreateWindowFn<W, C, S>,
+    close_mode: CloseMode,
+    open_sender: Arc<Mutex<Receiver<C>>>,
 }
 
 impl<W, C, S> WindowManager<W, C, S>
@@ -42,6 +48,8 @@ where
         state: S,
         engine_settings: EngineSettings,
         create_window: CreateWindowFn<W, C, S>,
+        close_mode: CloseMode,
+        open_window_sender: Arc<Mutex<Receiver<C>>>,
     ) -> (Self, IcedTask) {
         let (_, open) = open_window(WindowSettings::default());
 
@@ -56,6 +64,8 @@ where
                 app_state: App::new(state),
                 engine_params: engine_settings,
                 create_window: create_window,
+                close_mode: close_mode,
+                open_sender: open_window_sender,
             },
             open.map(|id| Message::WindowOpened(id, -1)),
         );
@@ -93,6 +103,27 @@ where
 
     fn handle_message(&mut self, message: Message) -> iced::Task<Message> {
         match message {
+            Message::TasksUpdate => {
+                if let Ok(window_params) = self.open_sender.lock() {
+                    let mut tasks = Vec::new();
+
+                    while let Ok(params) = window_params.try_recv() {
+                        let (_, open) = open_window(WindowSettings::default());
+
+                        let params_id = get_unique_id();
+
+                        self.creation_params.insert(params_id, params);
+
+                        let current_task = open.map(move |id| Message::WindowOpened(id, params_id));
+
+                        tasks.push(current_task);
+                    }
+
+                    IcedTask::batch(tasks)
+                } else {
+                    IcedTask::none()
+                }
+            }
             Message::WindowOpened(id, params_id) => {
                 if let Some(creation_params) = self.creation_params.get(&params_id) {
                     let create_window = self.create_window;
@@ -118,7 +149,10 @@ where
                 }
 
                 if self.windows.is_empty() {
-                    exit_iced()
+                    match self.close_mode {
+                        CloseMode::Close => exit_iced(),
+                        CloseMode::Minimize => IcedTask::none(),
+                    }
                 } else {
                     IcedTask::none()
                 }
@@ -169,6 +203,12 @@ where
             }
         }
 
+        subs.push(
+            time::every(Duration::from_millis(100))
+                .with(Message::TasksUpdate)
+                .map(|a| a.0),
+        );
+
         return IcedSubscription::batch(subs);
     }
 
@@ -177,7 +217,11 @@ where
         gen_state: impl Fn() -> S + 'static,
         engine_settings: EngineSettings,
         create_window: CreateWindowFn<W, C, S>,
+        close_mode: CloseMode,
+        window_opener: Receiver<C>,
     ) -> AppResult {
+        let window = Arc::new(Mutex::new(window_opener));
+
         return run_app_internal(
             move || {
                 let app = WindowManager::new(
@@ -185,6 +229,8 @@ where
                     gen_state(),
                     engine_settings.clone(),
                     create_window,
+                    close_mode.clone(),
+                    window.clone(),
                 );
 
                 return app;

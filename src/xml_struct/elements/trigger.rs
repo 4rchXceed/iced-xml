@@ -82,14 +82,13 @@ impl ElementBase for Trigger {
                 EventListenerTypes::Hidden => {
                     trigger = trigger.on_hide(Message::DomEvent(
                         Some(event.event_uid),
-
                         EventResponse::new(me, event.event_type.clone()),
                     ))
                 }
                 EventListenerTypes::Shown => {
                     trigger = trigger.on_show(move |size| {
                         let mut ev_res = EventResponse::new(me, event.event_type.clone());
-                        
+
                         ev_res.data_vector = Some(Vector2 {
                             x: HashableF32::new(size.width),
                             y: HashableF32::new(size.height),
@@ -101,7 +100,7 @@ impl ElementBase for Trigger {
                 EventListenerTypes::Resize => {
                     trigger = trigger.on_resize(move |size| {
                         let mut ev_res = EventResponse::new(me, event.event_type.clone());
-                        
+
                         ev_res.data_vector = Some(Vector2 {
                             x: HashableF32::new(size.width),
                             y: HashableF32::new(size.height),
