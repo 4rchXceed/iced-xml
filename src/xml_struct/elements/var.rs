@@ -1,11 +1,16 @@
-// Copy-paste template
+use log::warn;
+
 use crate::{
-    dom::query::QueryResponse,
+    dom::{types::DomInternalMessageType, types::QueryResponse},
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementEventResponse, ElementExtraData, EventListener},
+    },
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        elements::{element_base::ElementBase, library::ElementError},
+        xml_element::XmlElement,
     },
 };
 
@@ -15,45 +20,51 @@ pub struct Var {
 }
 
 impl ElementBase for Var {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
+    fn new(
+        xml_element: Box<XmlElement>,
+        _: &mut ElementMappings,
+        _: i32,
+    ) -> Result<Self, ElementError> {
         if !xml_element.attributes.contains_key("var-key") {
-            panic!("<Var /> element must have the var-key attribute")
+            return Err(ElementError::VarMustHaveVarKey(xml_element.clone()));
         }
+        
         let mut fallback_text = String::from("Unknown");
-        if xml_element.attributes.contains_key("fallback") {
-            fallback_text = xml_element.attributes.get("fallback").unwrap().to_string();
+        
+        if let Some(fallback_attr) = xml_element.attributes.get("fallback") {
+            fallback_text = fallback_attr.to_string();
         }
-        Self {
+
+        return Ok(Self {
             key_name: xml_element.attributes.get("var-key").unwrap().to_string(),
             fallback_text: fallback_text,
-        }
+        });
     }
 
     fn render<'a>(
         &self,
-        _: &'a ElementRenderer,
+        _: &'a ElementsManager,
         datas: ElementExtraData,
         _: Vec<&'a EventListener>,
         _: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
         let mut text = self.fallback_text.clone();
-        if datas.child_data.is_some() && datas.child_data.as_ref().unwrap().table_datas.is_some() {
-            let text_op = datas
-                .child_data
-                .unwrap()
-                .table_datas
-                .unwrap()
+
+        if let Some(child_data) = datas.child_data && let Some(table_datas) = child_data.table_datas {
+            let text_op = table_datas
                 .get(&self.key_name)
                 .cloned();
-            if text_op.is_some() {
-                text = text_op.unwrap();
+
+            if let Some(text_op) = text_op {
+                text = text_op;
             }
         } else {
-            println!(
+            warn!(
                 "<Var /> element is not a child of a var-providing element like <Table />. This is almost certainly a mistake"
             )
         }
+
         let text_element = iced::widget::text(text);
 
         let text_element = text_element.style(move |_| iced::widget::text::Style {
@@ -82,32 +93,28 @@ impl ElementBase for Var {
         return text_element.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let mut query_response = QueryResponse::new(true);
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::PropertyChange(key, value) => match key.as_str() {
+            DomInternalMessageType::PropertyChange(key, value) => match key.as_str() {
                 "var-key" => {
                     self.key_name = value.clone();
-                    Some((query_response, Vec::new(), Vec::new()))
+
+                    Some(ElementEventResponse::success())
                 }
                 "fallback" => {
                     self.fallback_text = value.clone();
-                    Some((query_response, Vec::new(), Vec::new()))
+
+                    Some(ElementEventResponse::success())
                 }
                 _ => None,
             },
-            XmlChangeEvent::GetProperty(key) => match key.as_str() {
-                "var-key" => {
-                    query_response.data_str = Some(self.key_name.clone());
-                    Some((query_response, Vec::new(), Vec::new()))
-                }
-                "fallback" => {
-                    query_response.data_str = Some(self.fallback_text.clone());
-                    Some((query_response, Vec::new(), Vec::new()))
-                }
+            DomInternalMessageType::GetProperty(key) => match key.as_str() {
+                "var-key" => Some(ElementEventResponse::new(
+                    QueryResponse::success().with_data_str(self.key_name.clone()),
+                )),
+                "fallback" => Some(ElementEventResponse::new(
+                    QueryResponse::success().with_data_str(self.fallback_text.clone()),
+                )),
                 _ => None,
             },
             _ => None,

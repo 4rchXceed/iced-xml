@@ -5,19 +5,13 @@
 {
   "lsp": {
     "rust-analyzer": {
-      "binary": {
-        "path": "/run/current-system/sw/bin/nix",
-        "arguments": [
-          "develop",
-          "--command",
-          "rust-analyzer"
-        ],
-      },
+      // "binary": {
+      //   "path": "/run/current-system/sw/bin/nix",
+      //   "arguments": ["develop", "--command", "rust-analyzer"],
+      // },
       "initialization_options": {
         "cargo": {
-          "features": [
-            "dev-mode"
-          ],
+          "features": ["css-watcher"],
         },
         "rustfmt": {
           "extraArgs": [],

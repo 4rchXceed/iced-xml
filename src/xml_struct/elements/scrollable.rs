@@ -1,64 +1,87 @@
 use iced::widget::scrollable::AutoScroll;
 
-// Copy-paste template
 use crate::{
-    dom::query::{EventResponse, QueryResponse},
+    dom::{
+        types::{DomInternalMessageType, EventListenerTypes},
+        types::{EventResponse, QueryResponse},
+    },
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementEventResponse, ElementExtraData, EventListener},
+    },
     rs_utils::{HashableF32, ScrollState},
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        elements::{element_base::ElementBase, library::ElementError},
+        xml_element::XmlElement,
     },
 };
 
+enum ScrollDirection {
+    Horizontal,
+    Vertical,
+}
+
 pub struct Scroll {
     child: i32,
-    is_horizontal: bool,
+    // is_horizontal: bool,
+    direction: ScrollDirection,
 }
 
 impl ElementBase for Scroll {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
-        if xml_element.children.len() != 1 {
-            panic!(
-                "Scrollable MUST have one and only one child (currently has {})",
-                xml_element.children.len()
-            );
-        }
-        let mut is_horizontal = false;
-        if xml_element.attributes.get("horizontal").is_some() {
-            is_horizontal = true;
-        }
+    fn new(
+        xml_element: Box<XmlElement>,
+        renderer: &mut ElementMappings,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
+        let first_child =
+            xml_element
+                .children
+                .get(0)
+                .ok_or(ElementError::ScrollableElementMustHaveOneChild(
+                    xml_element.clone(),
+                ))?;
 
-        Self {
-            child: renderer.init_element_from_xml(&xml_element.children[0], self_uid),
-            is_horizontal,
-        }
+        let child = renderer.init_element_from_xml(first_child.clone(), self_uid);
+
+        let direction = if xml_element.attributes.get("horizontal").is_some() {
+            ScrollDirection::Horizontal
+        } else {
+            ScrollDirection::Vertical
+        };
+
+        return Ok(Self {
+            child: child,
+            direction: direction,
+        });
     }
 
     fn render<'a>(
         &self,
-        renderer: &'a ElementRenderer,
+        renderer: &'a ElementsManager,
         datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
         let mut scrollbar = datas.default_theme.clone();
-        if datas.flag_themes.contains_key("scrollbar") {
-            scrollbar = datas.flag_themes.get("scrollbar").unwrap().clone();
-        }
         let mut scrollbar_scroller = datas.default_theme.clone();
-        if datas.flag_themes.contains_key("scrollbar-scroller") {
-            scrollbar_scroller = datas.flag_themes.get("scrollbar-scroller").unwrap().clone();
-        }
         let mut gap = datas.default_theme.clone();
-        if datas.flag_themes.contains_key("gap") {
-            gap = datas.flag_themes.get("gap").unwrap().clone();
-        }
         let mut autoscroll = datas.default_theme.clone();
-        if datas.flag_themes.contains_key("autoscroll") {
-            autoscroll = datas.flag_themes.get("autoscroll").unwrap().clone();
+
+        if let Some(scrollbar_theme) = datas.flag_themes.get("scrollbar") {
+            scrollbar = scrollbar_theme.clone();
+        }
+
+        if let Some(scrollbar_scroller_theme) = datas.flag_themes.get("scrollbar-scroller") {
+            scrollbar_scroller = scrollbar_scroller_theme.clone();
+        }
+        if let Some(gap_theme) = datas.flag_themes.get("gap") {
+            gap = gap_theme.clone();
+        }
+        if let Some(autoscroll_theme) = datas.flag_themes.get("autoscroll") {
+            autoscroll = autoscroll_theme.clone();
         }
 
         let mut scrollable =
@@ -74,8 +97,11 @@ impl ElementBase for Scroll {
             }
         }
 
-        if self.is_horizontal {
-            scrollable = scrollable.horizontal();
+        match self.direction {
+            ScrollDirection::Horizontal => {
+                scrollable = scrollable.horizontal();
+            }
+            ScrollDirection::Vertical => {}
         }
 
         scrollable = scrollable
@@ -83,6 +109,7 @@ impl ElementBase for Scroll {
             .spacing(theme.spacing)
             .width(theme.width)
             .style(move |_, _| iced::widget::scrollable::Style {
+                // Normal
                 container: iced::widget::container::Style {
                     text_color: Some(theme.foreground_color),
                     background: Some(theme.background),
@@ -98,6 +125,7 @@ impl ElementBase for Scroll {
                     },
                     snap: theme.snap,
                 },
+                // Scrollbar
                 vertical_rail: iced::widget::scrollable::Rail {
                     background: Some(scrollbar.background),
                     border: iced::Border {
@@ -114,6 +142,7 @@ impl ElementBase for Scroll {
                         },
                     },
                 },
+                // Horizontal scrollbar
                 horizontal_rail: iced::widget::scrollable::Rail {
                     background: Some(scrollbar.background),
                     border: iced::Border {
@@ -130,7 +159,9 @@ impl ElementBase for Scroll {
                         },
                     },
                 },
+                // Gap
                 gap: Some(gap.background),
+                // AutoScroll
                 auto_scroll: AutoScroll {
                     background: autoscroll.background,
                     border: iced::Border {
@@ -146,12 +177,13 @@ impl ElementBase for Scroll {
                     icon: autoscroll.foreground_color,
                 },
             });
+
         let me = self_uid;
         // We don't need to change the state of the object when the event is triggered, so we can only create the event when the code is using the event.
 
         for event in events {
-            match event.event_type.as_str() {
-                "scroll" => {
+            match event.event_type {
+                EventListenerTypes::Scroll => {
                     scrollable = scrollable.on_scroll(move |v| {
                         let scroll_state = ScrollState {
                             scroll_height: HashableF32::new(v.bounds().height),
@@ -159,9 +191,10 @@ impl ElementBase for Scroll {
                             scroll_left: HashableF32::new(v.relative_offset().x * v.bounds().width),
                             scroll_top: HashableF32::new(v.relative_offset().y * v.bounds().height),
                         };
-                        let mut ev_response = EventResponse::new(me, "scroll".to_string());
+
+                        let mut ev_response = EventResponse::new(me, event.event_type.clone());
                         ev_response.scrollable_scroll_state = Some(scroll_state);
-                        return Message::DomEvent(event.event_uid, ev_response);
+                        return Message::DomEvent(Some(event.event_uid), ev_response);
                     });
                 }
                 _ => (),
@@ -171,23 +204,28 @@ impl ElementBase for Scroll {
         return scrollable.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let mut query_response = QueryResponse::new(true);
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::PropertyChange(key, value) => match key.as_str() {
+            DomInternalMessageType::PropertyChange(key, value) => match key.as_str() {
                 "horizontal" => {
-                    self.is_horizontal = value == "true";
-                    return Some((QueryResponse::new(true), vec![], vec![]));
+                    self.direction = if value == "true" {
+                        ScrollDirection::Horizontal
+                    } else {
+                        ScrollDirection::Vertical
+                    };
+
+                    return Some(ElementEventResponse::success());
                 }
                 _ => None,
             },
-            XmlChangeEvent::GetProperty(key) => {
+            DomInternalMessageType::GetProperty(key) => {
                 if key == "horizontal" {
-                    query_response.data_bool = Some(self.is_horizontal);
-                    return Some((query_response, vec![], vec![]));
+                    return Some(ElementEventResponse::new(
+                        QueryResponse::success().with_data_bool(match self.direction {
+                            ScrollDirection::Horizontal => true,
+                            ScrollDirection::Vertical => false,
+                        }),
+                    ));
                 }
                 None
             }

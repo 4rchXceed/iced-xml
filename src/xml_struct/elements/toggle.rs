@@ -1,11 +1,17 @@
-// Copy-paste template
 use crate::{
-    dom::query::{EventResponse, QueryResponse},
+    dom::{
+        types::{DomInternalMessageType, EventListenerTypes},
+        types::{EventResponse, QueryResponse},
+    },
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementEventResponse, ElementExtraData, EventListener},
+    },
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        elements::{element_base::ElementBase, library::ElementError},
+        xml_element::XmlElement,
     },
 };
 
@@ -15,8 +21,12 @@ pub struct Toggle {
 }
 
 impl ElementBase for Toggle {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
-        Self {
+    fn new(
+        xml_element: Box<XmlElement>,
+        _: &mut ElementMappings,
+        _: i32,
+    ) -> Result<Self, ElementError> {
+        return Ok(Self {
             toggled: xml_element
                 .attributes
                 .get("toggled")
@@ -27,21 +37,21 @@ impl ElementBase for Toggle {
                 .get("label")
                 .unwrap_or(&String::from(""))
                 .clone(),
-        }
+        });
     }
 
     fn render<'a>(
         &'a self,
-        _: &'a ElementRenderer,
+        _: &'a ElementsManager,
         datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
-        let mut handle_theme = theme.clone();
 
-        if datas.flag_themes.contains_key("handle") {
-            handle_theme = datas.flag_themes.get("handle").unwrap().clone();
+        let mut handle_theme = theme.clone();
+        if let Some(handle_theme_op) = datas.flag_themes.get("handle").cloned() {
+            handle_theme = handle_theme_op;
         }
 
         let mut toggle = iced::widget::toggler::Toggler::new(self.toggled);
@@ -67,67 +77,80 @@ impl ElementBase for Toggle {
                 padding_ratio: theme.toggle_padding_ratio,
             });
 
-        if theme.size.is_some() {
-            toggle = toggle.size(theme.size.unwrap());
+        if let Some(size) = theme.size {
+            toggle = toggle.size(size);
         }
 
-        if theme.font_size.is_some() {
-            toggle = toggle.text_size(theme.font_size.unwrap());
+        if let Some(font_size) = theme.font_size {
+            toggle = toggle.text_size(font_size);
         }
 
-        let mut event_id = -1;
+        let mut event_id = None;
         for event in events {
-            if event.event_type == "toggle" {
-                event_id = event.event_uid;
+            if event.event_type == EventListenerTypes::Toggle {
+                event_id = Some(event.event_uid);
             }
         }
 
         toggle = toggle.on_toggle(move |toggled| {
-            let mut event_response = EventResponse::new(self_uid, String::from("toggle"));
+            let mut event_response = EventResponse::new(self_uid, EventListenerTypes::Toggle);
+
             event_response.data_bool = Some(toggled);
+
             return Message::DomEvent(event_id, event_response);
         });
 
         return toggle.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
-        let mut query_response = QueryResponse::new(true);
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
+        let mut query_response = QueryResponse::success();
         match event {
-            XmlChangeEvent::EventFired(name, event_response) => {
-                if name == "toggle" {
-                    if let Some(toggled) = event_response.data_bool {
-                        self.toggled = toggled;
-                        return Some((query_response, Vec::new(), Vec::new()));
-                    }
-                }
-                None
-            }
-            XmlChangeEvent::PropertyChange(key, value) => match key.as_str() {
+            DomInternalMessageType::PropertyChange(key, value) => match key.as_str() {
                 "toggled" => {
                     self.toggled = value == "true";
-                    return Some((query_response, Vec::new(), Vec::new()));
+
+                    return Some(ElementEventResponse::success());
                 }
                 "label" => {
                     self.label = value.clone();
-                    return Some((query_response, Vec::new(), Vec::new()));
+
+                    return Some(ElementEventResponse::success());
                 }
                 _ => None,
             },
-            XmlChangeEvent::GetProperty(key) => match key.as_str() {
+            DomInternalMessageType::GetProperty(key) => match key.as_str() {
                 "toggled" => {
                     query_response.data_bool = Some(self.toggled);
-                    return Some((query_response, Vec::new(), Vec::new()));
+
+                    return Some(ElementEventResponse::success());
                 }
                 "label" => {
                     query_response.data_str = Some(self.label.clone());
-                    return Some((query_response, Vec::new(), Vec::new()));
+
+                    return Some(ElementEventResponse::success());
                 }
                 _ => None,
             },
+            _ => None,
+        }
+    }
+
+    fn event_callback(
+        &mut self,
+        event_type: &EventListenerTypes,
+        event_response: &EventResponse,
+    ) -> Option<ElementEventResponse> {
+        match event_type {
+            EventListenerTypes::Toggle => {
+                if let Some(toggled) = event_response.data_bool {
+                    self.toggled = toggled;
+
+                    return Some(ElementEventResponse::success());
+                } else {
+                    None
+                }
+            }
             _ => None,
         }
     }

@@ -1,24 +1,34 @@
 use std::ops::RangeInclusive;
 
-// Copy-paste template
 use crate::{
-    dom::query::{EventResponse, QueryResponse},
+    dom::{
+        types::{DomInternalMessageType, EventListenerTypes},
+        types::{EventResponse, QueryResponse},
+    },
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementEventResponse, ElementExtraData, EventListener},
+    },
     rs_utils::HashableF32,
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        elements::{element_base::ElementBase, library::ElementError},
         theming::XmlTheme,
+        xml_element::XmlElement,
     },
 };
 
 pub fn parse_property(val: String) -> (QueryResponse, Option<f32>) {
     let new_value = val.parse::<f32>();
-    if new_value.is_err() {
-        return (QueryResponse::new(false), None);
+
+    match new_value {
+        Ok(v) => (QueryResponse::success(), Some(v)),
+        Err(_) => (
+            QueryResponse::fail(format!("Property: {} isn't a valid float", val).as_str()),
+            None,
+        ),
     }
-    return (QueryResponse::new(true), Some(new_value.unwrap()));
 }
 
 pub struct Range {
@@ -44,22 +54,23 @@ impl Range {
             self.value,
             on_input,
         );
+
         slider = slider
             .height(theme.slider_height)
             .width(theme.width)
             .step(self.step)
             .style(move |_, _| style);
 
-        if on_release.is_some() {
-            slider = slider.on_release(on_release.unwrap());
+        if let Some(on_release) = on_release {
+            slider = slider.on_release(on_release);
         }
 
-        if self.second_step.is_some() {
-            slider = slider.shift_step(self.second_step.unwrap());
+        if let Some(second_step) = self.second_step {
+            slider = slider.shift_step(second_step);
         }
 
-        if self.default.is_some() {
-            slider = slider.default(self.default.unwrap());
+        if let Some(default) = self.default {
+            slider = slider.default(default);
         }
 
         return slider.into();
@@ -77,22 +88,23 @@ impl Range {
             self.value,
             on_input,
         );
+
         slider = slider
             .height(theme.height)
             .width(theme.vertical_slider_width)
             .step(self.step)
             .style(move |_, _| style);
 
-        if on_release.is_some() {
-            slider = slider.on_release(on_release.unwrap());
+        if let Some(on_release) = on_release {
+            slider = slider.on_release(on_release);
         }
 
-        if self.second_step.is_some() {
-            slider = slider.shift_step(self.second_step.unwrap());
+        if let Some(second_step) = self.second_step {
+            slider = slider.shift_step(second_step);
         }
 
-        if self.default.is_some() {
-            slider = slider.default(self.default.unwrap());
+        if let Some(default) = self.default {
+            slider = slider.default(default);
         }
 
         return slider.into();
@@ -100,43 +112,43 @@ impl Range {
 }
 
 impl ElementBase for Range {
-    fn new(xml_element: &XmlElement, _: &mut ElementRenderer, _: i32) -> Self {
+    fn new(
+        xml_element: Box<XmlElement>,
+        _: &mut ElementMappings,
+        _: i32,
+    ) -> Result<Self, ElementError> {
         let mut min = 0.0;
         let mut max = 1.0;
         let mut value = 0.0;
         let mut default = None;
         let mut shift_step = None;
         let mut step = 0.1;
-        if xml_element.attributes.contains_key("min") {
-            min = xml_element.attributes["min"].parse::<f32>().unwrap_or(0.0);
-        }
-        if xml_element.attributes.contains_key("max") {
-            max = xml_element.attributes["max"].parse::<f32>().unwrap_or(1.0);
-        }
-        if xml_element.attributes.contains_key("value") {
-            value = xml_element.attributes["value"]
-                .parse::<f32>()
-                .unwrap_or(0.0);
-        }
-        if xml_element.attributes.contains_key("default") {
-            default = Some(
-                xml_element.attributes["default"]
-                    .parse::<f32>()
-                    .unwrap_or(0.0),
-            );
-        }
-        if xml_element.attributes.contains_key("step") {
-            step = xml_element.attributes["step"].parse::<f32>().unwrap_or(0.1);
-        }
-        if xml_element.attributes.contains_key("second-step") {
-            shift_step = Some(
-                xml_element.attributes["second-step"]
-                    .parse::<f32>()
-                    .unwrap_or(0.01),
-            );
+
+        if let Some(min_str) = xml_element.attributes.get("min") {
+            min = min_str.parse::<f32>().unwrap_or(0.0);
         }
 
-        Self {
+        if let Some(max_str) = xml_element.attributes.get("max") {
+            max = max_str.parse::<f32>().unwrap_or(1.0);
+        }
+
+        if let Some(value_str) = xml_element.attributes.get("value") {
+            value = value_str.parse::<f32>().unwrap_or(0.0);
+        }
+
+        if let Some(default_str) = xml_element.attributes.get("default") {
+            default = Some(default_str.parse::<f32>().unwrap_or(0.0));
+        }
+
+        if let Some(step_str) = xml_element.attributes.get("step") {
+            step = step_str.parse::<f32>().unwrap_or(0.1);
+        }
+
+        if let Some(shift_step_str) = xml_element.attributes.get("second-step") {
+            shift_step = Some(shift_step_str.parse::<f32>().unwrap_or(0.01));
+        }
+
+        return Ok(Self {
             min: min,
             max: max,
             value: value,
@@ -144,50 +156,57 @@ impl ElementBase for Range {
             step: step,
             second_step: shift_step,
             vertical: xml_element.attributes.contains_key("vertical"),
-        }
+        });
     }
 
     fn render<'a>(
         &self,
-        _: &'a ElementRenderer,
+        _: &'a ElementsManager,
         datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
+
         let mut handle_theme = theme.clone();
-        if datas.flag_themes.contains_key("handle") {
-            handle_theme = datas.flag_themes["handle"].clone();
+
+        if let Some(handle_theme_data) = datas.flag_themes.get("handle") {
+            handle_theme = handle_theme_data.clone();
         }
 
-        let mut id = -1;
+        let mut id = None;
+
         for event in &events {
-            match event.event_type.as_str() {
-                "input" => {
-                    id = event.event_uid;
+            match event.event_type {
+                EventListenerTypes::Input => {
+                    id = Some(event.event_uid);
                 }
                 _ => (),
             }
         }
+
         let on_input = move |v| {
-            let mut event_response = EventResponse::new(self_uid, String::from("input"));
+            let mut event_response = EventResponse::new(self_uid, EventListenerTypes::Input);
+
             event_response.data_float = Some(HashableF32::new(v));
+
             return Message::DomEvent(id, event_response);
         };
 
         let mut on_release_message = None;
 
         for event in events {
-            match event.event_type.as_str() {
-                "release" => {
+            match event.event_type {
+                EventListenerTypes::Release => {
                     on_release_message = Some(Message::DomEvent(
-                        event.event_uid,
-                        EventResponse::new(self_uid, String::from("release")),
+                        Some(event.event_uid),
+                        EventResponse::new(self_uid, event.event_type.clone()),
                     ));
                 }
                 _ => (),
             }
         }
+
         let style = iced::widget::slider::Style {
             rail: iced::widget::slider::Rail {
                 backgrounds: (theme.background, theme.foreground_element),
@@ -205,6 +224,7 @@ impl ElementBase for Range {
                 border_color: handle_theme.border_color,
             },
         };
+
         if self.vertical {
             return self.vertical(theme, on_input, on_release_message, style);
         } else {
@@ -212,100 +232,124 @@ impl ElementBase for Range {
         }
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         return match event {
-            XmlChangeEvent::EventFired(ev_type, value) => {
-                if ev_type == "input" {
-                    self.value = value
-                        .data_float
-                        .clone()
-                        .unwrap_or(HashableF32::new(self.value))
-                        .value();
-                    return Some((QueryResponse::new(true), Vec::new(), Vec::new()));
-                }
-                None
-            }
-            XmlChangeEvent::PropertyChange(key, value) => {
+            DomInternalMessageType::PropertyChange(key, value) => {
                 return match key.as_str() {
                     "value" => {
                         let r = parse_property(value.clone());
+
                         self.value = r.1.unwrap_or(self.value);
-                        return Some((r.0, Vec::new(), Vec::new()));
+
+                        return Some(ElementEventResponse::new(r.0));
                     }
                     "min" => {
                         let r = parse_property(value.clone());
+
                         self.min = r.1.unwrap_or(self.min);
-                        return Some((r.0, Vec::new(), Vec::new()));
+
+                        return Some(ElementEventResponse::new(r.0));
                     }
                     "max" => {
                         let r = parse_property(value.clone());
+
                         self.max = r.1.unwrap_or(self.max);
-                        return Some((r.0, Vec::new(), Vec::new()));
+
+                        return Some(ElementEventResponse::new(r.0));
                     }
                     "default" => {
                         let r = parse_property(value.clone());
+
                         self.default = r.1;
-                        return Some((r.0, Vec::new(), Vec::new()));
+
+                        return Some(ElementEventResponse::new(r.0));
                     }
                     "step" => {
                         let r = parse_property(value.clone());
+
                         self.step = r.1.unwrap_or(self.step);
-                        return Some((r.0, Vec::new(), Vec::new()));
+
+                        return Some(ElementEventResponse::new(r.0));
                     }
                     "second-step" => {
                         let r = parse_property(value.clone());
+
                         self.second_step = r.1;
-                        return Some((r.0, Vec::new(), Vec::new()));
+
+                        return Some(ElementEventResponse::new(r.0));
                     }
                     "vertical" => {
                         self.vertical = value == "true";
-                        return Some((QueryResponse::new(true), Vec::new(), Vec::new()));
+
+                        return Some(ElementEventResponse::success());
                     }
                     _ => None,
                 };
             }
-            XmlChangeEvent::GetProperty(key) => {
-                let mut result = QueryResponse::new(true);
+            DomInternalMessageType::GetProperty(key) => {
                 match key.as_str() {
                     "value" => {
-                        result.data_float = Some(HashableF32::new(self.value));
-                        return Some((result, Vec::new(), Vec::new()));
+                        return Some(ElementEventResponse::new(
+                            QueryResponse::success().with_data_float(self.value),
+                        ));
                     }
                     "min" => {
-                        result.data_float = Some(HashableF32::new(self.min));
-                        return Some((result, Vec::new(), Vec::new()));
+                        return Some(ElementEventResponse::new(
+                            QueryResponse::success().with_data_float(self.min),
+                        ));
                     }
                     "max" => {
-                        result.data_float = Some(HashableF32::new(self.max));
-                        return Some((result, Vec::new(), Vec::new()));
+                        return Some(ElementEventResponse::new(
+                            QueryResponse::success().with_data_float(self.max),
+                        ));
                     }
-                    "default" => {
-                        if self.default.is_some() {
-                            result.data_float = Some(HashableF32::new(self.default.unwrap()));
-                        }
-                        return Some((result, Vec::new(), Vec::new()));
-                    }
+                    "default" => match self.default {
+                        Some(default) => Some(ElementEventResponse::new(
+                            QueryResponse::success().with_data_float(default),
+                        )),
+                        _ => Some(ElementEventResponse::new(QueryResponse::success())), // We don't fail if the default is not set, we just return success with no data
+                    },
+
                     "step" => {
-                        result.data_float = Some(HashableF32::new(self.step));
-                        return Some((result, Vec::new(), Vec::new()));
+                        return Some(ElementEventResponse::new(
+                            QueryResponse::success().with_data_float(self.step),
+                        ));
                     }
-                    "second-step" => {
-                        if self.second_step.is_some() {
-                            result.data_float = Some(HashableF32::new(self.second_step.unwrap()));
-                        }
-                        return Some((result, Vec::new(), Vec::new()));
-                    }
+                    "second-step" => match self.second_step {
+                        Some(second_step) => Some(ElementEventResponse::new(
+                            QueryResponse::success().with_data_float(second_step),
+                        )),
+                        _ => Some(ElementEventResponse::new(QueryResponse::success())), // Same here
+                    },
+
                     "vertical" => {
-                        result.data_bool = Some(self.vertical);
-                        return Some((result, Vec::new(), Vec::new()));
+                        return Some(ElementEventResponse::new(
+                            QueryResponse::success().with_data_bool(self.vertical),
+                        ));
                     }
                     _ => None,
                 }
             }
             _ => None,
         };
+    }
+
+    fn event_callback(
+        &mut self,
+        event_type: &EventListenerTypes,
+        event_response: &EventResponse,
+    ) -> Option<ElementEventResponse> {
+        match event_type {
+            EventListenerTypes::Input => {
+                self.value = event_response
+                    .data_float
+                    .clone()
+                    .unwrap_or(HashableF32::new(self.value))
+                    .value();
+
+                return Some(ElementEventResponse::success());
+            }
+            _ => None,
+        }
     }
 }

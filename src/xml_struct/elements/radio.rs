@@ -1,12 +1,20 @@
 use crate::{
-    dom::query::{EventResponse, QueryResponse},
+    dom::{
+        types::EventResponse,
+        types::{DomInternalMessageType, EventListenerTypes},
+    },
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementEventResponse, ElementExtraData, EventListener, RendererEvent},
+    },
     xml_engine::Message::{self},
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::element_base::ElementBase,
-        parser::{XmlChangeEvent, XmlElement},
+        elements::{element_base::ElementBase, library::ElementError},
+        xml_element::XmlElement,
     },
 };
+use log::warn;
 
 pub struct RadioButton {
     text: String,
@@ -16,68 +24,81 @@ pub struct RadioButton {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RadioElement {
-    Element(i32), // Element(uid)
+    Element(i32), // Element(stringdb uid)
 }
 
 impl ElementBase for RadioButton {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, _: i32) -> Self {
-        if xml_element.attributes.get("radio-id").is_none() {
-            panic!("Attribute id is required on <Radio />");
-        }
-        if xml_element.attributes.get("selection-id").is_none() {
-            panic!("Attribute selection-id is required on <Radio />");
-        }
+    fn new(
+        xml_element: Box<XmlElement>,
+        renderer: &mut ElementMappings,
+        _: i32,
+    ) -> Result<Self, ElementError> {
         let mut text = xml_element.text.clone();
+
         if xml_element.text.is_empty() {
-            println!("Warning: created a <Radio /> element without text");
+            warn!("Warning: created a <Radio /> element without text");
             text = String::from("No text");
         }
-        let id = xml_element.attributes.get("radio-id").unwrap();
+
+        let selection_id = xml_element.attributes.get("radio-id").ok_or(
+            ElementError::AttributeIdRequiredForRadio(xml_element.clone()),
+        )?;
+
+        let id = xml_element.attributes.get("value").ok_or(
+            ElementError::AttributeValueRequiredForRadio(xml_element.clone()),
+        )?;
+
         let choice = RadioElement::Element(renderer.register_stringdb(id.clone()));
 
         if xml_element.attributes.get("selected").is_some() {
             renderer.set_radio_selection(id.clone(), choice);
         }
 
-        Self {
-            selection_id: xml_element.attributes.get("selection-id").unwrap().clone(),
+        return Ok(Self {
+            selection_id: selection_id.clone(),
             text: text,
             choice: choice,
-        }
+        });
     }
 
     fn render<'a>(
         &self,
-        renderer: &'a ElementRenderer,
+        renderer: &'a ElementsManager,
         datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,
     ) -> iced::Element<'a, Message> {
         let theme = datas.default_theme.clone();
-        let mut ev_response = EventResponse::new(self_uid, String::from("select"));
-        let mut id = -1;
+
+        let mut ev_response = EventResponse::new(self_uid, EventListenerTypes::Select);
+
+        let mut id = None;
+
         for event in events {
-            match event.event_type.as_str() {
-                "select" => {
-                    id = event.event_uid;
+            match event.event_type {
+                EventListenerTypes::Select => {
+                    id = Some(event.event_uid);
                 }
                 _ => {}
             }
         }
 
-        let current_choice = renderer.get_radio_selection(self.selection_id.clone());
+        let current_choice = renderer
+            .get_mappings()
+            .get_radio_selection(self.selection_id.clone());
 
         let mut radio = iced::widget::radio::Radio::new(
             self.text.clone(),
             self.choice,
             current_choice,
             |choice| {
-                ev_response.data_str = renderer.get_stringdb(match choice {
+                ev_response.data_str = renderer.get_mappings().get_stringdb(match choice {
                     RadioElement::Element(id) => id,
                 });
                 return Message::DomEvent(id, ev_response);
             },
         );
+
         radio = radio
             .font(theme.font)
             .spacing(theme.spacing)
@@ -92,50 +113,50 @@ impl ElementBase for RadioButton {
                 dot_color: theme.icon_color,
                 text_color: Some(theme.foreground_color),
             });
-        if theme.size.is_some() {
-            radio = radio.size(theme.size.unwrap());
+
+        if let Some(size) = theme.size {
+            radio = radio.size(size);
         }
-        if theme.font_size.is_some() {
-            radio = radio.text_size(theme.font_size.unwrap());
+
+        if let Some(font_size) = theme.font_size {
+            radio = radio.text_size(font_size);
         }
 
         return radio.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         match event {
-            XmlChangeEvent::PropertyChange(id, value) => match id.as_str() {
+            DomInternalMessageType::PropertyChange(id, value) => match id.as_str() {
                 "text" => {
                     self.text = value.clone();
-                    return Some((QueryResponse::new(true), Vec::new(), Vec::new()));
+
+                    return Some(ElementEventResponse::success());
                 }
                 _ => None,
             },
-            XmlChangeEvent::GetProperty(id) => match id.as_str() {
+            DomInternalMessageType::GetProperty(id) => match id.as_str() {
                 "text" => {
-                    let query_response = QueryResponse::new(true);
-                    return Some((query_response, Vec::new(), Vec::new()));
-                }
-                _ => None,
-            },
-            XmlChangeEvent::EventFired(event_type, _) => match event_type.as_str() {
-                "select" => {
-                    let query_response = QueryResponse::new(true);
-                    return Some((
-                        query_response,
-                        Vec::new(),
-                        Vec::from([RendererEvent::RadioSelectionChange(
-                            self.selection_id.clone(),
-                            self.choice,
-                        )]),
-                    ));
+                    return Some(ElementEventResponse::success());
                 }
                 _ => None,
             },
             _ => None,
         }
+    }
+
+    fn event_callback(
+        &mut self,
+        event_type: &EventListenerTypes,
+        _: &EventResponse,
+    ) -> Option<ElementEventResponse> {
+        return match event_type {
+            EventListenerTypes::Select => {
+                return Some(ElementEventResponse::success().with_renderer_events(vec![
+                    RendererEvent::RadioSelectionChange(self.selection_id.clone(), self.choice),
+                ]));
+            }
+            _ => None,
+        };
     }
 }

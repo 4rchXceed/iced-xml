@@ -1,0 +1,10 @@
+[package]
+name = "iced-xml-unittests"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+iced-xml = { path = "../../", features = ["css-watcher"] }
+
+[features]
+css-watcher=[]

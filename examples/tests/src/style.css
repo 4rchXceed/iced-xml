@@ -1,0 +1,80 @@
+Checkbox {
+    bg: white;
+    border-width: 2;
+    border-radius: 5;
+    border-color: black;
+    checkbox-icon: "X" 20 relative 5;
+}
+
+#test02-subject {
+    checkbox-icon: "X" 20 relative 10;
+}
+
+#test02-subject::for(checked) {
+    bg: rgb(0, 255, 0);
+}
+
+#test02-subject::for(unchecked) {
+    bg: red;
+}
+
+Button,
+Input {
+    bg: white;
+    border-width: 2;
+    border-radius: 5;
+    border-color: black;
+    width: min;
+}
+
+Input {
+    width: max;
+    fg: black;
+    padding: 10;
+    selection-color: cyan;
+}
+
+#sep {
+    height: 100f;
+}
+
+#grid {
+    grid-columns: 3;
+    grid-responsive-width: 300;
+    width: 200f;
+    height: 300f;
+}
+
+#blackwhite {
+    bg: black;
+    shadow-color: cyan;
+    shadow-blur: 10;
+}
+
+#whitefg {
+    fg: white;
+}
+
+Progress,
+Radio,
+Range {
+    fg-elem: cyan;
+    border-width: 2;
+    border-radius: 5;
+    border-color: black;
+    bg: rgb(30, 30, 30);
+    icon-color: cyan;
+}
+
+Scroll::for(scrollbar) {
+    bg: black;
+    border-width: 1;
+    border-color: black;
+}
+
+Scroll::for(scrollbar-scroller) {
+    bg: white;
+    border-width: 1;
+    border-color: black;
+    border-radius: 7;
+}

@@ -1,14 +1,23 @@
-use std::panic;
-
 use iced::{Border, Shadow};
 
 use crate::{
-    dom::query::{EventResponse, QueryResponse},
+    dom::{
+        types::{DomInternalMessageType, EventListenerTypes},
+        types::{EventResponse, QueryResponse},
+    },
+    elements_manager::{
+        elements_manager::ElementsManager,
+        mappings::ElementMappings,
+        utils::{ElementEventResponse, ElementExtraData, EventListener},
+    },
     xml_engine::Message,
     xml_struct::{
-        element_renderer::{ElementExtraData, ElementRenderer, EventListener, RendererEvent},
-        elements::{element_base::ElementBase, label::Label, library::AnyElement},
-        parser::{XmlChangeEvent, XmlElement},
+        elements::{
+            element_base::ElementBase,
+            label::Label,
+            library::{AnyElement, ElementError},
+        },
+        xml_element::XmlElement,
     },
 };
 
@@ -19,8 +28,12 @@ pub struct Button {
 }
 
 impl ElementBase for Button {
-    fn new(xml_element: &XmlElement, renderer: &mut ElementRenderer, self_uid: i32) -> Self {
-        let virtual_text = renderer.init_element_virt(
+    fn new(
+        xml_element: Box<XmlElement>,
+        mappings: &mut ElementMappings,
+        self_uid: i32,
+    ) -> Result<Self, ElementError> {
+        let virtual_text = mappings.init_element_virt(
             AnyElement::Label(Label::virt(xml_element.text.clone())),
             Some(xml_element.theme.clone()),
             self_uid,
@@ -28,38 +41,41 @@ impl ElementBase for Button {
 
         if !xml_element.text.trim().is_empty() {
             if xml_element.children.is_empty() {
-                Self {
+                return Ok(Self {
                     children: Vec::new(),
                     text: Some(xml_element.text.clone()),
                     virtual_text: virtual_text,
-                }
+                });
             } else {
-                panic!(
-                    "Button with text cannot have children: {}",
-                    xml_element.text
-                );
+                return Err(ElementError::TextButtonHasChildren(
+                    xml_element.clone(),
+                    xml_element.text.clone(),
+                ));
             }
         } else {
-            let mut children: Vec<i32> = Vec::new();
-            for child in &xml_element.children {
-                children.push(renderer.init_element_from_xml(child, self_uid));
-            }
+            let children: Vec<i32> = xml_element
+                .children
+                .iter()
+                .map(|child| mappings.init_element_from_xml(child.clone(), self_uid))
+                .collect();
 
-            Self {
+            return Ok(Self {
                 children: children,
                 text: None,
                 virtual_text: virtual_text,
-            }
+            });
         }
     }
+
     fn render<'a>(
         &self,
-        renderer: &'a ElementRenderer,
+        renderer: &'a ElementsManager,
         datas: ElementExtraData,
         events: Vec<&'a EventListener>,
         self_uid: i32,
     ) -> iced::Element<'a, Message> {
         let mut button_child: iced::widget::Column<'a, Message> = iced::widget::Column::new();
+
         for child in &self.children {
             button_child =
                 button_child.push(renderer.render_element(*child, datas.child_data.clone()));
@@ -100,10 +116,10 @@ impl ElementBase for Button {
             .width(theme.width);
 
         for event in events {
-            match event.event_type.as_str() {
-                "click" => {
+            match event.event_type {
+                EventListenerTypes::Click => {
                     button = button.on_press(Message::DomEvent(
-                        event.event_uid,
+                        Some(event.event_uid),
                         EventResponse::new(self_uid, event.event_type.clone()),
                     ));
                 }
@@ -114,30 +130,29 @@ impl ElementBase for Button {
         return button.into();
     }
 
-    fn process_event(
-        &mut self,
-        event: &XmlChangeEvent,
-    ) -> Option<(QueryResponse, Vec<i32>, Vec<RendererEvent>)> {
+    fn process_event(&mut self, event: &DomInternalMessageType) -> Option<ElementEventResponse> {
         // returns (query_response, elementsToForwardTheEvent)
-        let mut query_response = QueryResponse::new(true);
-        let mut elements_to_forward = Vec::new();
         match event {
-            XmlChangeEvent::PropertyChange(property, new_val) => {
+            DomInternalMessageType::PropertyChange(property, new_val) => {
                 return match property.as_str() {
                     "text" => {
                         self.text = Some(new_val.clone());
-                        elements_to_forward.push(self.virtual_text);
-                        Some((query_response, elements_to_forward, Vec::new()))
+
+                        Some(
+                            ElementEventResponse::success()
+                                .with_forward_to(vec![self.virtual_text]),
+                        )
                     }
                     _ => None,
                 };
             }
-            XmlChangeEvent::GetProperty(property) => {
+            DomInternalMessageType::GetProperty(property) => {
                 return match property.as_str() {
                     "text" => {
-                        if self.text.is_some() {
-                            query_response.data_str = self.text.clone();
-                            Some((query_response, elements_to_forward, Vec::new()))
+                        if let Some(text) = &self.text {
+                            Some(ElementEventResponse::new(
+                                QueryResponse::success().with_data_str(text.clone()),
+                            ))
                         } else {
                             None
                         }
