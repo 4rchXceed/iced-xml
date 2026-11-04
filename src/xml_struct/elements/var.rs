@@ -28,9 +28,9 @@ impl ElementBase for Var {
         if !xml_element.attributes.contains_key("var-key") {
             return Err(ElementError::VarMustHaveVarKey(xml_element.clone()));
         }
-        
+
         let mut fallback_text = String::from("Unknown");
-        
+
         if let Some(fallback_attr) = xml_element.attributes.get("fallback") {
             fallback_text = fallback_attr.to_string();
         }
@@ -51,10 +51,10 @@ impl ElementBase for Var {
         let theme = datas.default_theme.clone();
         let mut text = self.fallback_text.clone();
 
-        if let Some(child_data) = datas.child_data && let Some(table_datas) = child_data.table_datas {
-            let text_op = table_datas
-                .get(&self.key_name)
-                .cloned();
+        if let Some(child_data) = datas.child_data
+            && let Some(table_datas) = child_data.table_datas
+        {
+            let text_op = table_datas.get(&self.key_name).cloned();
 
             if let Some(text_op) = text_op {
                 text = text_op;

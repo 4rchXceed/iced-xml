@@ -32,6 +32,7 @@ pub enum Message {
     WindowOpened(window::Id, i32), // WindowID, creation params ID
     ///  - WindowClosed: this is a event that is sent when a window is closed.
     WindowClosed(window::Id),
+    TasksUpdate,
 }
 
 ///  The dynamic events are the events that are created using "Subscribe" in Iced.

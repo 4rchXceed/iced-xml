@@ -316,3 +316,8 @@ Finish the rewrite for the rest of the elements, and also remove usage of [] in 
 ## Last commit: e4d1e71ec86309dc14715fae67bbd8fa7b0f638a
 FINISHED THE REWRITE!!
 Removed any usage of [] in the code + finished with the elements
+
+## Last commit: 60eb9bbc1e9c7d300eda0c0b32f1bc70f8eb054f
++ Added a close mode (when there's no windows left, either close the app, or just don't do anything)
++ Added a sender parameter to open a window remotely
+
