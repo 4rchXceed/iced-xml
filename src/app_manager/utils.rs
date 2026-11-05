@@ -1,6 +1,10 @@
 use std::any::Any;
 
-use iced::{Element, Renderer, Subscription, Task, Theme, application, daemon::ViewFn, window};
+use iced::{
+    Element, Renderer, Subscription, Task, Theme, application,
+    daemon::{TitleFn, ViewFn},
+    window,
+};
 
 use crate::{app_manager::state_wrapper::App, window_wrapper::AppResult, xml_engine::Message};
 
@@ -49,9 +53,11 @@ pub fn run_app_internal<State: 'static>(
     update: impl application::UpdateFn<State, Message> + 'static,
     view: impl for<'a> ViewFn<'a, State, Message, Theme, Renderer> + 'static,
     subscribe: impl Fn(&State) -> Subscription<Message> + 'static,
+    title: impl TitleFn<State> + 'static,
 ) -> AppResult {
     return iced::daemon(boot, update, view)
         .subscription(subscribe)
+        .title(title)
         .run();
 }
 

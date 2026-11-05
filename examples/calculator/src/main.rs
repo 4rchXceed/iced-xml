@@ -1,7 +1,11 @@
 use std::any::Any;
 
 use iced_xml::{
-    app_manager::{app_manager::WindowManager, state_wrapper::App, utils::WindowId},
+    app_manager::{
+        app_manager::WindowManager,
+        state_wrapper::App,
+        utils::{CloseMode, WindowId},
+    },
     dom::{api::Dom, query_builder::QueryBuilder, types::EventListenerTypes},
     utils::watch_css::watch_css_file,
     window_manager,
@@ -202,5 +206,8 @@ pub fn main() -> AppResult {
         || AppState {},
         DEFAULT_ENGINE_SETTINGS.clone(),
         create_window,
+        CloseMode::Close,
+        std::sync::mpsc::channel::<WindowParams>().1,
+        String::from("Calculator"),
     );
 }

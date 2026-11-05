@@ -366,5 +366,6 @@ pub fn main() -> AppResult {
         create_window,
         CloseMode::Close,
         std::sync::mpsc::channel::<WindowParams>().1,
+        String::from("Iced XML Unittests"),
     );
 }

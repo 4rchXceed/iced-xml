@@ -35,6 +35,7 @@ where
     create_window: CreateWindowFn<W, C, S>,
     close_mode: CloseMode,
     open_sender: Arc<Mutex<Receiver<C>>>,
+    title: String,
 }
 
 impl<W, C, S> WindowManager<W, C, S>
@@ -50,6 +51,7 @@ where
         create_window: CreateWindowFn<W, C, S>,
         close_mode: CloseMode,
         open_window_sender: Arc<Mutex<Receiver<C>>>,
+        app_title: String,
     ) -> (Self, IcedTask) {
         let (_, open) = open_window(WindowSettings::default());
 
@@ -66,9 +68,14 @@ where
                 create_window: create_window,
                 close_mode: close_mode,
                 open_sender: open_window_sender,
+                title: app_title,
             },
             open.map(|id| Message::WindowOpened(id, -1)),
         );
+    }
+
+    fn title(&self, _id: WindowId) -> String {
+        return self.title.clone();
     }
 
     fn update(&mut self, message: Message) -> IcedTask {
@@ -204,7 +211,7 @@ where
         }
 
         subs.push(
-            time::every(Duration::from_millis(100))
+            time::every(Duration::from_secs(1))
                 .with(Message::TasksUpdate)
                 .map(|a| a.0),
         );
@@ -219,6 +226,7 @@ where
         create_window: CreateWindowFn<W, C, S>,
         close_mode: CloseMode,
         window_opener: Receiver<C>,
+        windows_title: String,
     ) -> AppResult {
         let window = Arc::new(Mutex::new(window_opener));
 
@@ -231,6 +239,7 @@ where
                     create_window,
                     close_mode.clone(),
                     window.clone(),
+                    windows_title.clone(),
                 );
 
                 return app;
@@ -238,6 +247,7 @@ where
             WindowManager::update,
             WindowManager::view,
             WindowManager::subscription,
+            WindowManager::title,
         );
     }
 }
