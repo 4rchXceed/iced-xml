@@ -15,4 +15,4 @@ css-watcher = ["notify"]
 
 [workspace]
 resolver = "3"
-members = ["examples/tests", "examples/calculator"]
+members = ["crates/iced-xml-macros","examples/tests", "examples/todo-app"]

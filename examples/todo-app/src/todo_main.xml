@@ -1,0 +1,8 @@
+<Col classes="root">
+    <Label classes="title">TODO List</Label>
+    <Label id="tasks-list">Failed to load TODOs</Label>
+    <Row id="new-todo-container">
+        <Input id="new-todo-name" placeholder="New TODO name"></Input>
+        <Button id="new-todo-btn">Add</Button>
+    </Row>
+</Col>

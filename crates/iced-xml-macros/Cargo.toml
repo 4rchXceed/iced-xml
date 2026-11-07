@@ -1,0 +1,11 @@
+[package]
+name = "iced-xml-macros"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+quote = "1.0.7"
+syn = {version = "1.0.52", features = ["full", "extra-traits"]}
+
+[lib]
+proc-macro = true
