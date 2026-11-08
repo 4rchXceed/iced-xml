@@ -138,7 +138,7 @@ pub fn window_css_watcher(args: TokenStream, input: TokenStream) -> TokenStream 
                 };
             }
 
-            fn set_css_watcher_rx(&mut self, rx: CssRx) {
+            fn set_css_watcher_rx(&mut self, rx: iced_xml::window_wrapper::CssRx) {
                 self.css_rx = Some(rx);
             }
 

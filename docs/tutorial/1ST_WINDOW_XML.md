@@ -20,7 +20,10 @@ Here's the code for these elements, it's explained below:
     <Label classes="title">TODO List</Label>
     <Label id="tasks-list">Failed to load TODOs</Label>
     <Row id="new-todo-container">
-        <Input id="new-todo-name" placeholder="New TODO name"></Input>
+        <Col classes="new-todo-inputs">
+            <Input id="new-todo-name" placeholder="New TODO name"></Input>
+            <Textarea id="new-todo-description" placeholder="New TODO description"></Textarea>
+        </Col>
         <Button id="new-todo-btn">Add</Button>
     </Row>
 </Col>
@@ -33,3 +36,11 @@ Here's a small explanation:
 - `Row`: Same as `Col` but it's horizontal
 - `Input`: Basically an HTML Input
 - `Button`: A Button with text inside
+
+### And the attributes?
+See [user guide](../user-guide/XML_SYNTAX.md) for `id` and `classes` attributes
+
+- `placeholder` is the input placeholder
+
+## Next steps
+We will then see how to make [queries from Rust](./1ST_WINDOW_RUST.md)

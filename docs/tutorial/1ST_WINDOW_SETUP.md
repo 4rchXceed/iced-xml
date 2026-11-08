@@ -30,12 +30,14 @@ We still need to create the XmlEngine and QueryBuilder, (qr and engine, added by
 Code (`todo_main.rs`)
 ```rust
 impl TodoListWindow {
-    pub fn new() {
-        let qr = QueryBuilder::new();
+    pub fn new() -> Self {
+        let qb = QueryBuilder::new();
         let engine = XmlEngine::new(
             include_str!("./todo_main.xml").to_string(),
-            DEFAULT_ENGINE_SETTINGS,
+            DEFAULT_ENGINE_SETTINGS.clone(),
         );
+
+        Self { qb, engine }
     }
 }
 ```
@@ -47,7 +49,7 @@ Because this is the Setup part, we won't write anything in it
 
 Code (`todo_main.rs`)
 ```rust
-pub fn init(&mut self) {}
+pub fn init(&mut self, app: &mut App<AppState>) {}
 ```
 
 ## Some utils methods
@@ -58,7 +60,7 @@ This one will log when there's an error, with an AddEventListener for example
 
 Code (`todo_main.rs`)
 ```rust
-pub fn log_on_error(&mut self, qr: QueryResponse) {
+fn log_on_error(&mut self, qr: QueryResponse) {
     if !qr.success
         && let Some(e) = qr.error_message
     {

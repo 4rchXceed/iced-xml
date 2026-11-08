@@ -2,7 +2,10 @@
     <Label classes="title">TODO List</Label>
     <Label id="tasks-list">Failed to load TODOs</Label>
     <Row id="new-todo-container">
-        <Input id="new-todo-name" placeholder="New TODO name"></Input>
+        <Col classes="new-todo-inputs">
+            <Input id="new-todo-name" placeholder="New TODO name"></Input>
+            <Textarea id="new-todo-description" placeholder="New TODO description"></Textarea>
+        </Col>
         <Button id="new-todo-btn">Add</Button>
     </Row>
 </Col>

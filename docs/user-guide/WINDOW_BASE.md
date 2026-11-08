@@ -16,6 +16,17 @@ pub struct WindowMain {...}
 
 That's it!
 
+### And for `css_watcher`?
+There's also a macro for it!
+
+```rust
+#[window_css_watcher(AppState, "style.css")]
+pub struct TodoListWindow {}
+```
+
+The second parameter is the path for the css file
+
+
 ## Note on CSS-Watcher
 Every lines/methods with `#[cfg(debug_assertions)]` before can be ignored if you don't plan to include hot reload in your app
 

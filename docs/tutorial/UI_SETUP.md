@@ -115,11 +115,13 @@ The enum will contain:
 
 Code (in `params.rs`):
 ```rust
+#[derive(Clone)]
 pub enum WindowType {
     TodoListWindow,
     TodoDetailWindow(usize)
 }
 
+#[derive(Clone)]
 pub struct WindowParams {
     pub window: WindowType
 }
@@ -132,7 +134,7 @@ We also pass the informations (in the TodoDetailWindow's case it's the task id) 
 
 So we need:
 ```rust
-pub fn create_window(params: WindowParams, state: &mut App<AppState>, win_id: WindowId) -> Window {
+pub fn create_window(params: WindowParams, state: &mut App<AppState>, _win_id: WindowId) -> Window {
     match params.window {
         WindowType::TodoListWindow => {
             let mut win = TodoListWindow::new();

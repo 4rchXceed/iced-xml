@@ -31,6 +31,9 @@ export default defineConfig({
           { text: 'UI Setup', link: '/tutorial/UI_SETUP.md' },
           { text: 'TodoListWindow Setup', link: '/tutorial/1ST_WINDOW_SETUP.md' },
           { text: 'TodoListWindow Elements', link: '/tutorial/1ST_WINDOW_XML.md' },
+          { text: 'TodoListWindow Rust', link: '/tutorial/1ST_WINDOW_RUST.md' },
+          { text: 'The TodoDetailWindow', link: '/tutorial/2ND_WINDOW.md' },
+          { text: 'Running the app!', link: '/tutorial/RUNNING_THE_APP.md' },
         ]
       },
       {
@@ -41,8 +44,11 @@ export default defineConfig({
           { text: 'Create Window Function', link: '/user-guide/CREATE_WINDOW_FN.md' },
           { text: 'A Window\'s Base', link: '/user-guide/WINDOW_BASE.md' },
           { text: 'The WindowId', link: '/user-guide/WINDOW_ID.md' },
+          { text: 'The Query System', link: '/user-guide/DOM_MANIPULATION.md' },
           { text: 'The Window params', link: '/user-guide/WINDOW_PARAMS.md' },
           { text: 'The XML Syntax', link: '/user-guide/XML_SYNTAX.md' },
+          { text: 'Create elements from Rust', link: '/user-guide/XML_ELEMENT.md' },
+          { text: 'Running the gui', link: '/user-guide/RUN_APP.md' },
         ]
       }
     ],

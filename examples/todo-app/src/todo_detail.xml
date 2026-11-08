@@ -1,0 +1,4 @@
+<Col>
+    <Label id="name">Error loading task</Label>
+    <Label id="description">Error loading task</Label>
+</Col>

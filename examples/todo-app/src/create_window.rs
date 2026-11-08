@@ -7,10 +7,11 @@ use crate::{
         WindowType::{self},
     },
     state::AppState,
+    todo_detail::TodoDetailWindow,
     todo_main::TodoListWindow,
 };
 
-pub fn create_window(params: WindowParams, state: &mut App<AppState>, win_id: WindowId) -> Window {
+pub fn create_window(params: WindowParams, state: &mut App<AppState>, _win_id: WindowId) -> Window {
     match params.window {
         WindowType::TodoListWindow => {
             let mut win = TodoListWindow::new();
